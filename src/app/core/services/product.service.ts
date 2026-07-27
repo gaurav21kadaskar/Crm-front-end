@@ -16,6 +16,15 @@ export class ProductService {
     return this.http.post<any>(`${this.apiUrl}/api/product/`, productData);
   }
 
-  // Prepare for future integrations
-  // getProducts(): Observable<Product[]> { ... }
+  getProducts(): Observable<Product[]> {
+    return this.http.get<Product[]>(`${this.apiUrl}/api/product/`);
+  }
+
+  updateProduct(id: number, productData: Partial<Product>): Observable<any> {
+    return this.http.patch<any>(`${this.apiUrl}/api/product/${id}/`, productData);
+  }
+
+  deleteProduct(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/api/product/${id}/`);
+  }
 }

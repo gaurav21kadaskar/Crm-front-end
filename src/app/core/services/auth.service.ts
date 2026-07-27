@@ -31,11 +31,11 @@ export class AuthService {
   }
 
   register(userData: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/auth/register/`, userData);
+    return this.http.post<AuthResponse>(`${this.apiUrl}/api/register/`, userData);
   }
 
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.TOKEN_KEY);
     this.tokenSignal.set(null);
     this.router.navigate(['/auth/login']);
   }
@@ -55,12 +55,23 @@ export class AuthService {
     }
   }
 
+  getUsername(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.username || payload.user || payload.email || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   private setToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
+    sessionStorage.setItem(this.TOKEN_KEY, token);
     this.tokenSignal.set(token);
   }
 
   private getTokenFromStorage(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
+    return sessionStorage.getItem(this.TOKEN_KEY);
   }
 }

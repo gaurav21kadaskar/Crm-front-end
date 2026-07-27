@@ -16,7 +16,15 @@ export class BrandService {
     return this.http.post<any>(`${this.apiUrl}/api/brand/`, brandData);
   }
   
-  // Prepare for future integrations
-  // getBrands(): Observable<Brand[]> { ... }
-  // updateBrand(id: number, data: Brand): Observable<any> { ... }
+  getBrands(): Observable<Brand[]> {
+    return this.http.get<Brand[]>(`${this.apiUrl}/api/brand/`);
+  }
+
+  updateBrand(id: number, brandData: Partial<Brand>): Observable<any> {
+    return this.http.patch<any>(`${this.apiUrl}/api/brand/${id}/`, brandData);
+  }
+
+  deleteBrand(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/api/brand/${id}/`);
+  }
 }

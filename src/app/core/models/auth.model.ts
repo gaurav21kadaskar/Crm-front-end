@@ -12,6 +12,8 @@ export interface RegisterRequest {
   isAdmin?: boolean;
   isCustomer?: boolean;
   isDistributor?: boolean;
+  fromPin?: number;
+  toPin?: number;
 }
 
 export interface AuthResponse {

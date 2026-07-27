@@ -10,113 +10,212 @@ import { ToastService } from '../../../shared/services/toast.service';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterLink],
   template: `
-    <div class="card animate-fade-in hover-lift" style="max-width: 600px; margin: 0 auto;">
-      <div class="card-header">
-        <h3>Create New User</h3>
-        <p class="text-secondary" style="font-size: 0.875rem; margin: 0;">Create an account for a Customer or Distributor.</p>
-      </div>
-      <div class="card-body">
+    <div class="page-wrapper animate-fade-in">
+      <div class="pro-auth-card">
+        <div class="pro-card-header">
+          <div class="header-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          </div>
+          <div>
+            <h2 class="pro-title">Create New User</h2>
+            <p class="pro-subtitle">Register an Admin, Customer, or Distributor account</p>
+          </div>
+        </div>
         
-        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-          <div class="form-group">
-            <label class="form-label" for="username">Username</label>
-            <input 
-              id="username" 
-              type="text" 
-              class="form-control" 
-              [ngClass]="{'is-invalid': submitted && f['username'].errors}"
-              formControlName="username" 
-              placeholder="Choose a username"
-            />
-            @if (submitted && f['username'].errors?.['required']) {
-              <div class="error-message">Username is required</div>
-            }
-          </div>
-
-          <div class="form-row">
-            <div class="form-group half-width">
-              <label class="form-label" for="firstName">First Name</label>
+        <div class="pro-card-body">
+          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+            <div class="pro-form-group">
+              <label class="pro-label" for="username">Username *</label>
               <input 
-                id="firstName" 
+                id="username" 
                 type="text" 
-                class="form-control" 
-                formControlName="firstName" 
-                placeholder="First name"
+                class="pro-input" 
+                [ngClass]="{'pro-invalid': submitted && f['username'].errors}"
+                formControlName="username" 
+                placeholder="Enter username"
               />
+              @if (submitted && f['username'].errors?.['required']) {
+                <div class="pro-error">Username is required</div>
+              }
             </div>
-            <div class="form-group half-width">
-              <label class="form-label" for="lastName">Last Name</label>
-              <input 
-                id="lastName" 
-                type="text" 
-                class="form-control" 
-                formControlName="lastName" 
-                placeholder="Last name"
-              />
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="email">Email</label>
-            <input 
-              id="email" 
-              type="email" 
-              class="form-control" 
-              [ngClass]="{'is-invalid': submitted && f['email'].errors}"
-              formControlName="email" 
-              placeholder="Enter your email"
-            />
-            @if (submitted && f['email'].errors?.['email']) {
-              <div class="error-message">Enter a valid email address</div>
-            }
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="password">Password</label>
-            <input 
-              id="password" 
-              type="password" 
-              class="form-control"
-              [ngClass]="{'is-invalid': submitted && f['password'].errors}"
-              formControlName="password" 
-              placeholder="Create a password"
-            />
-            @if (submitted && f['password'].errors?.['required']) {
-              <div class="error-message">Password is required</div>
-            }
-          </div>
 
-          <div class="form-group role-selection">
-            <label class="form-label">Select User Role</label>
-            <div class="radio-group mt-2">
-              <label class="radio-card" [class.selected]="registerForm.get('role')?.value === 'Admin'">
-                <input type="radio" formControlName="role" value="Admin" class="sr-only">
-                <span class="role-title">Admin</span>
-              </label>
-              
-              <label class="radio-card" [class.selected]="registerForm.get('role')?.value === 'Customer'">
-                <input type="radio" formControlName="role" value="Customer" class="sr-only">
-                <span class="role-title">Customer</span>
-              </label>
-              
-              <label class="radio-card" [class.selected]="registerForm.get('role')?.value === 'Distributor'">
-                <input type="radio" formControlName="role" value="Distributor" class="sr-only">
-                <span class="role-title">Distributor</span>
-              </label>
+            <div class="pro-form-row">
+              <div class="pro-form-group half-width">
+                <label class="pro-label" for="firstName">First Name</label>
+                <input 
+                  id="firstName" 
+                  type="text" 
+                  class="pro-input" 
+                  formControlName="firstName" 
+                  placeholder="First name"
+                />
+              </div>
+              <div class="pro-form-group half-width">
+                <label class="pro-label" for="lastName">Last Name</label>
+                <input 
+                  id="lastName" 
+                  type="text" 
+                  class="pro-input" 
+                  formControlName="lastName" 
+                  placeholder="Last name"
+                />
+              </div>
             </div>
-            @if (submitted && f['role'].errors?.['required']) {
-              <div class="error-message">You must select a role for the new user.</div>
-            }
-          </div>
-          
-        <button type="submit" class="btn btn-primary w-100 mt-4" [disabled]="isLoading">
-          {{ isLoading ? 'Creating...' : 'Create User' }}
-        </button>
-      </form>
+            
+            <div class="pro-form-group">
+              <label class="pro-label" for="email">Email Address</label>
+              <input 
+                id="email" 
+                type="email" 
+                class="pro-input" 
+                [ngClass]="{'pro-invalid': submitted && f['email'].errors}"
+                formControlName="email" 
+                placeholder="name@company.com"
+              />
+              @if (submitted && f['email'].errors?.['email']) {
+                <div class="pro-error">Enter a valid email address</div>
+              }
+            </div>
+            
+            <div class="pro-form-group">
+              <label class="pro-label" for="password">Password *</label>
+              <input 
+                id="password" 
+                type="password" 
+                class="pro-input"
+                [ngClass]="{'pro-invalid': submitted && f['password'].errors}"
+                formControlName="password" 
+                placeholder="Enter password"
+              />
+              @if (submitted && f['password'].errors?.['required']) {
+                <div class="pro-error">Password is required</div>
+              }
+            </div>
+
+            <div class="pro-form-row">
+              <div class="pro-form-group half-width">
+                <label class="pro-label" for="fromPin">From PIN *</label>
+                <input 
+                  id="fromPin" 
+                  type="number" 
+                  class="pro-input" 
+                  [ngClass]="{'pro-invalid': submitted && f['fromPin'].errors}"
+                  formControlName="fromPin" 
+                  placeholder="e.g. 100001"
+                />
+                @if (submitted && f['fromPin'].errors?.['required']) {
+                  <div class="pro-error">From PIN is required</div>
+                }
+              </div>
+              <div class="pro-form-group half-width">
+                <label class="pro-label" for="toPin">To PIN *</label>
+                <input 
+                  id="toPin" 
+                  type="number" 
+                  class="pro-input" 
+                  [ngClass]="{'pro-invalid': submitted && f['toPin'].errors}"
+                  formControlName="toPin" 
+                  placeholder="e.g. 100099"
+                />
+                @if (submitted && f['toPin'].errors?.['required']) {
+                  <div class="pro-error">To PIN is required</div>
+                }
+              </div>
+            </div>
+
+            <div class="pro-form-group">
+              <label class="pro-label">Select User Role *</label>
+              <div class="pro-radio-group">
+                <label class="pro-radio-card" [class.selected]="registerForm.get('role')?.value === 'Admin'">
+                  <input type="radio" formControlName="role" value="Admin" class="sr-only">
+                  <div class="role-icon">⚡</div>
+                  <span class="pro-role-title">Admin</span>
+                </label>
+                
+                <label class="pro-radio-card" [class.selected]="registerForm.get('role')?.value === 'Customer'">
+                  <input type="radio" formControlName="role" value="Customer" class="sr-only">
+                  <div class="role-icon">👤</div>
+                  <span class="pro-role-title">Customer</span>
+                </label>
+                
+                <label class="pro-radio-card" [class.selected]="registerForm.get('role')?.value === 'Distributor'">
+                  <input type="radio" formControlName="role" value="Distributor" class="sr-only">
+                  <div class="role-icon">🏢</div>
+                  <span class="pro-role-title">Distributor</span>
+                </label>
+              </div>
+              @if (submitted && f['role'].errors?.['required']) {
+                <div class="pro-error">Please select a role.</div>
+              }
+            </div>
+            
+            <button type="submit" class="pro-btn-primary" [disabled]="isLoading">
+              {{ isLoading ? 'Creating User...' : 'Create Account' }}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   `,
   styles: [`
-    .form-row {
+    .page-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 1.5rem 1rem;
+    }
+
+    .pro-auth-card {
+      width: 100%;
+      max-width: 600px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+      padding: 2.25rem;
+    }
+
+    .pro-card-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.75rem;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 1.25rem;
+    }
+
+    .header-icon {
+      width: 46px;
+      height: 46px;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+      flex-shrink: 0;
+    }
+
+    .pro-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .pro-subtitle {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin: 0.2rem 0 0 0;
+    }
+
+    .pro-form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .pro-form-row {
       display: flex;
       gap: 1rem;
     }
@@ -125,10 +224,89 @@ import { ToastService } from '../../../shared/services/toast.service';
       flex: 1;
     }
 
-    .radio-group {
+    .pro-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 0.5rem;
+    }
+
+    .pro-input {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      font-size: 0.9rem;
+      color: #0f172a;
+      background-color: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+
+    .pro-input::placeholder {
+      color: #94a3b8;
+    }
+
+    .pro-input:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    .pro-input.pro-invalid {
+      border-color: #ef4444;
+    }
+    
+    .pro-error {
+      color: #ef4444;
+      font-size: 0.78rem;
+      margin-top: 0.35rem;
+      font-weight: 500;
+    }
+
+    .pro-radio-group {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
+      gap: 0.75rem;
+    }
+
+    .pro-radio-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.875rem 0.5rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      cursor: pointer;
+      background-color: #ffffff;
+      transition: all 0.2s ease;
+    }
+
+    .pro-radio-card:hover {
+      background-color: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    .pro-radio-card.selected {
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(124, 58, 237, 0.05));
+      border-color: #4f46e5;
+      color: #4f46e5;
+    }
+
+    .role-icon {
+      font-size: 1.25rem;
+    }
+
+    .pro-role-title {
+      font-size: 0.825rem;
+      font-weight: 600;
+      color: inherit;
     }
 
     .sr-only {
@@ -143,33 +321,40 @@ import { ToastService } from '../../../shared/services/toast.service';
       border-width: 0;
     }
 
-    .radio-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius);
-      cursor: pointer;
-      background: rgba(15, 23, 42, 0.4);
-      transition: all 0.3s ease;
-    }
-
-    .radio-card:hover {
-      border-color: rgba(91, 33, 182, 0.5);
-      background: rgba(91, 33, 182, 0.1);
-    }
-
-    .radio-card.selected {
-      border-color: var(--primary-color);
-      background: rgba(91, 33, 182, 0.2);
-      box-shadow: 0 0 0 1px var(--primary-color);
-    }
-
-    .role-title {
+    .pro-btn-primary {
+      width: 100%;
+      padding: 0.75rem 1.25rem;
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: #ffffff;
+      font-size: 0.925rem;
       font-weight: 600;
-      color: var(--text-primary);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 1.25rem;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+      font-family: inherit;
+    }
+
+    .pro-btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45);
+    }
+
+    .pro-btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-out both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   `]
 })
@@ -190,7 +375,9 @@ export class RegisterComponent {
       lastName: [''],
       email: ['', [Validators.email]],
       password: ['', Validators.required],
-      role: ['', Validators.required]
+      role: ['', Validators.required],
+      fromPin: [null, Validators.required],
+      toPin: [null, Validators.required]
     });
   }
 
@@ -205,7 +392,7 @@ export class RegisterComponent {
 
     this.isLoading = true;
     
-    // Map the single role back to the boolean flags the backend expects
+    // Map single role back to boolean flags
     const formValue = this.registerForm.value;
     const apiPayload = {
       ...formValue,
