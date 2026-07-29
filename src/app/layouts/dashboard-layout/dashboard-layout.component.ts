@@ -30,7 +30,17 @@ import { AuthService } from '../../core/services/auth.service';
               </a>
             </li>
 
-            <!-- Call Management Collapsible (all users) -->
+            <!-- Admin Only Links: Create User -->
+            @if (authService.getRole() === 'Admin') {
+              <li class="nav-item">
+                <a routerLink="/create-user" routerLinkActive="active" class="nav-link">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                  <span>Create User</span>
+                </a>
+              </li>
+            }
+
+            <!-- Call Management Collapsible (placed below Create User) -->
             <p class="nav-section-label" style="margin-top: 1.25rem;">Calls</p>
             <li class="nav-item">
               <button (click)="toggleCallMenu()" class="nav-link-btn" [class.open]="isCallMenuOpen">
@@ -61,15 +71,8 @@ import { AuthService } from '../../core/services/auth.service';
               }
             </li>
 
-            <!-- Admin Only Links -->
+            <!-- Admin Only Links: Product Management -->
             @if (authService.getRole() === 'Admin') {
-              <li class="nav-item">
-                <a routerLink="/create-user" routerLinkActive="active" class="nav-link">
-                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                  <span>Create User</span>
-                </a>
-              </li>
-
               <p class="nav-section-label" style="margin-top: 1.5rem;">Products</p>
               <li class="nav-item">
                 <button (click)="toggleProductMenu()" class="nav-link-btn" [class.open]="isProductMenuOpen">

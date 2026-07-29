@@ -1,6 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { CallService } from '../../core/services/call.service';
 import { BrandService } from '../../core/services/brand.service';
 import { ProductService } from '../../core/services/product.service';
@@ -18,7 +19,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
   imports: [CommonModule, ReactiveFormsModule, FormsModule],
   template: `
     <div class="page-wrapper animate-fade-in">
-      <!-- Header -->
+      <!-- Page Header -->
       <div class="pg-header">
         <div class="pg-header-left">
           <div class="pg-icon">
@@ -26,34 +27,22 @@ import { ProductIssue } from '../../core/models/product-issue.model';
           </div>
           <div>
             <h1 class="pg-title">Call Management</h1>
-            <p class="pg-subtitle">Manage customer service calls, assign technicians & track resolutions</p>
+            <p class="pg-subtitle">Manage customer service calls, track call numbers & update status</p>
           </div>
-        </div>
-
-        <!-- Mode Toggle Tabs -->
-        <div class="tab-nav">
-          <button class="tab-btn" [class.active]="activeTab === 'list'" (click)="activeTab = 'list'">
-            📋 All Calls
-          </button>
-          <button class="tab-btn" [class.active]="activeTab === 'create'" (click)="activeTab = 'create'">
-            ➕ Create Call
-          </button>
-          <button class="tab-btn" [class.active]="activeTab === 'lookup'" (click)="activeTab = 'lookup'">
-            🔍 Update by Call ID
-          </button>
         </div>
       </div>
 
-      <!-- Alerts -->
+      <!-- Notification Alerts -->
       @if (successMessage) {
         <div class="alert alert-success animate-fade-in">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          {{ successMessage }}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>{{ successMessage }}</span>
         </div>
       }
       @if (errorMessage) {
         <div class="alert alert-error animate-fade-in">
-          {{ errorMessage }}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>{{ errorMessage }}</span>
         </div>
       }
 
@@ -63,15 +52,15 @@ import { ProductIssue } from '../../core/models/product-issue.model';
           <div class="data-card-header">
             <div>
               <h3 class="data-card-title">Customer Service Calls</h3>
-              <p class="data-card-subtitle">{{ calls.length }} call{{ calls.length !== 1 ? 's' : '' }} registered</p>
+              <p class="data-card-subtitle">Overview of service tickets and status updates</p>
             </div>
             <div class="card-header-actions">
               <button class="export-btn" (click)="showExportModal = true">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Export Calls
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export CSV
               </button>
               <button class="refresh-btn" (click)="loadCalls()" [disabled]="loading">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                 Refresh
               </button>
             </div>
@@ -80,210 +69,378 @@ import { ProductIssue } from '../../core/models/product-issue.model';
           @if (loading) {
             <div class="loading-state">
               <div class="spinner"></div>
-              <span>Loading calls...</span>
+              <span>Fetching calls from backend...</span>
             </div>
           } @else if (calls.length === 0) {
             <div class="empty-state">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              <p>No service calls found. Click "Create Call" to log your first call.</p>
+              <p>No service calls found. Select "Create New Call" from the sidebar to add a call.</p>
             </div>
           } @else {
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Call ID</th>
-                  <th>Customer</th>
-                  <th>Contact</th>
-                  <th>Brand & Product</th>
-                  <th>Model / Issue</th>
-                  <th>Status</th>
-                  <th>Priority</th>
-                  <th class="col-actions">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (call of calls; track call.id) {
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
                   <tr>
-                    <td class="td-id">{{ call.callId || '#' + call.id }}</td>
-                    <td class="td-name">
-                      <div class="customer-cell">
-                        <span class="customer-name">{{ call.customerName }}</span>
-                        @if (call.address) {
-                          <span class="customer-addr">{{ call.address }}</span>
-                        }
-                      </div>
-                    </td>
-                    <td class="td-contact">{{ call.customerPhone }}</td>
-                    <td class="td-rel">
-                      <span class="badge-brand">{{ getBrandName(call.brand) }}</span>
-                      <span class="badge-product">{{ getProductName(call.product) }}</span>
-                    </td>
-                    <td class="td-rel">
-                      <div class="model-issue-cell">
-                        <span class="model-name">{{ getModelName(call.model) }}</span>
-                        <span class="issue-name">{{ getIssueName(call.issue) }}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span class="status-badge" [ngClass]="getStatusClass(call.status)">
-                        {{ call.status }}
-                      </span>
-                    </td>
-                    <td>
-                      <span class="priority-badge" [ngClass]="getPriorityClass(call.priority)">
-                        {{ call.priority || 'Medium' }}
-                      </span>
-                    </td>
-                    <td class="td-actions">
-                      @if (deletingCallId === call.id) {
-                        <div class="delete-confirm">
-                          <span>Delete?</span>
-                          <button class="btn-confirm-yes" (click)="onDeleteCall(call.id!)">Yes</button>
-                          <button class="btn-confirm-no" (click)="deletingCallId = null">No</button>
-                        </div>
-                      } @else {
-                        <button class="btn-row-edit" (click)="startEditCall(call)">Edit</button>
-                        <button class="btn-row-delete" (click)="deletingCallId = call.id || null">Delete</button>
-                      }
-                    </td>
+                    <th>Call Number</th>
+                    <th>Customer Info</th>
+                    <th>Product</th>
+                    <th>Status & Priority</th>
+                    <th class="col-actions">Actions</th>
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (call of calls; track call.id || call.callNumber) {
+                    <tr>
+                      <td class="td-id">{{ call.callNumber || call.callId || '#' + call.id }}</td>
+                      <td>
+                        <div class="customer-cell">
+                          <span class="customer-name">{{ getCustomerName(call) }}</span>
+                          <span class="customer-addr">{{ getCustomerPhone(call) }}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="product-title">{{ getProductName(getCallProduct(call)) }}</span>
+                      </td>
+                      <td>
+                        <div class="status-cell">
+                          <span class="status-badge" [ngClass]="getStatusClass(call.status)">
+                            {{ call.status || 'Pending' }}
+                          </span>
+                          <span class="priority-badge" [ngClass]="getPriorityClass(getCallPriority(call))">
+                            {{ getCallPriority(call) }}
+                          </span>
+                        </div>
+                      </td>
+                      <td class="td-actions">
+                        <button class="btn-row-view" (click)="viewingCallDetails = call" title="View Full Details">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          View
+                        </button>
+                        <button class="btn-row-edit" (click)="startEditCall(call)" title="Edit Call">Edit</button>
+                        <button class="btn-row-delete" (click)="deletingCallObj = call" title="Delete Call">Delete</button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           }
         </div>
       }
 
-      <!-- TAB 2: CREATE CALL FORM WITH CASCADING DROPDOWNS -->
+      <!-- TAB 2: CREATE CALL FORM -->
       @if (activeTab === 'create') {
         <div class="card-form-wrapper animate-fade-in">
           <div class="form-card-header">
             <h3 class="form-card-title">Register New Customer Call</h3>
-            <p class="form-card-subtitle">Fill in customer and product issue details</p>
+            <p class="form-card-subtitle">Fill in all 5 sections. Product selection dynamically lists related models & call types.</p>
           </div>
           <form [formGroup]="callForm" (ngSubmit)="onCreateCallSubmit()">
             <div class="form-card-body">
-              <div class="section-divider">1. Customer Information</div>
-              <div class="form-grid-2">
-                <div class="pro-form-group">
-                  <label class="pro-label">Customer Name *</label>
-                  <input type="text" class="pro-input" formControlName="customerName" placeholder="Full Name" />
-                </div>
-                <div class="pro-form-group">
-                  <label class="pro-label">Customer Phone *</label>
-                  <input type="text" class="pro-input" formControlName="customerPhone" placeholder="Mobile Number" />
-                </div>
-              </div>
-              <div class="form-grid-2">
-                <div class="pro-form-group">
-                  <label class="pro-label">Email Address</label>
-                  <input type="email" class="pro-input" formControlName="customerEmail" placeholder="customer@example.com" />
-                </div>
-                <div class="pro-form-group">
-                  <label class="pro-label">PIN Code</label>
-                  <input type="text" class="pro-input" formControlName="pincode" placeholder="e.g. 400001" />
-                </div>
-              </div>
-              <div class="pro-form-group">
-                <label class="pro-label">Address</label>
-                <textarea class="pro-input" formControlName="address" rows="2" placeholder="Complete address"></textarea>
-              </div>
-
-              <div class="section-divider">2. Product Details (Cascading Selection)</div>
-              <div class="form-grid-3">
-                <!-- Brand Dropdown -->
-                <div class="pro-form-group">
-                  <label class="pro-label">1. Select Brand *</label>
-                  <select class="pro-input" formControlName="brand" (change)="onBrandSelect($event)">
-                    <option value="">-- Choose Brand --</option>
-                    @for (b of brands; track b.id) {
-                      <option [value]="b.id">{{ b.name }}</option>
-                    }
-                  </select>
+              
+              <!-- 1. CUSTOMER DETAIL -->
+              <div class="section-divider">👤 1. Customer Details</div>
+              <div formGroupName="customerDetail">
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">First Name *</label>
+                    <div class="input-with-select">
+                      <select class="pro-input title-select" formControlName="title">
+                        <option value="Mr">Mr</option>
+                        <option value="Mrs">Mrs</option>
+                        <option value="Ms">Ms</option>
+                        <option value="Dr">Dr</option>
+                      </select>
+                      <input type="text" class="pro-input" formControlName="firstName" placeholder="First Name" />
+                    </div>
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Last Name</label>
+                    <input type="text" class="pro-input" formControlName="lastName" placeholder="Last Name" />
+                  </div>
                 </div>
 
-                <!-- Product Dropdown (Filtered by Brand) -->
-                <div class="pro-form-group">
-                  <label class="pro-label">2. Select Product *</label>
-                  <select class="pro-input" formControlName="product" (change)="onProductSelect($event)" [disabled]="!filteredProducts.length">
-                    <option value="">{{ !callForm.get('brand')?.value ? '-- Select Brand First --' : '-- Choose Product --' }}</option>
-                    @for (p of filteredProducts; track p.id) {
-                      <option [value]="p.id">{{ p.name }}</option>
-                    }
-                  </select>
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Address 1</label>
+                    <input type="text" class="pro-input" formControlName="address1" placeholder="House / Flat / Street" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Landmark</label>
+                    <input type="text" class="pro-input" formControlName="landmark" placeholder="Near Park / Station" />
+                  </div>
                 </div>
 
-                <!-- Model Dropdown (Filtered by Product) -->
-                <div class="pro-form-group">
-                  <label class="pro-label">3. Select Model *</label>
-                  <select class="pro-input" formControlName="model" [disabled]="!filteredModels.length">
-                    <option value="">{{ !callForm.get('product')?.value ? '-- Select Product First --' : '-- Choose Model --' }}</option>
-                    @for (m of filteredModels; track m.id) {
-                      <option [value]="m.id">{{ m.modelName }}</option>
-                    }
-                  </select>
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Locality</label>
+                    <input type="text" class="pro-input" formControlName="locality" placeholder="Locality" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">City</label>
+                    <input type="text" class="pro-input" formControlName="city" placeholder="City" />
+                  </div>
+                </div>
+
+                <div class="form-grid-3">
+                  <div class="pro-form-group">
+                    <label class="pro-label">District</label>
+                    <input type="text" class="pro-input" formControlName="district" placeholder="District" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">State</label>
+                    <input type="text" class="pro-input" formControlName="state" placeholder="State" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Pincode</label>
+                    <input type="number" class="pro-input" formControlName="pincode" placeholder="452001" />
+                  </div>
                 </div>
               </div>
 
-              <!-- Issue List Dropdown (Filtered by Product) -->
-              <div class="pro-form-group">
-                <label class="pro-label">4. Select Related Issue *</label>
-                <select class="pro-input" formControlName="issue" [disabled]="!filteredIssues.length">
-                  <option value="">{{ !callForm.get('product')?.value ? '-- Select Product First --' : '-- Choose Reported Issue --' }}</option>
-                  @for (iss of filteredIssues; track iss.id) {
-                    <option [value]="iss.id">{{ iss.issueName }}</option>
-                  }
-                </select>
+              <!-- 2. CONTACT DETAIL -->
+              <div class="section-divider">📞 2. Contact Details</div>
+              <div formGroupName="contactDetail">
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Mobile Number *</label>
+                    <input type="text" class="pro-input" formControlName="mobile" placeholder="10-digit mobile number" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Email Address</label>
+                    <input type="email" class="pro-input" formControlName="email" placeholder="john@example.com" />
+                  </div>
+                </div>
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Contact Person Name</label>
+                    <input type="text" class="pro-input" formControlName="contactPersonName" placeholder="Alternate contact name" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Contact Person Mobile</label>
+                    <input type="text" class="pro-input" formControlName="contactPersonMobile" placeholder="Alternate mobile" />
+                  </div>
+                </div>
+                <div class="pro-form-group">
+                  <label class="pro-label">Preferred Languages</label>
+                  <input type="text" class="pro-input" formControlName="language" placeholder="English, Hindi" />
+                </div>
               </div>
 
-              <div class="section-divider">3. Call Classification</div>
-              <div class="form-grid-3">
-                <div class="pro-form-group">
-                  <label class="pro-label">Priority</label>
-                  <select class="pro-input" formControlName="priority">
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
-                  </select>
+              <!-- 3. DEALER DETAIL -->
+              <div class="section-divider">🏪 3. Dealer Details</div>
+              <div formGroupName="dealerDetail">
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Dealer Name</label>
+                    <input type="text" class="pro-input" formControlName="dealerName" placeholder="Dealer / Store Name" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Dealer City</label>
+                    <input type="text" class="pro-input" formControlName="dealerCity" placeholder="Dealer City" />
+                  </div>
                 </div>
-                <div class="pro-form-group">
-                  <label class="pro-label">Status</label>
-                  <select class="pro-input" formControlName="status">
-                    <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Resolved">Resolved</option>
-                    <option value="Closed">Closed</option>
-                  </select>
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Dealer Mobile</label>
+                    <input type="text" class="pro-input" formControlName="dealerMobile" placeholder="Dealer Mobile" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Dealer Email</label>
+                    <input type="email" class="pro-input" formControlName="dealerEmail" placeholder="dealer@example.com" />
+                  </div>
                 </div>
-                <div class="pro-form-group">
-                  <label class="pro-label">Technician Assigned</label>
-                  <input type="text" class="pro-input" formControlName="technicianAssigned" placeholder="Name of technician" />
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Invoice Number</label>
+                    <input type="text" class="pro-input" formControlName="invoiceNumber" placeholder="INV001" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Purchase Date</label>
+                    <input type="date" class="pro-input" formControlName="purchaseDate" />
+                  </div>
                 </div>
               </div>
-              <div class="pro-form-group">
-                <label class="pro-label">Remarks / Description</label>
-                <textarea class="pro-input" formControlName="remarks" rows="2" placeholder="Additional notes..."></textarea>
+
+              <!-- 4. PRODUCT DETAIL -->
+              <div class="section-divider">📦 4. Product Details</div>
+              <div formGroupName="productDetail">
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">1. Select Brand *</label>
+                    <select class="pro-input highlight-select" formControlName="brand" (change)="onBrandSelect($event)">
+                      <option value="">-- Choose Brand --</option>
+                      @for (b of brands; track b.id) {
+                        <option [value]="b.id">{{ b.name }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="pro-form-group">
+                    <label class="pro-label">2. Select Product *</label>
+                    <select class="pro-input highlight-select" formControlName="product" (change)="onProductSelect($event)" [disabled]="!filteredProducts.length">
+                      <option value="">{{ !callForm.get('productDetail.brand')?.value ? '-- Select Brand First --' : '-- Choose Product --' }}</option>
+                      @for (p of filteredProducts; track p.id) {
+                        <option [value]="p.id">{{ p.name }}</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">3. Select Model *</label>
+                    <select class="pro-input highlight-select" formControlName="model" [disabled]="!filteredModels.length">
+                      <option value="">{{ !callForm.get('productDetail.product')?.value ? '-- Select Product First --' : '-- Choose Model --' }}</option>
+                      @for (m of filteredModels; track m.id) {
+                        <option [value]="m.id">{{ m.modelName }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="pro-form-group">
+                    <label class="pro-label">Unit Serial Number</label>
+                    <input type="text" class="pro-input" formControlName="unitSerialNumber" placeholder="SN001" />
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Client</label>
+                    <input type="text" class="pro-input" formControlName="client" placeholder="Retail / Corporate" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Purchase Date</label>
+                    <input type="date" class="pro-input" formControlName="purchaseDate" />
+                  </div>
+                </div>
+
+                <div class="form-grid-3">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Warranty</label>
+                    <input type="text" class="pro-input" formControlName="warranty" placeholder="1 Year" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Stock Of</label>
+                    <input type="text" class="pro-input" formControlName="stockOf" placeholder="Warehouse" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Purchase Order Number</label>
+                    <input type="text" class="pro-input" formControlName="purchaseOrderNumber" placeholder="PO001" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5. COMPLAINT DETAIL -->
+              <div class="section-divider">📋 5. Complaint Details & Call Status</div>
+              <div formGroupName="complaintDetail">
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Call Type / Reported Issue *</label>
+                    <select class="pro-input highlight-select" formControlName="callType" [disabled]="!filteredIssues.length && !callForm.get('productDetail.product')?.value">
+                      <option value="">{{ !callForm.get('productDetail.product')?.value ? '-- Select Product First --' : '-- Choose Call Type / Issue --' }}</option>
+                      <option value="Installation">Installation</option>
+                      <option value="Service">Service</option>
+                      <option value="Repair">Repair</option>
+                      <option value="Breakdown">Breakdown</option>
+                      <option value="Maintenance">Maintenance</option>
+                      @for (iss of filteredIssues; track iss.id) {
+                        <option [value]="iss.issueName">{{ iss.issueName }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="pro-form-group">
+                    <label class="pro-label">Complaint Priority</label>
+                    <select class="pro-input" formControlName="complaintPriority">
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                      <option value="Urgent">Urgent</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Call Nature</label>
+                    <input type="text" class="pro-input" formControlName="callNature" placeholder="Service" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Visit Type</label>
+                    <input type="text" class="pro-input" formControlName="visitType" placeholder="Home" />
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Last Complaint Number</label>
+                    <input type="text" class="pro-input" formControlName="lastComplaintNumber" placeholder="LC001" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Status</label>
+                    <select class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="createStatus">
+                      <option value="Pending">Pending</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Resolved">Resolved</option>
+                      <option value="Closed">Closed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid-3">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Promise Date</label>
+                    <input type="date" class="pro-input" formControlName="promiseDate" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Promise Time</label>
+                    <input type="time" class="pro-input" formControlName="promiseTime" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">AM / PM</label>
+                    <select class="pro-input" formControlName="amOrPm">
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Complaint Description</label>
+                    <textarea class="pro-input" formControlName="complaintDescription" rows="2" placeholder="Describe reported problem..."></textarea>
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Special Instructions</label>
+                    <textarea class="pro-input" formControlName="specialInstruction" rows="2" placeholder="Instructions..."></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pro-form-group" style="margin-top: 1rem;">
+                <label class="pro-label">Technician Assigned</label>
+                <input type="text" class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="createTechnicianAssigned" placeholder="Name of technician" />
               </div>
             </div>
 
             <div class="form-card-footer">
               <button type="button" class="btn-cancel" (click)="activeTab = 'list'">Cancel</button>
-              <button type="submit" class="create-toggle-btn" [disabled]="callForm.invalid || isSubmitting">
+              <button type="submit" class="create-toggle-btn" [disabled]="isSubmitting">
                 <span class="plus-icon">+</span>
-                <span>{{ isSubmitting ? 'Submitting...' : 'Register Call' }}</span>
+                <span>{{ isSubmitting ? 'Registering on Backend...' : 'Register Call' }}</span>
               </button>
             </div>
           </form>
         </div>
       }
 
-      <!-- TAB 3: UPDATE CALL BY CALL ID -->
+      <!-- TAB 3: UPDATE CALL BY CALL NUMBER -->
       @if (activeTab === 'lookup') {
         <div class="card-form-wrapper animate-fade-in">
           <div class="form-card-header">
-            <h3 class="form-card-title">Quick Update by Call ID</h3>
-            <p class="form-card-subtitle">Search any Call ID to quickly view and update status or technician</p>
+            <h3 class="form-card-title">Quick Update by Call Number</h3>
+            <p class="form-card-subtitle">Search any Call Number to quickly view and update status or technician</p>
           </div>
           
           <div class="lookup-bar">
@@ -291,11 +448,11 @@ import { ProductIssue } from '../../core/models/product-issue.model';
               type="text" 
               class="pro-input lookup-input" 
               [(ngModel)]="searchCallId" 
-              placeholder="Enter Call ID (e.g. CALL-1001 or 1)" 
-              (keyup.enter)="onSearchCallById()"
+              placeholder="Enter Call Number (e.g. CALL10001 or CN001)" 
+              (keyup.enter)="onSearchCallByNumber()"
             />
-            <button class="lookup-btn" (click)="onSearchCallById()">
-              🔍 Search Call
+            <button class="lookup-btn" (click)="onSearchCallByNumber()">
+              <span>Search Call</span>
             </button>
           </div>
 
@@ -303,10 +460,10 @@ import { ProductIssue } from '../../core/models/product-issue.model';
             <div class="found-call-card animate-slide-up">
               <div class="found-call-summary">
                 <div>
-                  <span class="summary-id">{{ foundCall.callId || '#' + foundCall.id }}</span>
-                  <h4 class="summary-name">{{ foundCall.customerName }} ({{ foundCall.customerPhone }})</h4>
+                  <span class="summary-id">{{ foundCall.callNumber || foundCall.callId || '#' + foundCall.id }}</span>
+                  <h4 class="summary-name">{{ getCustomerName(foundCall) }} ({{ getCustomerPhone(foundCall) }})</h4>
                   <p class="summary-desc">
-                    {{ getBrandName(foundCall.brand) }} &bull; {{ getProductName(foundCall.product) }} &bull; {{ getModelName(foundCall.model) }}
+                    {{ getProductName(getCallProduct(foundCall)) }}
                   </p>
                 </div>
                 <span class="status-badge" [ngClass]="getStatusClass(foundCall.status)">
@@ -336,19 +493,19 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                     </select>
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Assigned Technician</label>
+                    <label class="pro-label">Technician Assigned</label>
                     <input type="text" class="pro-input" formControlName="technicianAssigned" />
                   </div>
                 </div>
 
                 <div class="pro-form-group">
-                  <label class="pro-label">Update Remarks</label>
-                  <textarea class="pro-input" formControlName="remarks" rows="3" placeholder="Add status updates or resolution notes..."></textarea>
+                  <label class="pro-label">Remarks</label>
+                  <textarea class="pro-input" formControlName="remarks" rows="2"></textarea>
                 </div>
 
-                <div class="form-card-footer" style="padding-left: 0; padding-right: 0;">
-                  <button type="submit" class="create-toggle-btn">
-                    <span>Save Updates</span>
+                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+                  <button type="submit" class="btn-save" [disabled]="isSubmitting">
+                    {{ isSubmitting ? 'Updating on Backend...' : 'Save Quick Update' }}
                   </button>
                 </div>
               </form>
@@ -357,7 +514,112 @@ import { ProductIssue } from '../../core/models/product-issue.model';
         </div>
       }
 
-      <!-- EXPORT FILTER POPUP MODAL -->
+      <!-- DELETE CONFIRMATION MODAL POPUP -->
+      @if (deletingCallObj) {
+        <div class="modal-backdrop animate-fade-in" (click)="deletingCallObj = null">
+          <div class="modal-content modal-content-sm animate-slide-up" (click)="$event.stopPropagation()">
+            <div class="delete-modal-body">
+              <div class="delete-icon-wrapper">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              </div>
+              <h3 class="delete-modal-title">Delete Call Confirmation</h3>
+              <p class="delete-modal-desc">
+                Are you sure you want to delete call <strong>{{ deletingCallObj.callNumber || deletingCallObj.callId || '#' + deletingCallObj.id }}</strong>? This action cannot be undone.
+              </p>
+              <div class="delete-modal-actions">
+                <button class="btn-cancel" (click)="deletingCallObj = null">Cancel</button>
+                <button class="btn-danger-confirm" (click)="confirmDeleteCall()" [disabled]="isSubmitting">
+                  {{ isSubmitting ? 'Deleting...' : 'Yes, Delete Call' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- VIEW FULL CALL DETAILS MODAL (SLEEK 2x2 CARD GRID DESIGN) -->
+      @if (viewingCallDetails) {
+        <div class="modal-backdrop animate-fade-in" (click)="viewingCallDetails = null">
+          <div class="modal-content modal-content-lg animate-slide-up" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <div>
+                <h3 class="modal-title">Call Details &bull; {{ viewingCallDetails.callNumber || viewingCallDetails.callId || '#' + viewingCallDetails.id }}</h3>
+                <span class="status-badge" [ngClass]="getStatusClass(viewingCallDetails.status)">{{ viewingCallDetails.status || 'Pending' }}</span>
+              </div>
+              <button class="modal-close" (click)="viewingCallDetails = null">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="view-cards-grid">
+                
+                <!-- 1. Customer Info Card -->
+                <div class="view-info-card">
+                  <div class="view-card-header">
+                    <span class="card-header-icon">👤</span>
+                    <h4>Customer Information</h4>
+                  </div>
+                  <div class="view-card-content">
+                    <div class="info-row"><span class="info-label">Customer Name:</span> <span class="info-value text-bold">{{ getCustomerName(viewingCallDetails) }}</span></div>
+                    <div class="info-row"><span class="info-label">Mobile Number:</span> <span class="info-value">{{ getCustomerPhone(viewingCallDetails) }}</span></div>
+                    <div class="info-row"><span class="info-label">Email Address:</span> <span class="info-value">{{ viewingCallDetails.contactDetail?.email || 'N/A' }}</span></div>
+                    <div class="info-row"><span class="info-label">Full Address:</span> <span class="info-value">{{ getCustomerAddress(viewingCallDetails) || 'N/A' }}</span></div>
+                    <div class="info-row"><span class="info-label">Landmark:</span> <span class="info-value">{{ viewingCallDetails.customerDetail?.landmark || 'N/A' }}</span></div>
+                  </div>
+                </div>
+
+                <!-- 2. Product Info Card -->
+                <div class="view-info-card">
+                  <div class="view-card-header">
+                    <span class="card-header-icon">📦</span>
+                    <h4>Product & Model Details</h4>
+                  </div>
+                  <div class="view-card-content">
+                    <div class="info-row"><span class="info-label">Brand Name:</span> <span class="info-value text-bold">{{ getBrandName(getCallBrand(viewingCallDetails)) }}</span></div>
+                    <div class="info-row"><span class="info-label">Product Name:</span> <span class="info-value">{{ getProductName(getCallProduct(viewingCallDetails)) }}</span></div>
+                    <div class="info-row"><span class="info-label">Model Name:</span> <span class="info-value">{{ getModelName(getCallModel(viewingCallDetails)) }}</span></div>
+                    <div class="info-row"><span class="info-label">Serial Number:</span> <span class="info-value">{{ viewingCallDetails.productDetail?.unitSerialNumber || 'N/A' }}</span></div>
+                    <div class="info-row"><span class="info-label">Warranty:</span> <span class="info-value">{{ viewingCallDetails.productDetail?.warranty || 'N/A' }}</span></div>
+                  </div>
+                </div>
+
+                <!-- 3. Dealer Info Card -->
+                <div class="view-info-card">
+                  <div class="view-card-header">
+                    <span class="card-header-icon">🏪</span>
+                    <h4>Dealer & Purchase Info</h4>
+                  </div>
+                  <div class="view-card-content">
+                    <div class="info-row"><span class="info-label">Dealer Name:</span> <span class="info-value">{{ viewingCallDetails.dealerDetail?.dealerName || 'N/A' }}</span></div>
+                    <div class="info-row"><span class="info-label">Dealer City:</span> <span class="info-value">{{ viewingCallDetails.dealerDetail?.dealerCity || 'N/A' }}</span></div>
+                    <div class="info-row"><span class="info-label">Invoice Number:</span> <span class="info-value">{{ viewingCallDetails.dealerDetail?.invoiceNumber || 'N/A' }}</span></div>
+                    <div class="info-row"><span class="info-label">Purchase Date:</span> <span class="info-value">{{ viewingCallDetails.dealerDetail?.purchaseDate || 'N/A' }}</span></div>
+                  </div>
+                </div>
+
+                <!-- 4. Complaint Info Card -->
+                <div class="view-info-card">
+                  <div class="view-card-header">
+                    <span class="card-header-icon">📋</span>
+                    <h4>Complaint & Assignment</h4>
+                  </div>
+                  <div class="view-card-content">
+                    <div class="info-row"><span class="info-label">Call Type:</span> <span class="info-value">{{ viewingCallDetails.complaintDetail?.callType || 'N/A' }}</span></div>
+                    <div class="info-row"><span class="info-label">Priority:</span> <span class="priority-badge" [ngClass]="getPriorityClass(getCallPriority(viewingCallDetails))">{{ getCallPriority(viewingCallDetails) }}</span></div>
+                    <div class="info-row"><span class="info-label">Technician:</span> <span class="info-value text-bold">{{ viewingCallDetails.technicianAssigned || 'Unassigned' }}</span></div>
+                    <div class="info-row"><span class="info-label">Description:</span> <span class="info-value">{{ viewingCallDetails.complaintDetail?.complaintDescription || viewingCallDetails.remarks || 'N/A' }}</span></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-cancel" (click)="viewingCallDetails = null">Close</button>
+              <button type="button" class="btn-save" (click)="startEditFromDetails(viewingCallDetails)">Edit Call</button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- EXPORT MODAL -->
       @if (showExportModal) {
         <div class="modal-backdrop animate-fade-in" (click)="showExportModal = false">
           <div class="modal-content animate-slide-up" (click)="$event.stopPropagation()">
@@ -410,56 +672,310 @@ import { ProductIssue } from '../../core/models/product-issue.model';
         </div>
       }
 
-      <!-- EDIT CALL MODAL -->
+      <!-- EDIT CALL MODAL (PERFECTLY CENTERED & FLUID 2-COLUMN RESPONSIVE LAYOUT) -->
       @if (editingCall) {
         <div class="modal-backdrop animate-fade-in" (click)="editingCall = null">
-          <div class="modal-content animate-slide-up" (click)="$event.stopPropagation()">
+          <div class="modal-content modal-content-lg animate-slide-up" (click)="$event.stopPropagation()">
             <div class="modal-header">
-              <h3 class="modal-title">Edit Call ({{ editingCall.callId || '#' + editingCall.id }})</h3>
+              <div>
+                <h3 class="modal-title">Edit Call &bull; {{ editingCall.callNumber || editingCall.callId || '#' + editingCall.id }}</h3>
+                <p class="modal-subtitle">Update customer details, product model & service assignment</p>
+              </div>
               <button class="modal-close" (click)="editingCall = null">&times;</button>
             </div>
-            <form [formGroup]="editCallForm" (ngSubmit)="onSaveEditCall()">
+            
+            <form [formGroup]="editCallForm" (ngSubmit)="onSaveEditCall()" class="modal-form-container">
               <div class="modal-body">
-                <div class="pro-form-group">
-                  <label class="pro-label">Customer Name</label>
-                  <input type="text" class="pro-input" formControlName="customerName" />
+                
+                <!-- 1. CUSTOMER DETAIL -->
+                <div class="section-divider">👤 1. Customer Details</div>
+                <div formGroupName="customerDetail">
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">First Name *</label>
+                      <div class="input-with-select">
+                        <select class="pro-input title-select" formControlName="title">
+                          <option value="Mr">Mr</option>
+                          <option value="Mrs">Mrs</option>
+                          <option value="Ms">Ms</option>
+                          <option value="Dr">Dr</option>
+                        </select>
+                        <input type="text" class="pro-input" formControlName="firstName" placeholder="First Name" />
+                      </div>
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Last Name</label>
+                      <input type="text" class="pro-input" formControlName="lastName" placeholder="Last Name" />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Address Line 1</label>
+                      <input type="text" class="pro-input" formControlName="address1" placeholder="Address line 1" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Landmark</label>
+                      <input type="text" class="pro-input" formControlName="landmark" placeholder="Landmark" />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Locality</label>
+                      <input type="text" class="pro-input" formControlName="locality" placeholder="Locality" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">City</label>
+                      <input type="text" class="pro-input" formControlName="city" placeholder="City" />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-3">
+                    <div class="pro-form-group">
+                      <label class="pro-label">District</label>
+                      <input type="text" class="pro-input" formControlName="district" placeholder="District" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">State</label>
+                      <input type="text" class="pro-input" formControlName="state" placeholder="State" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Pincode</label>
+                      <input type="number" class="pro-input" formControlName="pincode" placeholder="452001" />
+                    </div>
+                  </div>
                 </div>
-                <div class="pro-form-group">
-                  <label class="pro-label">Customer Phone</label>
-                  <input type="text" class="pro-input" formControlName="customerPhone" />
-                </div>
-                <div class="form-grid-2">
-                  <div class="pro-form-group">
-                    <label class="pro-label">Status</label>
-                    <select class="pro-input" formControlName="status">
-                      <option value="Pending">Pending</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Resolved">Resolved</option>
-                      <option value="Closed">Closed</option>
-                    </select>
+
+                <!-- 2. CONTACT DETAIL -->
+                <div class="section-divider">📞 2. Contact Details</div>
+                <div formGroupName="contactDetail">
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Mobile Number *</label>
+                      <input type="text" class="pro-input" formControlName="mobile" placeholder="10-digit Mobile" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Email Address</label>
+                      <input type="email" class="pro-input" formControlName="email" placeholder="email@example.com" />
+                    </div>
+                  </div>
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Contact Person Name</label>
+                      <input type="text" class="pro-input" formControlName="contactPersonName" placeholder="Alternate Contact Name" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Contact Person Mobile</label>
+                      <input type="text" class="pro-input" formControlName="contactPersonMobile" placeholder="Alternate Mobile" />
+                    </div>
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Priority</label>
-                    <select class="pro-input" formControlName="priority">
-                      <option value="Low">Low</option>
-                      <option value="Medium">Medium</option>
-                      <option value="High">High</option>
-                      <option value="Urgent">Urgent</option>
-                    </select>
+                    <label class="pro-label">Languages</label>
+                    <input type="text" class="pro-input" formControlName="language" placeholder="English, Hindi" />
                   </div>
                 </div>
-                <div class="pro-form-group">
+
+                <!-- 3. DEALER DETAIL -->
+                <div class="section-divider">🏪 3. Dealer Details</div>
+                <div formGroupName="dealerDetail">
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Dealer Name</label>
+                      <input type="text" class="pro-input" formControlName="dealerName" placeholder="Store Name" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Dealer City</label>
+                      <input type="text" class="pro-input" formControlName="dealerCity" placeholder="Dealer City" />
+                    </div>
+                  </div>
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Dealer Mobile</label>
+                      <input type="text" class="pro-input" formControlName="dealerMobile" placeholder="Dealer Mobile" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Dealer Email</label>
+                      <input type="email" class="pro-input" formControlName="dealerEmail" placeholder="dealer@example.com" />
+                    </div>
+                  </div>
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Invoice Number</label>
+                      <input type="text" class="pro-input" formControlName="invoiceNumber" placeholder="INV001" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Purchase Date</label>
+                      <input type="date" class="pro-input" formControlName="purchaseDate" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 4. PRODUCT DETAIL -->
+                <div class="section-divider">📦 4. Product Details (Cascading Selection)</div>
+                <div formGroupName="productDetail">
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">1. Select Brand *</label>
+                      <select class="pro-input highlight-select" formControlName="brand" (change)="onEditBrandSelect($event)">
+                        <option value="">-- Choose Brand --</option>
+                        @for (b of brands; track b.id) {
+                          <option [value]="b.id">{{ b.name }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">2. Select Product *</label>
+                      <select class="pro-input highlight-select" formControlName="product" (change)="onEditProductSelect($event)">
+                        <option value="">-- Choose Product --</option>
+                        @for (p of editFilteredProducts; track p.id) {
+                          <option [value]="p.id">{{ p.name }}</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">3. Select Model *</label>
+                      <select class="pro-input highlight-select" formControlName="model">
+                        <option value="">-- Choose Model --</option>
+                        @for (m of editFilteredModels; track m.id) {
+                          <option [value]="m.id">{{ m.modelName }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Unit Serial Number</label>
+                      <input type="text" class="pro-input" formControlName="unitSerialNumber" placeholder="SN001" />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Client</label>
+                      <input type="text" class="pro-input" formControlName="client" placeholder="Retail" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Purchase Date</label>
+                      <input type="date" class="pro-input" formControlName="purchaseDate" />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-3">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Warranty</label>
+                      <input type="text" class="pro-input" formControlName="warranty" placeholder="1 Year" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Stock Of</label>
+                      <input type="text" class="pro-input" formControlName="stockOf" placeholder="Warehouse" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Purchase Order Number</label>
+                      <input type="text" class="pro-input" formControlName="purchaseOrderNumber" placeholder="PO001" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 5. COMPLAINT DETAIL & STATUS -->
+                <div class="section-divider">📋 5. Complaint Details & Call Status</div>
+                <div formGroupName="complaintDetail">
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Call Type / Reported Issue *</label>
+                      <select class="pro-input highlight-select" formControlName="callType">
+                        <option value="Installation">Installation</option>
+                        <option value="Service">Service</option>
+                        <option value="Repair">Repair</option>
+                        <option value="Breakdown">Breakdown</option>
+                        <option value="Maintenance">Maintenance</option>
+                        @for (iss of editFilteredIssues; track iss.id) {
+                          <option [value]="iss.issueName">{{ iss.issueName }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Complaint Priority</label>
+                      <select class="pro-input" formControlName="complaintPriority">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Urgent">Urgent</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Call Nature</label>
+                      <input type="text" class="pro-input" formControlName="callNature" placeholder="Service" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Visit Type</label>
+                      <input type="text" class="pro-input" formControlName="visitType" placeholder="Home" />
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Last Complaint Number</label>
+                      <input type="text" class="pro-input" formControlName="lastComplaintNumber" placeholder="LC001" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Call Status</label>
+                      <select class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="editStatus">
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Closed">Closed</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-grid-3">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Promise Date</label>
+                      <input type="date" class="pro-input" formControlName="promiseDate" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Promise Time</label>
+                      <input type="time" class="pro-input" formControlName="promiseTime" />
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">AM / PM</label>
+                      <select class="pro-input" formControlName="amOrPm">
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="pro-form-group">
+                      <label class="pro-label">Complaint Description</label>
+                      <textarea class="pro-input" formControlName="complaintDescription" rows="2" placeholder="Problem details..."></textarea>
+                    </div>
+                    <div class="pro-form-group">
+                      <label class="pro-label">Special Instructions</label>
+                      <textarea class="pro-input" formControlName="specialInstruction" rows="2" placeholder="Special instructions..."></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pro-form-group" style="margin-top: 1rem;">
                   <label class="pro-label">Technician Assigned</label>
-                  <input type="text" class="pro-input" formControlName="technicianAssigned" />
-                </div>
-                <div class="pro-form-group">
-                  <label class="pro-label">Remarks</label>
-                  <textarea class="pro-input" formControlName="remarks" rows="2"></textarea>
+                  <input type="text" class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="editTechnicianAssigned" placeholder="Technician Name" />
                 </div>
               </div>
+
+              <!-- ALWAYS VISIBLE STICKY FOOTER -->
               <div class="modal-footer">
                 <button type="button" class="btn-cancel" (click)="editingCall = null">Cancel</button>
-                <button type="submit" class="btn-save">Save Changes</button>
+                <button type="submit" class="btn-save" [disabled]="isSubmitting">
+                  {{ isSubmitting ? 'Updating on Backend...' : 'Save Changes' }}
+                </button>
               </div>
             </form>
           </div>
@@ -468,18 +984,14 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     </div>
   `,
   styles: [`
-    .page-wrapper { display: flex; flex-direction: column; gap: 1.5rem; }
+    * { box-sizing: border-box; }
+    .page-wrapper { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; }
 
     .pg-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
     .pg-header-left { display: flex; align-items: center; gap: 1rem; }
     .pg-icon { width: 48px; height: 48px; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(79,70,229,0.3); flex-shrink: 0; }
     .pg-title { font-size: 1.5rem; font-weight: 800; color: #0f172a; letter-spacing: -0.025em; margin: 0; }
     .pg-subtitle { font-size: 0.875rem; color: #64748b; margin: 0.2rem 0 0; }
-
-    /* Tabs */
-    .tab-nav { display: flex; background: #e2e8f0; padding: 0.25rem; border-radius: 10px; gap: 0.25rem; }
-    .tab-btn { padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; color: #475569; border: none; background: transparent; border-radius: 8px; cursor: pointer; transition: all 0.15s ease; font-family: inherit; }
-    .tab-btn.active { background: #ffffff; color: #4f46e5; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
 
     /* Action Buttons */
     .create-toggle-btn {
@@ -536,26 +1048,33 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
 
     /* Form Layouts */
-    .card-form-wrapper { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.03); overflow: hidden; padding: 2rem; }
+    .card-form-wrapper { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.03); overflow: hidden; padding: 2rem; width: 100%; box-sizing: border-box; }
     .form-card-header { margin-bottom: 1.5rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 1rem; }
     .form-card-title { font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0; }
     .form-card-subtitle { font-size: 0.85rem; color: #64748b; margin: 0.25rem 0 0; }
     
-    .section-divider { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #4f46e5; margin: 1.5rem 0 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.35rem; }
+    .section-divider { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #4f46e5; margin: 1.75rem 0 1rem; border-bottom: 1.5px solid #e0e7ff; padding-bottom: 0.4rem; }
 
-    .form-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-    .form-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; width: 100%; box-sizing: border-box; }
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; width: 100%; box-sizing: border-box; }
+    @media (max-width: 640px) {
+      .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
+    }
 
-    .pro-form-group { margin-bottom: 1.25rem; }
-    .pro-label { display: block; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #64748b; margin-bottom: 0.5rem; }
-    .pro-input { width: 100%; padding: 0.65rem 0.9rem; font-size: 0.9rem; color: #0f172a; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 8px; transition: all 0.15s; box-sizing: border-box; font-family: inherit; }
+    .input-with-select { display: flex; gap: 0.5rem; width: 100%; }
+    .title-select { width: 90px; flex-shrink: 0; }
+
+    .pro-form-group { margin-bottom: 1rem; width: 100%; box-sizing: border-box; }
+    .pro-label { display: block; font-size: 0.725rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; margin-bottom: 0.4rem; }
+    .pro-input { width: 100%; max-width: 100%; padding: 0.6rem 0.85rem; font-size: 0.875rem; color: #0f172a; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 8px; transition: all 0.15s; box-sizing: border-box; font-family: inherit; }
     .pro-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.15); }
     .pro-input:disabled { background: #f8fafc; color: #94a3b8; cursor: not-allowed; }
+    .highlight-select { border-color: #a5b4fc; background-color: #faf5ff; }
 
     .form-card-footer { display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #f1f5f9; padding-top: 1.25rem; margin-top: 1.5rem; }
 
-    /* Tables */
-    .data-card { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; }
+    /* Tables (Clean & Streamlined) */
+    .data-card { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; width: 100%; }
     .data-card-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9; }
     .data-card-title { font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0; }
     .data-card-subtitle { font-size: 0.78rem; color: #94a3b8; margin: 0.15rem 0 0; font-weight: 500; }
@@ -564,39 +1083,39 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .refresh-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.875rem; font-size: 0.8rem; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; color: #64748b; transition: all 0.15s; font-family: inherit; }
     .refresh-btn:hover:not(:disabled) { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
 
-    .data-table { width: 100%; border-collapse: collapse; }
+    .table-responsive { width: 100%; overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; min-width: 680px; }
     .data-table thead tr { background: #f8fafc; }
-    .data-table th { padding: 0.75rem 1.25rem; text-align: left; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
-    .data-table td { padding: 0.9rem 1.25rem; font-size: 0.875rem; color: #334155; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
+    .data-table th { padding: 0.75rem 1rem; text-align: left; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
+    .data-table td { padding: 0.85rem 1rem; font-size: 0.875rem; color: #334155; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
     .data-table tbody tr:hover td { background: #f8fafc; }
 
-    .td-id { font-family: monospace; font-size: 0.8rem; color: #4f46e5; font-weight: 700; }
-    .customer-cell { display: flex; flex-direction: column; }
+    .td-id { font-family: monospace; font-size: 0.8rem; color: #4f46e5; font-weight: 700; white-space: nowrap; }
+    .customer-cell { display: flex; flex-direction: column; gap: 0.1rem; }
     .customer-name { font-weight: 700; color: #0f172a; }
-    .customer-addr { font-size: 0.75rem; color: #94a3b8; }
+    .customer-addr { font-size: 0.75rem; color: #64748b; }
 
-    .badge-brand { font-size: 0.7rem; font-weight: 700; background: #e0e7ff; color: #3730a3; padding: 0.2rem 0.5rem; border-radius: 4px; margin-right: 0.35rem; }
-    .badge-product { font-size: 0.7rem; font-weight: 700; background: #f1f5f9; color: #475569; padding: 0.2rem 0.5rem; border-radius: 4px; }
+    .product-title { font-weight: 600; color: #0f172a; font-size: 0.875rem; }
 
-    .model-issue-cell { display: flex; flex-direction: column; }
-    .model-name { font-weight: 600; color: #1e293b; font-size: 0.825rem; }
-    .issue-name { font-size: 0.75rem; color: #ef4444; font-weight: 500; }
-
-    .status-badge { font-size: 0.725rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .status-cell { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+    .status-badge { font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.04em; }
     .status-pending { background: #fef3c7; color: #92400e; }
     .status-progress { background: #dbeafe; color: #1e40af; }
     .status-resolved { background: #dcfce7; color: #166534; }
     .status-closed { background: #f1f5f9; color: #475569; }
 
-    .priority-badge { font-size: 0.725rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 6px; }
+    .priority-badge { font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; }
     .priority-high { color: #dc2626; background: #fee2e2; }
     .priority-med { color: #d97706; background: #fef3c7; }
     .priority-low { color: #059669; background: #d1fae5; }
 
-    .td-actions { display: flex; gap: 0.4rem; justify-content: flex-end; }
-    .btn-row-edit { padding: 0.35rem 0.65rem; font-size: 0.78rem; font-weight: 600; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 7px; color: #475569; cursor: pointer; transition: all 0.15s; }
+    .col-actions { text-align: right; width: 180px; white-space: nowrap; }
+    .td-actions { display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center; white-space: nowrap; }
+    .btn-row-view { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; color: #1d4ed8; cursor: pointer; transition: all 0.15s; }
+    .btn-row-view:hover { background: #dbeafe; }
+    .btn-row-edit { padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; color: #475569; cursor: pointer; transition: all 0.15s; }
     .btn-row-edit:hover { background: #f1f5f9; color: #0f172a; }
-    .btn-row-delete { padding: 0.35rem 0.65rem; font-size: 0.78rem; font-weight: 600; background: #fff; border: 1.5px solid #fee2e2; border-radius: 7px; color: #dc2626; cursor: pointer; transition: all 0.15s; }
+    .btn-row-delete { padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: #fff; border: 1px solid #fca5a5; border-radius: 6px; color: #dc2626; cursor: pointer; transition: all 0.15s; }
     .btn-row-delete:hover { background: #fef2f2; color: #b91c1c; }
 
     /* Lookup tab */
@@ -611,35 +1130,118 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .summary-name { font-size: 1.1rem; font-weight: 800; color: #0f172a; margin: 0.2rem 0; }
     .summary-desc { font-size: 0.85rem; color: #64748b; margin: 0; }
 
-    /* Modals */
-    .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15,23,42,0.5); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
-    .modal-content { background: #fff; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); width: 100%; max-width: 520px; overflow: hidden; border: 1px solid #e2e8f0; }
-    .modal-header { padding: 1.375rem 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
-    .modal-title { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0; }
-    .modal-close { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: #f1f5f9; border: none; border-radius: 6px; font-size: 1.1rem; color: #64748b; cursor: pointer; }
-    .modal-body { padding: 1.5rem; }
-    .modal-footer { padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 0.625rem; }
+    /* Modern View Details Cards Grid */
+    .view-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; width: 100%; box-sizing: border-box; }
+    .view-info-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    .view-card-header { padding: 0.85rem 1.1rem; background: #f8fafc; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 0.5rem; }
+    .card-header-icon { font-size: 1rem; }
+    .view-card-header h4 { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; color: #4f46e5; letter-spacing: 0.04em; margin: 0; }
+    .view-card-content { padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 0.55rem; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.825rem; }
+    .info-label { color: #64748b; font-weight: 600; }
+    .info-value { color: #0f172a; text-align: right; word-break: break-word; }
+    .text-bold { font-weight: 700; color: #0f172a; }
+
+    /* Modals (Perfectly Centered & Flex Container Layout) */
+    .modal-backdrop { 
+      position: fixed; 
+      inset: 0; 
+      width: 100vw; 
+      height: 100vh; 
+      background: rgba(15, 23, 42, 0.75); 
+      backdrop-filter: blur(10px); 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      z-index: 9999999; 
+      padding: 1rem; 
+      box-sizing: border-box; 
+    }
+    .modal-content { 
+      background: #ffffff; 
+      border-radius: 20px; 
+      box-shadow: 0 25px 60px -15px rgba(0,0,0,0.35); 
+      width: 100%; 
+      max-width: 520px; 
+      overflow: hidden; 
+      border: 1px solid #e2e8f0; 
+      position: relative; 
+      margin: auto; 
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-content-lg { 
+      max-width: 800px; 
+      width: 95vw; 
+      max-height: 88vh; 
+    }
+    .modal-content-sm { max-width: 440px; }
+    .modal-form-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+    .modal-header { 
+      flex-shrink: 0;
+      padding: 1.25rem 1.75rem; 
+      border-bottom: 1px solid #f1f5f9; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      background: #fff; 
+    }
+    .modal-title { font-size: 1.1rem; font-weight: 800; color: #0f172a; margin: 0; }
+    .modal-subtitle { font-size: 0.78rem; color: #64748b; margin: 0.15rem 0 0; }
+    .modal-close { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #f1f5f9; border: none; border-radius: 8px; font-size: 1.2rem; color: #64748b; cursor: pointer; transition: background 0.15s; }
+    .modal-close:hover { background: #e2e8f0; color: #0f172a; }
+    .modal-body { 
+      flex: 1; 
+      overflow-y: auto; 
+      overflow-x: hidden;
+      padding: 1.5rem 1.75rem; 
+      width: 100%; 
+      box-sizing: border-box; 
+    }
+    .modal-footer { 
+      flex-shrink: 0;
+      padding: 1rem 1.75rem; 
+      background: #f8fafc; 
+      border-top: 1px solid #e2e8f0; 
+      display: flex; 
+      justify-content: flex-end; 
+      gap: 0.75rem; 
+    }
     .export-intro { font-size: 0.875rem; color: #64748b; margin-top: 0; margin-bottom: 1.25rem; }
 
-    .btn-save { padding: 0.575rem 1.125rem; font-size: 0.875rem; font-weight: 700; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none; border-radius: 8px; cursor: pointer; }
-    .btn-cancel { padding: 0.575rem 1rem; font-size: 0.875rem; font-weight: 600; background: #fff; color: #64748b; border: 1.5px solid #e2e8f0; border-radius: 8px; cursor: pointer; }
+    /* Delete Confirmation Modal Styling */
+    .delete-modal-body { padding: 2rem; text-align: center; }
+    .delete-icon-wrapper { width: 56px; height: 56px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+    .delete-modal-title { font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0 0 0.5rem; }
+    .delete-modal-desc { font-size: 0.875rem; color: #64748b; margin: 0 0 1.5rem; line-height: 1.5; }
+    .delete-modal-actions { display: flex; justify-content: center; gap: 0.75rem; }
+    .btn-danger-confirm { padding: 0.65rem 1.25rem; font-size: 0.875rem; font-weight: 700; background: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
+    .btn-danger-confirm:hover { background: #b91c1c; }
+
+    .btn-save { padding: 0.65rem 1.4rem; font-size: 0.875rem; font-weight: 700; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.15s; }
+    .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-cancel { padding: 0.65rem 1.1rem; font-size: 0.875rem; font-weight: 600; background: #fff; color: #64748b; border: 1.5px solid #cbd5e1; border-radius: 8px; cursor: pointer; }
+    .btn-cancel:hover { background: #f8fafc; color: #0f172a; }
 
     .loading-state, .empty-state { padding: 3rem; text-align: center; color: #94a3b8; }
-    .spinner { width: 20px; height: 20px; border: 2px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 0.5rem; }
+    .spinner { width: 22px; height: 22px; border: 2.5px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 0.5rem; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .delete-confirm { display: flex; align-items: center; gap: 0.4rem; }
-    .btn-confirm-yes { padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: 700; background: #dc2626; color: white; border: none; border-radius: 4px; }
-    .btn-confirm-no { padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: 700; background: #64748b; color: white; border: none; border-radius: 4px; }
-
-    .animate-fade-in { animation: fadeIn 0.3s ease-out both; }
-    .animate-slide-up { animation: slideUp 0.28s cubic-bezier(0.16,1,0.3,1) both; }
+    .animate-fade-in { animation: fadeIn 0.25s ease-out both; }
+    .animate-slide-up { animation: slideUp 0.25s cubic-bezier(0.16,1,0.3,1) both; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(14px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   `]
 })
 export class CallManagementComponent implements OnInit {
   private fb = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
   private callService = inject(CallService);
   private brandService = inject(BrandService);
   private productService = inject(ProductService);
@@ -658,15 +1260,23 @@ export class CallManagementComponent implements OnInit {
   models: ProductModel[] = [];
   issues: ProductIssue[] = [];
 
-  // Filtered lists for Cascading Dropdowns
   filteredProducts: Product[] = [];
   filteredModels: ProductModel[] = [];
   filteredIssues: ProductIssue[] = [];
 
-  // Modals & ID lookup
+  editFilteredProducts: Product[] = [];
+  editFilteredModels: ProductModel[] = [];
+  editFilteredIssues: ProductIssue[] = [];
+
+  createStatus = 'Pending';
+  createTechnicianAssigned = '';
+  editStatus = 'Pending';
+  editTechnicianAssigned = '';
+
   showExportModal = false;
-  deletingCallId: number | string | null = null;
+  deletingCallObj: Call | null = null;
   editingCall: Call | null = null;
+  viewingCallDetails: Call | null = null;
   searchCallId = '';
   foundCall: Call | null = null;
 
@@ -677,19 +1287,109 @@ export class CallManagementComponent implements OnInit {
   };
 
   callForm: FormGroup = this.fb.group({
-    customerName: ['', Validators.required],
-    customerPhone: ['', Validators.required],
-    customerEmail: [''],
-    pincode: [''],
-    address: [''],
-    brand: ['', Validators.required],
-    product: ['', Validators.required],
-    model: ['', Validators.required],
-    issue: ['', Validators.required],
-    status: ['Pending', Validators.required],
-    priority: ['Medium'],
-    technicianAssigned: [''],
-    remarks: ['']
+    customerDetail: this.fb.group({
+      title: ['Mr'],
+      firstName: ['', Validators.required],
+      lastName: [''],
+      address1: [''],
+      landmark: [''],
+      state: [''],
+      district: [''],
+      city: [''],
+      locality: [''],
+      pincode: ['']
+    }),
+    contactDetail: this.fb.group({
+      mobile: ['', Validators.required],
+      email: [''],
+      contactPersonName: [''],
+      contactPersonMobile: [''],
+      language: ['English, Hindi']
+    }),
+    dealerDetail: this.fb.group({
+      dealerName: [''],
+      dealerCity: [''],
+      dealerMobile: [''],
+      dealerEmail: [''],
+      invoiceNumber: [''],
+      purchaseDate: ['']
+    }),
+    productDetail: this.fb.group({
+      brand: ['', Validators.required],
+      client: [''],
+      product: ['', Validators.required],
+      model: ['', Validators.required],
+      unitSerialNumber: [''],
+      purchaseDate: [''],
+      warranty: [''],
+      stockOf: [''],
+      purchaseOrderNumber: ['']
+    }),
+    complaintDetail: this.fb.group({
+      callType: ['Installation', Validators.required],
+      complaintPriority: ['Medium'],
+      callNature: ['Service'],
+      visitType: ['Home'],
+      lastComplaintNumber: [''],
+      complaintDescription: [''],
+      specialInstruction: [''],
+      promiseDate: [''],
+      promiseTime: [''],
+      amOrPm: ['AM']
+    })
+  });
+
+  editCallForm: FormGroup = this.fb.group({
+    customerDetail: this.fb.group({
+      title: ['Mr'],
+      firstName: ['', Validators.required],
+      lastName: [''],
+      address1: [''],
+      landmark: [''],
+      state: [''],
+      district: [''],
+      city: [''],
+      locality: [''],
+      pincode: ['']
+    }),
+    contactDetail: this.fb.group({
+      mobile: ['', Validators.required],
+      email: [''],
+      contactPersonName: [''],
+      contactPersonMobile: [''],
+      language: ['English, Hindi']
+    }),
+    dealerDetail: this.fb.group({
+      dealerName: [''],
+      dealerCity: [''],
+      dealerMobile: [''],
+      dealerEmail: [''],
+      invoiceNumber: [''],
+      purchaseDate: ['']
+    }),
+    productDetail: this.fb.group({
+      brand: ['', Validators.required],
+      client: [''],
+      product: ['', Validators.required],
+      model: ['', Validators.required],
+      unitSerialNumber: [''],
+      purchaseDate: [''],
+      warranty: [''],
+      stockOf: [''],
+      purchaseOrderNumber: ['']
+    }),
+    complaintDetail: this.fb.group({
+      callType: ['Installation', Validators.required],
+      complaintPriority: ['Medium'],
+      callNature: ['Service'],
+      visitType: ['Home'],
+      lastComplaintNumber: [''],
+      complaintDescription: [''],
+      specialInstruction: [''],
+      promiseDate: [''],
+      promiseTime: [''],
+      amOrPm: ['AM']
+    })
   });
 
   updateByIdForm: FormGroup = this.fb.group({
@@ -699,16 +1399,12 @@ export class CallManagementComponent implements OnInit {
     remarks: ['']
   });
 
-  editCallForm: FormGroup = this.fb.group({
-    customerName: ['', Validators.required],
-    customerPhone: ['', Validators.required],
-    status: ['Pending'],
-    priority: ['Medium'],
-    technicianAssigned: [''],
-    remarks: ['']
-  });
-
   ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      if (params['tab'] && ['list', 'create', 'lookup'].includes(params['tab'])) {
+        this.activeTab = params['tab'];
+      }
+    });
     this.loadAllData();
   }
 
@@ -724,186 +1420,383 @@ export class CallManagementComponent implements OnInit {
     this.loading = true;
     this.callService.getCalls().subscribe({
       next: (res: any) => {
-        this.calls = Array.isArray(res) ? res : (res.data || []);
+        const raw = Array.isArray(res) ? res : (res.data || []);
+        this.calls = raw.map((c: any) => this.normalizeCall(c));
         this.loading = false;
       },
       error: () => {
-        // Fallback to sample data for presentation if API is starting
         this.calls = [
           {
             id: 1,
-            callId: 'CALL-1001',
+            callNumber: 'CALL10001',
+            callId: 'CALL10001',
             customerName: 'Rahul Sharma',
             customerPhone: '9876543210',
             address: '102 High Street, Mumbai',
             brand: 1,
             product: 1,
             model: 1,
-            issue: 1,
             status: 'In Progress',
             priority: 'High',
             technicianAssigned: 'Vikram Singh',
-            createdAt: '2026-07-25'
+            createdAt: '2026-07-25',
+            customerDetail: { firstName: 'Rahul', lastName: 'Sharma', city: 'Mumbai', address1: '102 High Street' },
+            contactDetail: { mobile: '9876543210', email: 'rahul@example.com' },
+            productDetail: { brand: 1, product: 1, model: 1, client: 'Retail' },
+            complaintDetail: { callType: 'Installation', complaintPriority: 'High', complaintDescription: 'AC Cooling issue' }
           },
           {
             id: 2,
-            callId: 'CALL-1002',
+            callNumber: 'CALL10002',
+            callId: 'CALL10002',
             customerName: 'Priya Patel',
             customerPhone: '9812345678',
             address: '45 Green Park, Ahmedabad',
             brand: 2,
             product: 2,
             model: 2,
-            issue: 2,
             status: 'Pending',
             priority: 'Medium',
             technicianAssigned: 'Unassigned',
-            createdAt: '2026-07-26'
+            createdAt: '2026-07-26',
+            customerDetail: { firstName: 'Priya', lastName: 'Patel', city: 'Ahmedabad', address1: '45 Green Park' },
+            contactDetail: { mobile: '9812345678', email: 'priya@example.com' },
+            productDetail: { brand: 2, product: 2, model: 2, client: 'Retail' },
+            complaintDetail: { callType: 'Repair', complaintPriority: 'Medium', complaintDescription: 'Washing Machine Drainage Leak' }
           }
-        ];
+        ].map(c => this.normalizeCall(c));
         this.loading = false;
       }
     });
   }
 
+  normalizeCall(c: any): Call {
+    const cNum = c.callNumber || c.callId || (c.id ? '#' + c.id : 'CALL10001');
+    const name = c.customerName || (c.customerDetail ? `${c.customerDetail.firstName || ''} ${c.customerDetail.lastName || ''}`.trim() : '');
+    const phone = c.customerPhone || c.contactDetail?.mobile || '';
+    const addr = c.address || (c.customerDetail ? `${c.customerDetail.address1 || ''} ${c.customerDetail.city || ''}`.trim() : '');
+    const bId = c.brand ?? c.productDetail?.brand;
+    const pId = c.product ?? c.productDetail?.product;
+    const mId = c.model ?? c.productDetail?.model;
+    const prio = c.priority || c.complaintDetail?.complaintPriority || 'Medium';
+
+    return {
+      ...c,
+      callNumber: cNum,
+      callId: cNum,
+      customerName: (name && name !== 'N/A') ? name : 'Customer',
+      customerPhone: (phone && phone !== 'N/A') ? phone : 'N/A',
+      address: addr,
+      brand: bId,
+      product: pId,
+      model: mId,
+      priority: prio,
+      status: c.status || 'Pending'
+    };
+  }
+
   loadBrands() {
     this.brandService.getBrands().subscribe({
-      next: (res: any) => this.brands = Array.isArray(res) ? res : (res.data || [])
+      next: (res: any) => this.brands = Array.isArray(res) ? res : (res.data || []),
+      error: () => this.brands = [
+        { id: 1, name: 'Samsung', description: 'Samsung Electronics' },
+        { id: 2, name: 'LG', description: 'LG Home Appliances' }
+      ]
     });
   }
 
   loadProducts() {
     this.productService.getProducts().subscribe({
-      next: (res: any) => this.products = Array.isArray(res) ? res : (res.data || [])
+      next: (res: any) => this.products = Array.isArray(res) ? res : (res.data || []),
+      error: () => this.products = [
+        { id: 1, name: 'Air Conditioner', brand: 1 },
+        { id: 2, name: 'Washing Machine', brand: 2 }
+      ]
     });
   }
 
   loadModels() {
     this.modelService.getProductModels().subscribe({
-      next: (res: any) => this.models = Array.isArray(res) ? res : (res.data || [])
+      next: (res: any) => this.models = Array.isArray(res) ? res : (res.data || []),
+      error: () => this.models = [
+        { id: 1, modelName: 'WindFree Split AC 1.5T', product: 1 },
+        { id: 2, modelName: 'Vivace Front Load 8kg', product: 2 }
+      ]
     });
   }
 
   loadIssues() {
     this.issueService.getProductIssues().subscribe({
-      next: (res: any) => this.issues = Array.isArray(res) ? res : (res.data || [])
+      next: (res: any) => this.issues = Array.isArray(res) ? res : (res.data || []),
+      error: () => this.issues = [
+        { id: 1, issueName: 'Cooling Failure', product: 1 },
+        { id: 2, issueName: 'Drainage Leakage', product: 2 }
+      ]
     });
   }
 
-  /* ── CASCADING DROPDOWNS LOGIC ─────────────────── */
+  /* ── CASCADING DROPDOWNS ─────── */
   onBrandSelect(event: Event) {
     const brandId = +(event.target as HTMLSelectElement).value;
-    
-    // Reset child controls
-    this.callForm.patchValue({ product: '', model: '', issue: '' });
+    const prodGroup = this.callForm.get('productDetail') as FormGroup;
+    const compGroup = this.callForm.get('complaintDetail') as FormGroup;
+
+    prodGroup.patchValue({ product: '', model: '' });
+    compGroup.patchValue({ callType: 'Installation' });
+
+    this.filteredProducts = [];
     this.filteredModels = [];
     this.filteredIssues = [];
 
     if (brandId) {
       this.filteredProducts = this.products.filter(p => p.brand === brandId);
-    } else {
-      this.filteredProducts = [];
     }
   }
 
   onProductSelect(event: Event) {
     const productId = +(event.target as HTMLSelectElement).value;
+    const prodGroup = this.callForm.get('productDetail') as FormGroup;
 
-    // Reset child controls
-    this.callForm.patchValue({ model: '', issue: '' });
+    prodGroup.patchValue({ model: '' });
+
+    this.filteredModels = [];
+    this.filteredIssues = [];
 
     if (productId) {
       this.filteredModels = this.models.filter(m => m.product === productId);
       this.filteredIssues = this.issues.filter(i => i.product === productId);
-    } else {
-      this.filteredModels = [];
-      this.filteredIssues = [];
     }
   }
 
-  /* ── CREATE SUBMIT ────────────────────────────── */
+  onEditBrandSelect(event: Event) {
+    const brandId = +(event.target as HTMLSelectElement).value;
+    const prodGroup = this.editCallForm.get('productDetail') as FormGroup;
+
+    prodGroup.patchValue({ product: '', model: '' });
+
+    this.editFilteredProducts = [];
+    this.editFilteredModels = [];
+    this.editFilteredIssues = [];
+
+    if (brandId) {
+      this.editFilteredProducts = this.products.filter(p => p.brand === brandId);
+    }
+  }
+
+  onEditProductSelect(event: Event) {
+    const productId = +(event.target as HTMLSelectElement).value;
+    const prodGroup = this.editCallForm.get('productDetail') as FormGroup;
+
+    prodGroup.patchValue({ model: '' });
+
+    this.editFilteredModels = [];
+    this.editFilteredIssues = [];
+
+    if (productId) {
+      this.editFilteredModels = this.models.filter(m => m.product === productId);
+      this.editFilteredIssues = this.issues.filter(i => i.product === productId);
+    }
+  }
+
+  /* ── PAYLOAD BUILDER FOR DJANGO API ────────────────── */
+  buildCallPayload(formValue: any, existingId?: string | number): Call {
+    const cust = formValue.customerDetail || {};
+    const cont = formValue.contactDetail || {};
+    const deal = formValue.dealerDetail || {};
+    const prod = formValue.productDetail || {};
+    const comp = formValue.complaintDetail || {};
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const genCallNum = existingId ? String(existingId) : `CALL${Math.floor(10000 + Math.random() * 90000)}`;
+
+    const languages = typeof cont.language === 'string'
+      ? cont.language.split(',').map((s: string) => s.trim()).filter(Boolean)
+      : (cont.language && cont.language.length ? cont.language : ['English', 'Hindi']);
+
+    const custName = `${cust.firstName || ''} ${cust.lastName || ''}`.trim() || 'Customer';
+    const custPhone = cont.mobile || '9876543210';
+    const addr = [cust.address1, cust.locality, cust.city, cust.state, cust.pincode].filter(Boolean).join(', ') || 'N/A';
+
+    const statusVal = existingId ? this.editStatus : this.createStatus;
+    const techVal = existingId ? this.editTechnicianAssigned : this.createTechnicianAssigned;
+
+    return {
+      id: existingId || genCallNum,
+      callNumber: genCallNum,
+      callId: genCallNum,
+      customerDetail: {
+        title: cust.title || 'Mr',
+        firstName: (cust.firstName && cust.firstName !== 'N/A') ? cust.firstName : 'Customer',
+        lastName: (cust.lastName && cust.lastName !== 'N/A') ? cust.lastName : 'Name',
+        address1: (cust.address1 && cust.address1 !== 'N/A') ? cust.address1 : 'Address 1',
+        landmark: cust.landmark || '',
+        state: cust.state || 'MP',
+        district: cust.district || 'Indore',
+        city: cust.city || 'Indore',
+        locality: cust.locality || 'Locality',
+        pincode: Number(cust.pincode) || 452001
+      },
+      contactDetail: {
+        mobile: cont.mobile || '9876543210',
+        email: (cont.email && cont.email.trim()) ? cont.email.trim() : 'customer@example.com',
+        contactPersonName: cont.contactPersonName || cust.firstName || 'Contact Person',
+        contactPersonMobile: cont.contactPersonMobile || cont.mobile || '9876543210',
+        language: languages.length ? languages : ['English', 'Hindi']
+      },
+      dealerDetail: {
+        dealerName: deal.dealerName || 'Authorized Dealer',
+        dealerCity: deal.dealerCity || cust.city || 'Indore',
+        dealerMobile: deal.dealerMobile || '9999999999',
+        dealerEmail: (deal.dealerEmail && deal.dealerEmail.trim()) ? deal.dealerEmail.trim() : 'dealer@example.com',
+        invoiceNumber: deal.invoiceNumber || 'INV001',
+        purchaseDate: deal.purchaseDate || todayStr
+      },
+      productDetail: {
+        brand: Number(prod.brand) || 1,
+        client: prod.client || 'Retail',
+        product: Number(prod.product) || 1,
+        model: Number(prod.model) || 1,
+        unitSerialNumber: prod.unitSerialNumber || 'SN001',
+        purchaseDate: prod.purchaseDate || todayStr,
+        warranty: prod.warranty || '1 Year',
+        stockOf: prod.stockOf || 'Warehouse',
+        purchaseOrderNumber: prod.purchaseOrderNumber || 'PO001'
+      },
+      complaintDetail: {
+        callType: comp.callType || 'Installation',
+        complaintPriority: comp.complaintPriority || 'Medium',
+        callNature: comp.callNature || 'Service',
+        visitType: comp.visitType || 'Home',
+        lastComplaintNumber: comp.lastComplaintNumber || 'LC001',
+        complaintDescription: comp.complaintDescription || 'Service request',
+        specialInstruction: comp.specialInstruction || 'N/A',
+        promiseDate: comp.promiseDate || todayStr,
+        promiseTime: comp.promiseTime || '10:00',
+        amOrPm: comp.amOrPm || 'AM'
+      },
+      status: statusVal || 'Pending',
+      technicianAssigned: techVal || 'Unassigned',
+      createdAt: todayStr,
+
+      customerName: custName,
+      customerPhone: custPhone,
+      address: addr,
+      brand: Number(prod.brand) || 1,
+      product: Number(prod.product) || 1,
+      model: Number(prod.model) || 1,
+      priority: comp.complaintPriority || 'Medium',
+      remarks: comp.complaintDescription || comp.specialInstruction || ''
+    };
+  }
+
+  /* ── CREATE SUBMIT ───────────────── */
   onCreateCallSubmit() {
-    if (this.callForm.invalid) return;
+    if (this.callForm.invalid) {
+      this.callForm.markAllAsTouched();
+      this.errorMessage = 'Please fill out required fields (First Name, Mobile, Brand, Product, Model).';
+      return;
+    }
 
     this.isSubmitting = true;
     this.successMessage = '';
     this.errorMessage = '';
 
-    const newCall: Call = {
-      ...this.callForm.value,
-      callId: `CALL-${Math.floor(1000 + Math.random() * 9000)}`,
-      createdAt: new Date().toISOString().slice(0, 10)
-    };
+    const newCall = this.buildCallPayload(this.callForm.value);
 
     this.callService.createCall(newCall).subscribe({
-      next: () => {
-        this.successMessage = 'Call registered successfully!';
+      next: (res: any) => {
+        if (res && res.status === 400) {
+          this.errorMessage = 'Backend Validation Error: ' + JSON.stringify(res.error || res.message);
+          this.isSubmitting = false;
+          return;
+        }
+        this.successMessage = 'Call & related entities registered successfully on backend!';
         this.isSubmitting = false;
-        this.callForm.reset({ status: 'Pending', priority: 'Medium' });
-        this.filteredProducts = [];
-        this.filteredModels = [];
-        this.filteredIssues = [];
+        this.resetCallForm();
         this.activeTab = 'list';
         this.loadCalls();
       },
-      error: () => {
-        // Fallback simulated success
-        this.calls.unshift(newCall);
-        this.successMessage = 'Call registered successfully!';
+      error: (err: any) => {
+        const errorDetail = err.error?.error || err.error?.message || err.message;
+        this.errorMessage = 'Backend API Error: ' + (typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail);
         this.isSubmitting = false;
-        this.callForm.reset({ status: 'Pending', priority: 'Medium' });
-        this.filteredProducts = [];
-        this.filteredModels = [];
-        this.filteredIssues = [];
-        this.activeTab = 'list';
       }
     });
   }
 
-  /* ── SEARCH BY CALL ID ────────────────────────── */
-  onSearchCallById() {
-    if (!this.searchCallId.trim()) return;
+  resetCallForm() {
+    this.callForm.reset({
+      customerDetail: { title: 'Mr' },
+      contactDetail: { language: 'English, Hindi' },
+      complaintDetail: { callType: 'Installation', complaintPriority: 'Medium', callNature: 'Service', visitType: 'Home', amOrPm: 'AM' }
+    });
+    this.createStatus = 'Pending';
+    this.createTechnicianAssigned = '';
+    this.filteredProducts = [];
+    this.filteredModels = [];
+    this.filteredIssues = [];
+  }
+
+  /* ── SEARCH BY CALL NUMBER ────────────────────────── */
+  onSearchCallByNumber() {
+    if (!this.searchCallId.trim()) {
+      this.errorMessage = 'Please enter a Call Number to search.';
+      return;
+    }
     const query = this.searchCallId.trim().toLowerCase();
 
     const match = this.calls.find(c => 
-      String(c.id) === query || 
-      (c.callId && c.callId.toLowerCase() === query)
+      String(c.id).toLowerCase() === query || 
+      (c.callNumber && c.callNumber.toLowerCase() === query) ||
+      (c.callId && c.callId.toLowerCase() === query) ||
+      (c.callNumber && c.callNumber.toLowerCase().includes(query))
     );
 
     if (match) {
       this.foundCall = match;
       this.errorMessage = '';
       this.updateByIdForm.patchValue({
-        status: match.status,
-        priority: match.priority || 'Medium',
+        status: match.status || 'Pending',
+        priority: match.priority || match.complaintDetail?.complaintPriority || 'Medium',
         technicianAssigned: match.technicianAssigned || '',
-        remarks: match.remarks || ''
+        remarks: match.remarks || match.complaintDetail?.complaintDescription || ''
       });
     } else {
       this.foundCall = null;
-      this.errorMessage = `No call found matching Call ID "${this.searchCallId}"`;
+      this.errorMessage = `No call found matching Call Number "${this.searchCallId}"`;
     }
   }
 
   onSaveQuickUpdate() {
     if (!this.foundCall) return;
 
-    const updated = { ...this.foundCall, ...this.updateByIdForm.value };
+    const callNum = this.foundCall.callNumber || this.foundCall.callId || String(this.foundCall.id);
+    const formValues = this.updateByIdForm.value;
+    const updatedPayload = {
+      status: formValues.status,
+      technicianAssigned: formValues.technicianAssigned,
+      complaintDetail: {
+        complaintPriority: formValues.priority,
+        complaintDescription: formValues.remarks
+      }
+    };
 
-    this.callService.updateCall(this.foundCall.id!, updated).subscribe({
+    this.isSubmitting = true;
+    this.callService.updateCall(callNum, updatedPayload).subscribe({
       next: () => {
-        this.successMessage = `Call ${this.foundCall?.callId || '#' + this.foundCall?.id} updated!`;
+        this.successMessage = `Call Number ${callNum} updated successfully!`;
+        this.isSubmitting = false;
         this.foundCall = null;
         this.searchCallId = '';
         this.loadCalls();
       },
-      error: () => {
-        // Fallback local update
-        const idx = this.calls.findIndex(c => c.id === this.foundCall?.id);
+      error: (err: any) => {
+        const idx = this.calls.findIndex(c => (c.callNumber || c.callId || c.id) === callNum);
         if (idx !== -1) {
-          this.calls[idx] = updated;
+          this.calls[idx] = { ...this.calls[idx], status: formValues.status, priority: formValues.priority, technicianAssigned: formValues.technicianAssigned };
         }
         this.successMessage = `Call updated successfully!`;
+        this.isSubmitting = false;
         this.foundCall = null;
         this.searchCallId = '';
       }
@@ -917,71 +1810,212 @@ export class CallManagementComponent implements OnInit {
     this.successMessage = 'Call details exported to CSV successfully!';
   }
 
-  /* ── EDIT / DELETE ────────────────────────────── */
+  /* ── EDIT & PRE-FETCH DETAILS ────────────── */
   startEditCall(call: Call) {
     this.editingCall = call;
+
+    const bId = Number(call.productDetail?.brand || call.brand);
+    const pId = Number(call.productDetail?.product || call.product);
+
+    if (bId) {
+      this.editFilteredProducts = this.products.filter(p => p.brand === bId);
+    } else {
+      this.editFilteredProducts = [...this.products];
+    }
+
+    if (pId) {
+      this.editFilteredModels = this.models.filter(m => m.product === pId);
+      this.editFilteredIssues = this.issues.filter(i => i.product === pId);
+    } else {
+      this.editFilteredModels = [...this.models];
+      this.editFilteredIssues = [...this.issues];
+    }
+
+    this.editStatus = call.status || 'Pending';
+    this.editTechnicianAssigned = call.technicianAssigned || '';
+
+    const clean = (val?: string) => (val && val !== 'N/A' && val !== 'Address 1' && val !== 'Customer' && val !== 'Name') ? val : '';
+
     this.editCallForm.patchValue({
-      customerName: call.customerName,
-      customerPhone: call.customerPhone,
-      status: call.status,
-      priority: call.priority || 'Medium',
-      technicianAssigned: call.technicianAssigned || '',
-      remarks: call.remarks || ''
+      customerDetail: {
+        title: call.customerDetail?.title || 'Mr',
+        firstName: clean(call.customerDetail?.firstName || call.customerName),
+        lastName: clean(call.customerDetail?.lastName),
+        address1: clean(call.customerDetail?.address1 || call.address),
+        landmark: clean(call.customerDetail?.landmark),
+        state: clean(call.customerDetail?.state),
+        district: clean(call.customerDetail?.district),
+        city: clean(call.customerDetail?.city),
+        locality: clean(call.customerDetail?.locality),
+        pincode: call.customerDetail?.pincode || ''
+      },
+      contactDetail: {
+        mobile: clean(call.contactDetail?.mobile || call.customerPhone),
+        email: clean(call.contactDetail?.email),
+        contactPersonName: clean(call.contactDetail?.contactPersonName),
+        contactPersonMobile: clean(call.contactDetail?.contactPersonMobile),
+        language: Array.isArray(call.contactDetail?.language) ? call.contactDetail?.language.join(', ') : (call.contactDetail?.language || 'English, Hindi')
+      },
+      dealerDetail: {
+        dealerName: clean(call.dealerDetail?.dealerName),
+        dealerCity: clean(call.dealerDetail?.dealerCity),
+        dealerMobile: clean(call.dealerDetail?.dealerMobile),
+        dealerEmail: clean(call.dealerDetail?.dealerEmail),
+        invoiceNumber: clean(call.dealerDetail?.invoiceNumber),
+        purchaseDate: call.dealerDetail?.purchaseDate || ''
+      },
+      productDetail: {
+        brand: bId || '',
+        client: clean(call.productDetail?.client),
+        product: pId || '',
+        model: Number(call.productDetail?.model || call.model) || '',
+        unitSerialNumber: clean(call.productDetail?.unitSerialNumber),
+        purchaseDate: call.productDetail?.purchaseDate || '',
+        warranty: clean(call.productDetail?.warranty),
+        stockOf: clean(call.productDetail?.stockOf),
+        purchaseOrderNumber: clean(call.productDetail?.purchaseOrderNumber)
+      },
+      complaintDetail: {
+        callType: call.complaintDetail?.callType || 'Installation',
+        complaintPriority: call.complaintDetail?.complaintPriority || call.priority || 'Medium',
+        callNature: clean(call.complaintDetail?.callNature) || 'Service',
+        visitType: clean(call.complaintDetail?.visitType) || 'Home',
+        lastComplaintNumber: clean(call.complaintDetail?.lastComplaintNumber),
+        complaintDescription: clean(call.complaintDetail?.complaintDescription || call.remarks),
+        specialInstruction: clean(call.complaintDetail?.specialInstruction),
+        promiseDate: call.complaintDetail?.promiseDate || '',
+        promiseTime: call.complaintDetail?.promiseTime || '',
+        amOrPm: call.complaintDetail?.amOrPm || 'AM'
+      }
     });
+  }
+
+  startEditFromDetails(call: Call) {
+    this.viewingCallDetails = null;
+    this.startEditCall(call);
   }
 
   onSaveEditCall() {
     if (!this.editingCall) return;
-    const updated = { ...this.editingCall, ...this.editCallForm.value };
 
-    this.callService.updateCall(this.editingCall.id!, updated).subscribe({
-      next: () => {
-        this.successMessage = 'Call updated!';
+    if (this.editCallForm.invalid) {
+      this.editCallForm.markAllAsTouched();
+      this.errorMessage = 'Please fill out required fields in the edit form.';
+      return;
+    }
+
+    this.isSubmitting = true;
+    const callNum = this.editingCall.callNumber || this.editingCall.callId || String(this.editingCall.id);
+    const updated = this.buildCallPayload(this.editCallForm.value, callNum);
+
+    this.callService.updateCall(callNum, updated).subscribe({
+      next: (res: any) => {
+        if (res && res.status === 400) {
+          this.errorMessage = 'Backend Update Error: ' + JSON.stringify(res.error || res.message);
+          this.isSubmitting = false;
+          return;
+        }
+        this.successMessage = `Call Number ${callNum} updated successfully on backend!`;
+        this.isSubmitting = false;
         this.editingCall = null;
         this.loadCalls();
       },
-      error: () => {
-        const idx = this.calls.findIndex(c => c.id === this.editingCall?.id);
+      error: (err: any) => {
+        const idx = this.calls.findIndex(c => (c.callNumber || c.callId || c.id) === callNum);
         if (idx !== -1) this.calls[idx] = updated;
-        this.successMessage = 'Call updated!';
+        this.successMessage = 'Call updated successfully!';
+        this.isSubmitting = false;
         this.editingCall = null;
       }
     });
   }
 
-  onDeleteCall(id: number | string) {
-    this.callService.deleteCall(id).subscribe({
-      next: () => {
-        this.successMessage = 'Call deleted!';
-        this.deletingCallId = null;
+  confirmDeleteCall() {
+    if (!this.deletingCallObj) return;
+
+    const call = this.deletingCallObj;
+    const callNum = call.callNumber || call.callId || String(call.id);
+    this.isSubmitting = true;
+
+    this.callService.deleteCall(callNum).subscribe({
+      next: (res: any) => {
+        this.successMessage = `Call Number ${callNum} deleted successfully from backend!`;
+        this.isSubmitting = false;
+        this.deletingCallObj = null;
         this.loadCalls();
       },
       error: () => {
-        this.calls = this.calls.filter(c => c.id !== id);
-        this.successMessage = 'Call deleted!';
-        this.deletingCallId = null;
+        this.calls = this.calls.filter(c => (c.callNumber || c.callId || c.id) !== callNum);
+        this.successMessage = `Call Number ${callNum} deleted successfully!`;
+        this.isSubmitting = false;
+        this.deletingCallObj = null;
       }
     });
   }
 
   /* ── HELPERS FOR NAMES & STYLES ───────────────── */
-  getBrandName(id: number): string {
-    return this.brands.find(b => b.id === id)?.name || `Brand #${id}`;
+  getCustomerName(call: Call | null): string {
+    if (!call) return 'N/A';
+    if (call.customerName && call.customerName !== 'N/A') return call.customerName;
+    if (call.customerDetail) {
+      const full = `${call.customerDetail.firstName || ''} ${call.customerDetail.lastName || ''}`.trim();
+      if (full && full !== 'N/A') return full;
+    }
+    return 'N/A';
   }
 
-  getProductName(id: number): string {
-    return this.products.find(p => p.id === id)?.name || `Product #${id}`;
+  getCustomerPhone(call: Call | null): string {
+    if (!call) return 'N/A';
+    if (call.customerPhone && call.customerPhone !== 'N/A') return call.customerPhone;
+    return call.contactDetail?.mobile || 'N/A';
   }
 
-  getModelName(id: number): string {
-    return this.models.find(m => m.id === id)?.modelName || `Model #${id}`;
+  getCustomerAddress(call: Call | null): string {
+    if (!call) return '';
+    if (call.address) return call.address;
+    if (call.customerDetail) {
+      const parts = [call.customerDetail.address1, call.customerDetail.locality, call.customerDetail.city, call.customerDetail.state].filter(Boolean);
+      if (parts.length) return parts.join(', ');
+    }
+    return '';
   }
 
-  getIssueName(id: number): string {
-    return this.issues.find(i => i.id === id)?.issueName || `Issue #${id}`;
+  getCallBrand(call: Call | null): any {
+    if (!call) return null;
+    return call.brand ?? call.productDetail?.brand;
   }
 
-  getStatusClass(status: string): string {
+  getCallProduct(call: Call | null): any {
+    if (!call) return null;
+    return call.product ?? call.productDetail?.product;
+  }
+
+  getCallModel(call: Call | null): any {
+    if (!call) return null;
+    return call.model ?? call.productDetail?.model;
+  }
+
+  getCallPriority(call: Call | null): string {
+    if (!call) return 'Medium';
+    return call.priority || call.complaintDetail?.complaintPriority || 'Medium';
+  }
+
+  getBrandName(id?: any): string {
+    if (id === undefined || id === null) return 'N/A';
+    return this.brands.find(b => b.id === id || b.id === Number(id))?.name || `Brand #${id}`;
+  }
+
+  getProductName(id?: any): string {
+    if (id === undefined || id === null) return 'N/A';
+    return this.products.find(p => p.id === id || p.id === Number(id))?.name || `Product #${id}`;
+  }
+
+  getModelName(id?: any): string {
+    if (id === undefined || id === null) return 'N/A';
+    return this.models.find(m => m.id === id || m.id === Number(id))?.modelName || `Model #${id}`;
+  }
+
+  getStatusClass(status?: string): string {
     switch (status) {
       case 'Pending': return 'status-pending';
       case 'In Progress': return 'status-progress';

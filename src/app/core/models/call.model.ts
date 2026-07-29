@@ -57,15 +57,27 @@ export interface ComplaintDetail {
 export interface Call {
   id?: number | string;
   callId?: string;
-  customerDetail: CustomerDetail;
-  contactDetail: ContactDetail;
+  callNumber?: string;
+  customerDetail?: CustomerDetail;
+  contactDetail?: ContactDetail;
   dealerDetail?: DealerDetail;
-  productDetail: ProductDetail;
-  complaintDetail: ComplaintDetail;
-  status?: 'Pending' | 'In Progress' | 'Resolved' | 'Closed' | 'Cancelled';
+  productDetail?: ProductDetail;
+  complaintDetail?: ComplaintDetail;
+  status?: 'Pending' | 'In Progress' | 'Resolved' | 'Closed' | 'Cancelled' | string;
   technicianAssigned?: string;
   createdAt?: string;
   updatedAt?: string;
+
+  // Flattened convenience properties
+  customerName?: string;
+  customerPhone?: string;
+  address?: string;
+  brand?: any;
+  product?: any;
+  model?: any;
+  issue?: any;
+  priority?: string;
+  remarks?: string;
 }
 
 export interface CallExportFilter {
