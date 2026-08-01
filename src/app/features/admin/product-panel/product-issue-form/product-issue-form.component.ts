@@ -209,8 +209,8 @@ import { ProductIssue } from '../../../../core/models/product-issue.model';
 
     .pro-form-group { margin-bottom: 1.25rem; }
     .pro-label { display: block; font-size: 0.875rem; font-weight: 500; color: #334155; margin-bottom: 0.5rem; }
-    .pro-input { width: 100%; padding: 0.625rem 0.875rem; font-size: 0.95rem; color: #0f172a; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; transition: border-color 0.15s, box-shadow 0.15s; box-sizing: border-box; font-family: inherit; }
-    .pro-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+    .pro-input { width: 100%; padding: 0.625rem 0.875rem; font-size: 0.95rem; color: var(--text-primary); background-color: var(--surface); border: 1px solid #cbd5e1; border-radius: 6px; transition: border-color 0.15s, box-shadow 0.15s; box-sizing: border-box; font-family: inherit; }
+    .pro-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.15); }
     .pro-input.pro-invalid { border-color: #ef4444; }
     .pro-error { color: #ef4444; font-size: 0.825rem; margin-top: 0.375rem; }
 
@@ -254,51 +254,51 @@ import { ProductIssue } from '../../../../core/models/product-issue.model';
     }
 
     .actions-cell { display: flex; gap: 0.5rem; align-items: center; }
-    .btn-action-edit { padding: 0.375rem 0.75rem; font-size: 0.825rem; font-weight: 600; border: 1px solid #cbd5e1; border-radius: 6px; background-color: #fff; color: #334155; cursor: pointer; transition: all 0.15s ease; }
-    .btn-action-edit:hover { background-color: #f1f5f9; color: #0f172a; border-color: #94a3b8; }
-    .btn-action-delete { padding: 0.375rem 0.75rem; font-size: 0.825rem; font-weight: 600; border: 1px solid #fee2e2; border-radius: 6px; background-color: #fff; color: #dc2626; cursor: pointer; transition: all 0.15s ease; }
+    .btn-action-edit { padding: 0.375rem 0.75rem; font-size: 0.825rem; font-weight: 600; border: 1px solid #cbd5e1; border-radius: 6px; background-color: var(--surface); color: #334155; cursor: pointer; transition: all 0.15s ease; }
+    .btn-action-edit:hover { background-color: #f1f5f9; color: var(--text-primary); border-color: #94a3b8; }
+    .btn-action-delete { padding: 0.375rem 0.75rem; font-size: 0.825rem; font-weight: 600; border: 1px solid #fee2e2; border-radius: 6px; background-color: var(--surface); color: #dc2626; cursor: pointer; transition: all 0.15s ease; }
     .btn-action-delete:hover { background-color: #fef2f2; color: #b91c1c; border-color: #fca5a5; }
 
     .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-    .modal-content { background-color: #ffffff; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); width: 90%; max-width: 500px; overflow: hidden; border: 1px solid #e2e8f0; }
+    .modal-content { background-color: var(--surface); border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); width: 90%; max-width: 500px; overflow: hidden; border: 1px solid var(--border); }
     .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
-    .modal-title { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin: 0; }
-    .modal-close { background: none; border: none; font-size: 1.5rem; font-weight: 500; color: #64748b; cursor: pointer; line-height: 1; }
-    .modal-close:hover { color: #0f172a; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin: 0; }
+    .modal-close { background: none; border: none; font-size: 1.5rem; font-weight: 500; color: var(--text-secondary); cursor: pointer; line-height: 1; }
+    .modal-close:hover { color: var(--text-primary); }
     .modal-body { padding: 1.5rem; }
     .modal-footer { padding: 1rem 1.5rem; background-color: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 0.75rem; }
 
     .btn-save { padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; background-color: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
     .btn-save:hover { background-color: #059669; }
     .btn-save:disabled { background-color: #a7f3d0; cursor: not-allowed; }
-    .btn-cancel { padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; background-color: #64748b; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
+    .btn-cancel { padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; background-color: var(--text-secondary); color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
     .btn-cancel:hover { background-color: #475569; }
 
     .delete-confirm-box { display: flex; align-items: center; gap: 0.5rem; background-color: #fef2f2; border: 1px solid #fee2e2; padding: 0.25rem 0.5rem; border-radius: 6px; }
     .confirm-msg { font-size: 0.825rem; font-weight: 600; color: #991b1b; }
     .btn-yes { padding: 0.25rem 0.5rem; font-size: 0.775rem; font-weight: 700; background-color: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; }
     .btn-yes:hover { background-color: #b91c1c; }
-    .btn-no { padding: 0.25rem 0.5rem; font-size: 0.775rem; font-weight: 700; background-color: #64748b; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-no { padding: 0.25rem 0.5rem; font-size: 0.775rem; font-weight: 700; background-color: var(--text-secondary); color: white; border: none; border-radius: 4px; cursor: pointer; }
     .btn-no:hover { background-color: #475569; }
 
-    .list-container { background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
+    .list-container { background: var(--surface); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
     .list-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; border-bottom: 1px solid #f1f5f9; }
-    .list-title { font-size: 1.1rem; font-weight: 600; color: #0f172a; margin: 0; }
-    .refresh-btn { padding: 0.375rem 0.875rem; font-size: 0.825rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; color: #475569; font-weight: 500; transition: all 0.2s; }
+    .list-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin: 0; }
+    .refresh-btn { padding: 0.375rem 0.875rem; font-size: 0.825rem; background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; color: #475569; font-weight: 500; transition: all 0.2s; }
     .refresh-btn:hover:not(:disabled) { background: #e2e8f0; }
     .refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
     .loading-state, .empty-state { padding: 2rem; text-align: center; color: #94a3b8; font-size: 0.9rem; }
 
     .data-table { width: 100%; border-collapse: collapse; }
-    .data-table th { background: #f8fafc; padding: 0.75rem 1rem; text-align: left; font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e2e8f0; }
+    .data-table th { background: #f8fafc; padding: 0.75rem 1rem; text-align: left; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
     .data-table td { padding: 0.875rem 1rem; font-size: 0.9rem; color: #334155; border-bottom: 1px solid #f1f5f9; }
     .data-table tr:last-child td { border-bottom: none; }
     .data-table tr:hover td { background: #f8fafc; }
     .id-cell { color: #94a3b8; font-size: 0.8rem; width: 60px; }
-    .name-cell { font-weight: 500; color: #0f172a; }
-    .product-cell { color: #2563eb; font-size: 0.875rem; }
-    .desc-cell { color: #64748b; max-width: 250px; }
+    .name-cell { font-weight: 500; color: var(--text-primary); }
+    .product-cell { color: #4f46e5; font-size: 0.875rem; }
+    .desc-cell { color: var(--text-secondary); max-width: 250px; }
 
     .animate-fade-in { animation: fadeIn 0.25s ease-out; }
     .animate-slide-up { animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1); }

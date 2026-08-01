@@ -37,7 +37,7 @@ import { ToastService } from '../../services/toast.service';
       min-width: 300px;
       max-width: 400px;
       padding: 1rem;
-      background: white;
+      background: var(--surface);
       border-radius: var(--border-radius);
       box-shadow: var(--shadow-lg);
       border-left: 4px solid var(--primary-color);

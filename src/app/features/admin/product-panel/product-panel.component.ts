@@ -90,13 +90,13 @@ type TabId = 'brand' | 'product' | 'model' | 'issue';
     .panel-title {
       font-size: 1.75rem;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-primary);
       margin: 0 0 0.375rem 0;
     }
 
     .panel-subtitle {
       font-size: 0.95rem;
-      color: #64748b;
+      color: var(--text-secondary);
       margin: 0;
     }
 
@@ -116,7 +116,7 @@ type TabId = 'brand' | 'product' | 'model' | 'issue';
       padding: 0.75rem 1.25rem;
       font-size: 0.9rem;
       font-weight: 500;
-      color: #64748b;
+      color: var(--text-secondary);
       background: none;
       border: none;
       border-bottom: 2px solid transparent;
@@ -127,12 +127,12 @@ type TabId = 'brand' | 'product' | 'model' | 'issue';
     }
 
     .tab-btn:hover {
-      color: #0f172a;
+      color: var(--text-primary);
     }
 
     .tab-btn.active {
-      color: #2563eb;
-      border-bottom-color: #2563eb;
+      color: #4f46e5;
+      border-bottom-color: #4f46e5;
     }
 
     .tab-icon {
@@ -141,8 +141,8 @@ type TabId = 'brand' | 'product' | 'model' | 'issue';
 
     /* Form Shared Styles (overrides for children) */
     .tab-content :ng-deep .form-container {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 10px;
       padding: 2rem;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);

@@ -1,8 +1,9 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
+import { CallService } from '../../core/services/call.service';
 
 @Component({
   selector: 'app-dashboard-layout',
@@ -135,10 +136,58 @@ import { AuthService } from '../../core/services/auth.service';
             </div>
           </div>
           <div class="topbar-right">
-            <button class="topbar-action-btn" title="Notifications">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              <span class="notification-dot"></span>
+            <button class="topbar-action-btn" (click)="toggleDarkMode()" title="Toggle Dark/Light Mode">
+              @if (isDarkMode) {
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              } @else {
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              }
             </button>
+            <div style="position: relative; display: flex; align-items: center;">
+              <button class="topbar-action-btn" title="Notifications" (click)="toggleNotifications($event)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                @if (unreadCount > 0) {
+                  <span class="notification-dot">{{ unreadCount }}</span>
+                }
+              </button>
+
+              <!-- Dropdown -->
+              @if (showNotifications) {
+                <div class="notification-dropdown animate-fade-in" (click)="$event.stopPropagation()">
+                  <div class="nd-header">
+                    <h4>Notifications</h4>
+                    @if (unreadCount > 0) {
+                      <button class="nd-clear-btn" (click)="markAllAsRead()">Mark all read</button>
+                    }
+                  </div>
+                  <div class="nd-body">
+                    @if (notifications.length === 0) {
+                      <div class="nd-empty">
+                        <span class="nd-empty-icon">🔔</span>
+                        <p>No new notifications</p>
+                      </div>
+                    } @else {
+                      <div class="nd-list">
+                        @for (n of notifications; track n.id) {
+                          <div class="nd-item" [class.nd-item--unread]="!n.read" (click)="markAsRead(n)">
+                            <div class="nd-item-icon" [ngClass]="n.typeClass">
+                              {{ n.icon }}
+                            </div>
+                            <div class="nd-item-content">
+                              <p class="nd-item-title">{{ n.title }}</p>
+                              <span class="nd-item-time">{{ n.time }}</span>
+                            </div>
+                            @if (!n.read) {
+                              <span class="nd-unread-indicator"></span>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
             <div class="topbar-divider"></div>
             <div class="topbar-user">
               <div class="topbar-avatar">{{ getInitial() }}</div>
@@ -167,7 +216,7 @@ import { AuthService } from '../../core/services/auth.service';
       display: flex;
       height: 100vh;
       overflow: hidden;
-      background: #f1f5f9;
+      background: var(--bg);
     }
 
     /* ── Sidebar ─────────────────────────────────── */
@@ -185,8 +234,11 @@ import { AuthService } from '../../core/services/auth.service';
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      padding: 1.25rem 1.5rem;
+      height: 72px;
+      min-height: 72px;
+      padding: 0 1.5rem;
       border-bottom: 1px solid rgba(255,255,255,0.06);
+      box-sizing: border-box;
     }
 
     .logo-icon {
@@ -321,7 +373,7 @@ import { AuthService } from '../../core/services/auth.service';
       align-items: center;
       gap: 0.625rem;
       padding: 0.5rem 0.75rem;
-      color: #64748b;
+      color: var(--text-secondary);
       text-decoration: none;
       border-radius: 7px;
       font-size: 0.8275rem;
@@ -395,7 +447,7 @@ import { AuthService } from '../../core/services/auth.service';
 
     .sidebar-user-role {
       font-size: 0.7rem;
-      color: #64748b;
+      color: var(--text-secondary);
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -412,16 +464,16 @@ import { AuthService } from '../../core/services/auth.service';
 
     /* ── Topbar ──────────────────────────────── */
     .topbar {
-      height: 60px;
-      min-height: 60px;
-      background: #ffffff;
-      border-bottom: 1px solid #e2e8f0;
+      height: 72px;
+      min-height: 72px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 1.75rem;
       z-index: 10;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      box-shadow: var(--shadow-sm);
     }
 
     .topbar-breadcrumb {
@@ -439,7 +491,7 @@ import { AuthService } from '../../core/services/auth.service';
     .breadcrumb-current {
       font-size: 0.875rem;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-primary);
     }
 
     .topbar-right {
@@ -455,15 +507,15 @@ import { AuthService } from '../../core/services/auth.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
       border-radius: 9px;
-      color: #64748b;
+      color: var(--text-secondary);
       cursor: pointer;
       transition: all 0.15s ease;
     }
 
-    .topbar-action-btn:hover { background: #f1f5f9; color: #0f172a; }
+    .topbar-action-btn:hover { background: var(--border-light); color: var(--text-primary); }
 
     .notification-dot {
       position: absolute;
@@ -479,7 +531,7 @@ import { AuthService } from '../../core/services/auth.service';
     .topbar-divider {
       width: 1px;
       height: 24px;
-      background: #e2e8f0;
+      background: var(--border);
     }
 
     .topbar-user {
@@ -510,13 +562,13 @@ import { AuthService } from '../../core/services/auth.service';
     .topbar-user-name {
       font-size: 0.825rem;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-primary);
       line-height: 1.2;
     }
 
     .topbar-user-role {
       font-size: 0.68rem;
-      color: #94a3b8;
+      color: var(--text-muted);
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -528,12 +580,12 @@ import { AuthService } from '../../core/services/auth.service';
       align-items: center;
       gap: 0.4rem;
       padding: 0.45rem 0.875rem;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 0.8rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--text-secondary);
       cursor: pointer;
       transition: all 0.15s ease;
       font-family: inherit;
@@ -543,6 +595,195 @@ import { AuthService } from '../../core/services/auth.service';
       background: #fee2e2;
       border-color: #fca5a5;
       color: #dc2626;
+    }
+
+    /* ── Notification Dropdown ────────────────── */
+    .notification-dropdown {
+      position: absolute;
+      top: calc(100% + 12px);
+      right: 0;
+      width: 320px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    body.dark-theme .notification-dropdown {
+      background: #111827;
+      border-color: rgba(255,255,255,0.08);
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+    }
+
+    .nd-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+
+    body.dark-theme .nd-header {
+      background: #1f2937;
+      border-bottom-color: rgba(255,255,255,0.08);
+    }
+
+    .nd-header h4 {
+      margin: 0;
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .nd-clear-btn {
+      background: none;
+      border: none;
+      color: #4f46e5;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .nd-clear-btn:hover {
+      text-decoration: underline;
+    }
+
+    .nd-body {
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .nd-empty {
+      padding: 2.5rem 1rem;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .nd-empty-icon {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 0.5rem;
+      opacity: 0.5;
+    }
+
+    .nd-empty p {
+      margin: 0;
+      font-size: 0.825rem;
+    }
+
+    .nd-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nd-item {
+      display: flex;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+      align-items: flex-start;
+      position: relative;
+    }
+
+    body.dark-theme .nd-item {
+      border-bottom-color: rgba(255,255,255,0.06);
+    }
+
+    .nd-item:hover {
+      background: var(--surface-2);
+    }
+
+    body.dark-theme .nd-item:hover {
+      background: #1f2937;
+    }
+
+    .nd-item--unread {
+      background: rgba(79, 70, 229, 0.03);
+    }
+
+    body.dark-theme .nd-item--unread {
+      background: rgba(79, 70, 229, 0.05);
+    }
+
+    .nd-item-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+
+    .nd-icon-pending { background: #fef3c7; color: #92400e; }
+    .nd-icon-progress { background: #dbeafe; color: #1e40af; }
+    .nd-icon-resolved { background: #dcfce7; color: #166534; }
+
+    .nd-item-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .nd-item-title {
+      margin: 0 0 0.2rem 0;
+      font-size: 0.8125rem;
+      color: var(--text-primary);
+      line-height: 1.3;
+      font-weight: 500;
+      word-break: break-word;
+      text-align: left;
+    }
+
+    .nd-item--unread .nd-item-title {
+      font-weight: 700;
+    }
+
+    .nd-item-time {
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      display: block;
+      text-align: left;
+    }
+
+    .nd-unread-indicator {
+      width: 6px;
+      height: 6px;
+      background: #4f46e5;
+      border-radius: 50%;
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .notification-dot {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 16px;
+      height: 16px;
+      background: #ef4444;
+      border-radius: 50%;
+      border: 1.5px solid var(--surface);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 3px;
+      box-sizing: border-box;
+    }
+
+    body.dark-theme .notification-dot {
+      border-color: #0f172a;
     }
 
     /* ── Page Content ────────────────────────── */
@@ -565,8 +806,23 @@ import { AuthService } from '../../core/services/auth.service';
 export class DashboardLayoutComponent implements OnInit {
   authService = inject(AuthService);
   router = inject(Router);
+  private callService = inject(CallService);
+
   isProductMenuOpen = false;
   isCallMenuOpen = false;
+  isDarkMode = false;
+
+  // Notification properties
+  showNotifications = false;
+  unreadCount = 0;
+  notifications: Array<{
+    id: string;
+    title: string;
+    time: string;
+    read: boolean;
+    icon: string;
+    typeClass: string;
+  }> = [];
 
   private readonly productRoutes = ['/admin/brands', '/admin/products', '/admin/models', '/admin/issues'];
   private readonly callRoutes = ['/calls'];
@@ -580,6 +836,13 @@ export class DashboardLayoutComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.isDarkMode = localStorage.getItem('theme') === 'dark';
+    if (this.isDarkMode) {
+      document.body.classList.add('dark-theme');
+    } else {
+      document.body.classList.remove('dark-theme');
+    }
+
     if (this.isProductRouteActive()) this.isProductMenuOpen = true;
     if (this.isCallRouteActive()) this.isCallMenuOpen = true;
 
@@ -589,6 +852,142 @@ export class DashboardLayoutComponent implements OnInit {
       if (this.isProductRouteActive()) this.isProductMenuOpen = true;
       if (this.isCallRouteActive()) this.isCallMenuOpen = true;
     });
+
+    this.loadNotifications();
+  }
+
+  loadNotifications() {
+    this.callService.getCalls().subscribe({
+      next: (res: any) => {
+        const rawCalls = Array.isArray(res) ? res : (res.data || []);
+        
+        // Filter calls for Customers just like dashboard does
+        let filteredCalls = [...rawCalls];
+        const role = this.authService.getRole();
+        const username = this.authService.getUsername() || '';
+
+        if (role === 'Customer') {
+          filteredCalls = rawCalls.filter(c => {
+            const fn = (c.customerDetail?.firstName || '').toLowerCase();
+            const ln = (c.customerDetail?.lastName || '').toLowerCase();
+            const fullname = `${fn} ${ln}`.trim();
+            const u = username.toLowerCase();
+            return fn.includes(u) || ln.includes(u) || fullname.includes(u) || (c.customerName || '').toLowerCase().includes(u);
+          });
+        }
+
+        // Sort by id desc
+        filteredCalls.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
+
+        // Generate dynamic notifications
+        const notificationItems = filteredCalls.map(c => {
+          let title = '';
+          let icon = '📝';
+          let typeClass = 'nd-icon-pending';
+          const callIdStr = c.callNumber || c.callId || ('#' + c.id);
+          const custName = this.getCustomerName(c);
+
+          const status = (c.status || 'Pending').toUpperCase();
+          if (status === 'PENDING' || status === 'OPEN') {
+            title = `New service call ${callIdStr} registered for ${custName}.`;
+            icon = '📝';
+            typeClass = 'nd-icon-pending';
+          } else if (status === 'IN PROGRESS') {
+            title = `Service call ${callIdStr} is in progress under technician ${c.technicianAssigned || 'assigned technician'}.`;
+            icon = '🔧';
+            typeClass = 'nd-icon-progress';
+          } else {
+            title = `Service call ${callIdStr} has been successfully resolved.`;
+            icon = '✅';
+            typeClass = 'nd-icon-resolved';
+          }
+
+          // Format date/time
+          let displayTime = 'Just now';
+          if (c.createdAt) {
+            displayTime = c.createdAt;
+          }
+
+          return {
+            id: String(c.id || callIdStr),
+            title,
+            time: displayTime,
+            read: false,
+            icon,
+            typeClass
+          };
+        });
+
+        // Load read states from local storage to keep state persistent
+        const readListStr = localStorage.getItem('read_notifications');
+        const readIds = readListStr ? JSON.parse(readListStr) : [];
+
+        this.notifications = notificationItems.map(n => {
+          if (readIds.includes(n.id)) {
+            n.read = true;
+          }
+          return n;
+        });
+
+        this.unreadCount = this.notifications.filter(n => !n.read).length;
+      },
+      error: () => {
+        this.notifications = [];
+        this.unreadCount = 0;
+      }
+    });
+  }
+
+  getCustomerName(call: any): string {
+    if (!call) return 'Customer';
+    let name = call.customerName || '';
+    if (call.customerDetail) {
+      let fn = call.customerDetail.firstName || '';
+      let ln = call.customerDetail.lastName || '';
+      if (fn === 'Customer') fn = '';
+      if (ln === 'Name') ln = '';
+      const full = `${fn} ${ln}`.trim();
+      if (full && full !== 'N/A') name = full;
+    }
+    if (name.endsWith(' Name')) {
+      name = name.substring(0, name.length - 5).trim();
+    }
+    if (name && name !== 'N/A') return name;
+    return 'Customer';
+  }
+
+  toggleNotifications(event: MouseEvent) {
+    event.stopPropagation();
+    this.showNotifications = !this.showNotifications;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick() {
+    this.showNotifications = false;
+  }
+
+  markAsRead(n: any) {
+    n.read = true;
+    const readListStr = localStorage.getItem('read_notifications');
+    const readIds = readListStr ? JSON.parse(readListStr) : [];
+    if (!readIds.includes(n.id)) {
+      readIds.push(n.id);
+      localStorage.setItem('read_notifications', JSON.stringify(readIds));
+    }
+    this.unreadCount = this.notifications.filter(item => !item.read).length;
+  }
+
+  markAllAsRead() {
+    const readListStr = localStorage.getItem('read_notifications');
+    const readIds = readListStr ? JSON.parse(readListStr) : [];
+    this.notifications.forEach(n => {
+      n.read = true;
+      if (!readIds.includes(n.id)) {
+        readIds.push(n.id);
+      }
+    });
+    localStorage.setItem('read_notifications', JSON.stringify(readIds));
+    this.unreadCount = 0;
   }
 
   toggleProductMenu() {
@@ -618,5 +1017,16 @@ export class DashboardLayoutComponent implements OnInit {
 
   logout() {
     this.authService.logout();
+  }
+
+  toggleDarkMode() {
+    this.isDarkMode = !this.isDarkMode;
+    if (this.isDarkMode) {
+      document.body.classList.add('dark-theme');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.body.classList.remove('dark-theme');
+      localStorage.setItem('theme', 'light');
+    }
   }
 }

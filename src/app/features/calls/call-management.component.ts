@@ -19,40 +19,44 @@ import { ProductIssue } from '../../core/models/product-issue.model';
   imports: [CommonModule, ReactiveFormsModule, FormsModule],
   template: `
     <div class="page-wrapper animate-fade-in">
-      <!-- Page Header -->
-      <div class="pg-header">
-        <div class="pg-header-left">
-          <div class="pg-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          </div>
-          <div>
-            <h1 class="pg-title">Call Management</h1>
-            <p class="pg-subtitle">Manage customer service calls, track call numbers & update status</p>
-          </div>
-        </div>
-      </div>
 
-      <!-- Notification Alerts -->
-      @if (successMessage) {
-        <div class="alert alert-success animate-fade-in">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          <span>{{ successMessage }}</span>
-        </div>
-      }
-      @if (errorMessage) {
-        <div class="alert alert-error animate-fade-in">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span>{{ errorMessage }}</span>
-        </div>
-      }
+      <!-- Notification Alerts (Toasts) -->
+      <div class="toast-container">
+        @if (successMessage) {
+          <div class="toast toast-success animate-slide-in">
+            <div class="toast-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="toast-content">
+              <div class="toast-title">Success</div>
+              <div class="toast-message">{{ successMessage }}</div>
+            </div>
+            <button class="toast-close" (click)="successMessage = ''">&times;</button>
+          </div>
+        }
+        @if (errorMessage) {
+          <div class="toast toast-error animate-slide-in">
+            <div class="toast-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div class="toast-content">
+              <div class="toast-title">Validation Error</div>
+              <div class="toast-message">{{ errorMessage }}</div>
+            </div>
+            <button class="toast-close" (click)="errorMessage = ''">&times;</button>
+          </div>
+        }
+      </div>
 
       <!-- TAB 1: ALL CALLS LIST -->
       @if (activeTab === 'list') {
         <div class="data-card animate-fade-in">
           <div class="data-card-header">
-            <div>
+            <div class="data-card-header-left">
+              <div class="pg-icon-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              </div>
               <h3 class="data-card-title">Customer Service Calls</h3>
-              <p class="data-card-subtitle">Overview of service tickets and status updates</p>
             </div>
             <div class="card-header-actions">
               <button class="export-btn" (click)="showExportModal = true">
@@ -83,7 +87,8 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                     <th>Call Number</th>
                     <th>Customer Info</th>
                     <th>Product</th>
-                    <th>Status & Priority</th>
+                    <th>Status</th>
+                    <th>Priority</th>
                     <th class="col-actions">Actions</th>
                   </tr>
                 </thead>
@@ -101,17 +106,17 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                         <span class="product-title">{{ getProductName(getCallProduct(call)) }}</span>
                       </td>
                       <td>
-                        <div class="status-cell">
-                          <span class="status-badge" [ngClass]="getStatusClass(call.status)">
-                            {{ call.status || 'Pending' }}
-                          </span>
-                          <span class="priority-badge" [ngClass]="getPriorityClass(getCallPriority(call))">
-                            {{ getCallPriority(call) }}
-                          </span>
-                        </div>
+                        <span class="status-badge" [ngClass]="getStatusClass(call.status)">
+                          {{ call.status || 'Pending' }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="priority-badge" [ngClass]="getPriorityClass(getCallPriority(call))">
+                          {{ getCallPriority(call) }}
+                        </span>
                       </td>
                       <td class="td-actions">
-                        <button class="btn-row-view" (click)="viewingCallDetails = call" title="View Full Details">
+                        <button class="btn-row-view" (click)="openViewDetails(call)" title="View Full Details">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                           View
                         </button>
@@ -132,7 +137,6 @@ import { ProductIssue } from '../../core/models/product-issue.model';
         <div class="card-form-wrapper animate-fade-in">
           <div class="form-card-header">
             <h3 class="form-card-title">Register New Customer Call</h3>
-            <p class="form-card-subtitle">Fill in all 5 sections. Product selection dynamically lists related models & call types.</p>
           </div>
           <form [formGroup]="callForm" (ngSubmit)="onCreateCallSubmit()">
             <div class="form-card-body">
@@ -143,19 +147,22 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                 <div class="form-grid-2">
                   <div class="pro-form-group">
                     <label class="pro-label">First Name *</label>
-                    <div class="input-with-select">
-                      <select class="pro-input title-select" formControlName="title">
+                    <div class="input-with-select" [class.is-invalid]="isFieldInvalid('customerDetail', 'firstName')">
+                      <select class="title-prefix-select" formControlName="title">
                         <option value="Mr">Mr</option>
                         <option value="Mrs">Mrs</option>
                         <option value="Ms">Ms</option>
                         <option value="Dr">Dr</option>
                       </select>
-                      <input type="text" class="pro-input" formControlName="firstName" placeholder="First Name" />
+                      <input type="text" class="pro-input" formControlName="firstName" placeholder="Enter first name" />
                     </div>
+                    @if (isFieldInvalid('customerDetail', 'firstName')) {
+                      <span class="error-message">First name is required.</span>
+                    }
                   </div>
                   <div class="pro-form-group">
                     <label class="pro-label">Last Name</label>
-                    <input type="text" class="pro-input" formControlName="lastName" placeholder="Last Name" />
+                    <input type="text" class="pro-input" formControlName="lastName" placeholder="Enter last name" />
                   </div>
                 </div>
 
@@ -176,19 +183,28 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                     <input type="text" class="pro-input" formControlName="locality" placeholder="Locality" />
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">City</label>
-                    <input type="text" class="pro-input" formControlName="city" placeholder="City" />
+                    <label class="pro-label">State</label>
+                    <select class="pro-input" formControlName="state" (change)="onCreateStateChange($event)">
+                      <option value="">-- Select State --</option>
+                      @for (s of states; track s) { <option [value]="s">{{ s }}</option> }
+                    </select>
                   </div>
                 </div>
 
                 <div class="form-grid-3">
                   <div class="pro-form-group">
                     <label class="pro-label">District</label>
-                    <input type="text" class="pro-input" formControlName="district" placeholder="District" />
+                    <select class="pro-input" formControlName="district" (change)="onCreateDistrictChange($event)" [attr.disabled]="!createDistricts.length ? true : null">
+                      <option value="">-- Select District --</option>
+                      @for (d of createDistricts; track d) { <option [value]="d">{{ d }}</option> }
+                    </select>
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">State</label>
-                    <input type="text" class="pro-input" formControlName="state" placeholder="State" />
+                    <label class="pro-label">City</label>
+                    <select class="pro-input" formControlName="city" [attr.disabled]="!createCities.length ? true : null">
+                      <option value="">-- Select City --</option>
+                      @for (c of createCities; track c) { <option [value]="c">{{ c }}</option> }
+                    </select>
                   </div>
                   <div class="pro-form-group">
                     <label class="pro-label">Pincode</label>
@@ -203,11 +219,24 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                 <div class="form-grid-2">
                   <div class="pro-form-group">
                     <label class="pro-label">Mobile Number *</label>
-                    <input type="text" class="pro-input" formControlName="mobile" placeholder="10-digit mobile number" />
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('contactDetail', 'mobile')" formControlName="mobile" placeholder="10-digit mobile number" maxlength="10" (keypress)="onlyDigits($event)" />
+                    @if (isFieldInvalid('contactDetail', 'mobile')) {
+                      <span class="error-message">
+                        @if (callForm.get('contactDetail.mobile')?.errors?.['required']) {
+                          Mobile number is required.
+                        }
+                        @if (callForm.get('contactDetail.mobile')?.errors?.['pattern']) {
+                          Please enter a valid 10-digit mobile number.
+                        }
+                      </span>
+                    }
                   </div>
                   <div class="pro-form-group">
                     <label class="pro-label">Email Address</label>
-                    <input type="email" class="pro-input" formControlName="email" placeholder="john@example.com" />
+                    <input type="email" class="pro-input" [class.is-invalid]="isFieldInvalid('contactDetail', 'email')" formControlName="email" placeholder="john@example.com" />
+                    @if (isFieldInvalid('contactDetail', 'email')) {
+                      <span class="error-message">Please enter a valid email address (e.g. name&#64;domain.com).</span>
+                    }
                   </div>
                 </div>
                 <div class="form-grid-2">
@@ -267,34 +296,43 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                 <div class="form-grid-2">
                   <div class="pro-form-group">
                     <label class="pro-label">1. Select Brand *</label>
-                    <select class="pro-input highlight-select" formControlName="brand" (change)="onBrandSelect($event)">
+                    <select class="pro-input highlight-select" [class.is-invalid]="isFieldInvalid('productDetail', 'brand')" formControlName="brand" (change)="onBrandSelect($event)">
                       <option value="">-- Choose Brand --</option>
                       @for (b of brands; track b.id) {
                         <option [value]="b.id">{{ b.name }}</option>
                       }
                     </select>
+                    @if (isFieldInvalid('productDetail', 'brand')) {
+                      <span class="error-message">Brand selection is required.</span>
+                    }
                   </div>
 
                   <div class="pro-form-group">
                     <label class="pro-label">2. Select Product *</label>
-                    <select class="pro-input highlight-select" formControlName="product" (change)="onProductSelect($event)" [disabled]="!filteredProducts.length">
+                    <select class="pro-input highlight-select" [class.is-invalid]="isFieldInvalid('productDetail', 'product')" formControlName="product" (change)="onProductSelect($event)" [disabled]="!filteredProducts.length">
                       <option value="">{{ !callForm.get('productDetail.brand')?.value ? '-- Select Brand First --' : '-- Choose Product --' }}</option>
                       @for (p of filteredProducts; track p.id) {
                         <option [value]="p.id">{{ p.name }}</option>
                       }
                     </select>
+                    @if (isFieldInvalid('productDetail', 'product')) {
+                      <span class="error-message">Product selection is required.</span>
+                    }
                   </div>
                 </div>
 
                 <div class="form-grid-2">
                   <div class="pro-form-group">
                     <label class="pro-label">3. Select Model *</label>
-                    <select class="pro-input highlight-select" formControlName="model" [disabled]="!filteredModels.length">
+                    <select class="pro-input highlight-select" [class.is-invalid]="isFieldInvalid('productDetail', 'model')" formControlName="model" [disabled]="!filteredModels.length">
                       <option value="">{{ !callForm.get('productDetail.product')?.value ? '-- Select Product First --' : '-- Choose Model --' }}</option>
                       @for (m of filteredModels; track m.id) {
                         <option [value]="m.id">{{ m.modelName }}</option>
                       }
                     </select>
+                    @if (isFieldInvalid('productDetail', 'model')) {
+                      <span class="error-message">Model selection is required.</span>
+                    }
                   </div>
 
                   <div class="pro-form-group">
@@ -336,7 +374,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                 <div class="form-grid-2">
                   <div class="pro-form-group">
                     <label class="pro-label">Call Type / Reported Issue *</label>
-                    <select class="pro-input highlight-select" formControlName="callType" [disabled]="!filteredIssues.length && !callForm.get('productDetail.product')?.value">
+                    <select class="pro-input highlight-select" [class.is-invalid]="isFieldInvalid('complaintDetail', 'callType')" formControlName="callType" [disabled]="!filteredIssues.length && !callForm.get('productDetail.product')?.value">
                       <option value="">{{ !callForm.get('productDetail.product')?.value ? '-- Select Product First --' : '-- Choose Call Type / Issue --' }}</option>
                       <option value="Installation">Installation</option>
                       <option value="Service">Service</option>
@@ -347,6 +385,9 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                         <option [value]="iss.issueName">{{ iss.issueName }}</option>
                       }
                     </select>
+                    @if (isFieldInvalid('complaintDetail', 'callType')) {
+                      <span class="error-message">Call type is required.</span>
+                    }
                   </div>
 
                   <div class="pro-form-group">
@@ -544,72 +585,262 @@ import { ProductIssue } from '../../core/models/product-issue.model';
             <div class="modal-header">
               <div>
                 <h3 class="modal-title">Call Details &bull; {{ viewingCallDetails.callNumber || viewingCallDetails.callId || '#' + viewingCallDetails.id }}</h3>
-                <span class="status-badge" [ngClass]="getStatusClass(viewingCallDetails.status)">{{ viewingCallDetails.status || 'Pending' }}</span>
+                <div class="modal-header-badges" style="display: flex; gap: 0.5rem; margin-top: 0.35rem; align-items: center;">
+                  <span class="status-badge" [ngClass]="getStatusClass(viewingCallDetails.status)">{{ viewingCallDetails.status || 'Pending' }}</span>
+                  <span class="priority-badge" [ngClass]="getPriorityClass(getCallPriority(viewingCallDetails))">{{ getCallPriority(viewingCallDetails) }}</span>
+                  <span class="call-type-badge">{{ viewingCallDetails.complaintDetail?.callType || 'N/A' }}</span>
+                </div>
               </div>
               <button class="modal-close" (click)="viewingCallDetails = null">&times;</button>
             </div>
-            <div class="modal-body">
-              <div class="view-cards-grid">
+            
+            <div class="modal-body call-details-modal-body">
+              
+              <!-- Customer Full Name Banner -->
+              <div class="details-name-banner">
+                <span class="name-banner-label">Customer</span>
+                <span class="name-banner-value">{{ getFormattedFullName(viewingCallDetails?.customerDetail, viewingCallDetails?.customerName) | titlecase }}</span>
+              </div>
+
+              <!-- Editable Badges Header -->
+              <div class="details-badges-row">
+                <div class="badge-item">
+                  <span class="badge-label">Status</span>
+                  <select class="inline-badge-select status-select" [(ngModel)]="viewingCallDetails.status" (change)="onViewStatusChange()">
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Closed">Closed</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+                </div>
+                <div class="badge-item">
+                  <span class="badge-label">Priority</span>
+                  <select class="inline-badge-select priority-select" [(ngModel)]="viewDetailPriority" (change)="onViewPriorityChange()">
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Urgent">Urgent</option>
+                  </select>
+                </div>
+                <div class="badge-item">
+                  <span class="badge-label">Call Type</span>
+                  <span class="call-type-badge">
+                    {{ viewingCallDetails.complaintDetail?.callType || 'N/A' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Enterprise Tabs Navigation -->
+              <div class="details-tabs-nav">
+                <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'customer'" (click)="activeViewTab = 'customer'">
+                  👤 Customer Details
+                </button>
+                <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'contact'" (click)="activeViewTab = 'contact'">
+                  📞 Contact Details
+                </button>
+                <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'call'" (click)="activeViewTab = 'call'">
+                  📋 Call Details
+                </button>
+                @if (getCallProduct(viewingCallDetails)) {
+                  <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'product'" (click)="activeViewTab = 'product'">
+                    📦 Product Details
+                  </button>
+                }
+                <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'timeline'" (click)="activeViewTab = 'timeline'">
+                  🕒 History/Timeline
+                </button>
+              </div>
+
+              <!-- Tab Content Container -->
+              <div class="details-tab-content animate-fade-in">
                 
-                <!-- 1. Customer Info Card -->
-                <div class="view-info-card">
-                  <div class="view-card-header">
-                    <span class="card-header-icon">👤</span>
-                    <h4>Customer Information</h4>
+                <!-- TAB 1: CUSTOMER DETAILS -->
+                @if (activeViewTab === 'customer') {
+                  <div class="tab-panel">
+                    <div class="details-info-grid">
+                      <div class="details-field">
+                        <span class="df-label">Salutation</span>
+                        <span class="df-value">{{ viewingCallDetails.customerDetail?.title || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">First Name</span>
+                        <span class="df-value text-semibold">{{ viewingCallDetails.customerDetail?.firstName || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Last Name</span>
+                        <span class="df-value text-semibold">{{ (viewingCallDetails?.customerDetail?.lastName && viewingCallDetails?.customerDetail?.lastName !== 'Name') ? viewingCallDetails?.customerDetail?.lastName : 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Full Name</span>
+                        <span class="df-value text-semibold">{{ getFormattedFullName(viewingCallDetails?.customerDetail, viewingCallDetails?.customerName) }}</span>
+                      </div>
+                      <div class="details-field span-2">
+                        <span class="df-label">Address Line 1</span>
+                        <span class="df-value">{{ viewingCallDetails.customerDetail?.address1 || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Landmark</span>
+                        <span class="df-value">{{ viewingCallDetails.customerDetail?.landmark || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Locality</span>
+                        <span class="df-value">{{ viewingCallDetails.customerDetail?.locality || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">City</span>
+                        <span class="df-value">{{ viewingCallDetails.customerDetail?.city || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">District</span>
+                        <span class="df-value">{{ viewingCallDetails.customerDetail?.district || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">State</span>
+                        <span class="df-value">{{ viewingCallDetails.customerDetail?.state || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Pincode</span>
+                        <span class="df-value">{{ viewingCallDetails.customerDetail?.pincode || 'N/A' }}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div class="view-card-content">
-                    <div class="info-row"><span class="info-label">Customer Name:</span> <span class="info-value text-bold">{{ getCustomerName(viewingCallDetails) }}</span></div>
-                    <div class="info-row"><span class="info-label">Mobile Number:</span> <span class="info-value">{{ getCustomerPhone(viewingCallDetails) }}</span></div>
-                    <div class="info-row"><span class="info-label">Email Address:</span> <span class="info-value">{{ viewingCallDetails.contactDetail?.email || 'N/A' }}</span></div>
-                    <div class="info-row"><span class="info-label">Full Address:</span> <span class="info-value">{{ getCustomerAddress(viewingCallDetails) || 'N/A' }}</span></div>
-                    <div class="info-row"><span class="info-label">Landmark:</span> <span class="info-value">{{ viewingCallDetails.customerDetail?.landmark || 'N/A' }}</span></div>
-                  </div>
-                </div>
+                }
 
-                <!-- 2. Product Info Card -->
-                <div class="view-info-card">
-                  <div class="view-card-header">
-                    <span class="card-header-icon">📦</span>
-                    <h4>Product & Model Details</h4>
+                <!-- TAB 2: CONTACT DETAILS -->
+                @if (activeViewTab === 'contact') {
+                  <div class="tab-panel">
+                    <div class="details-info-grid">
+                      <div class="details-field">
+                        <span class="df-label">Mobile Number</span>
+                        <span class="df-value text-semibold">{{ getCustomerPhone(viewingCallDetails) }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Email Address</span>
+                        <span class="df-value">{{ viewingCallDetails.contactDetail?.email || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Contact Person Name</span>
+                        <span class="df-value">{{ viewingCallDetails.contactDetail?.contactPersonName || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Contact Person Mobile</span>
+                        <span class="df-value">{{ viewingCallDetails.contactDetail?.contactPersonMobile || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field span-2">
+                        <span class="df-label">Preferred Languages</span>
+                        <span class="df-value">{{ viewingCallDetails.contactDetail?.language || 'N/A' }}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div class="view-card-content">
-                    <div class="info-row"><span class="info-label">Brand Name:</span> <span class="info-value text-bold">{{ getBrandName(getCallBrand(viewingCallDetails)) }}</span></div>
-                    <div class="info-row"><span class="info-label">Product Name:</span> <span class="info-value">{{ getProductName(getCallProduct(viewingCallDetails)) }}</span></div>
-                    <div class="info-row"><span class="info-label">Model Name:</span> <span class="info-value">{{ getModelName(getCallModel(viewingCallDetails)) }}</span></div>
-                    <div class="info-row"><span class="info-label">Serial Number:</span> <span class="info-value">{{ viewingCallDetails.productDetail?.unitSerialNumber || 'N/A' }}</span></div>
-                    <div class="info-row"><span class="info-label">Warranty:</span> <span class="info-value">{{ viewingCallDetails.productDetail?.warranty || 'N/A' }}</span></div>
-                  </div>
-                </div>
+                }
 
-                <!-- 3. Dealer Info Card -->
-                <div class="view-info-card">
-                  <div class="view-card-header">
-                    <span class="card-header-icon">🏪</span>
-                    <h4>Dealer & Purchase Info</h4>
+                <!-- TAB 3: CALL DETAILS -->
+                @if (activeViewTab === 'call') {
+                  <div class="tab-panel">
+                    <div class="details-info-grid">
+                      <div class="details-field">
+                        <span class="df-label">Call Number</span>
+                        <span class="df-value text-semibold text-mono">{{ viewingCallDetails.callNumber || viewingCallDetails.callId || '#' + viewingCallDetails.id }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Visit Type</span>
+                        <span class="df-value">{{ viewingCallDetails.complaintDetail?.visitType || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Call Nature</span>
+                        <span class="df-value">{{ viewingCallDetails.complaintDetail?.callNature || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Assigned Technician</span>
+                        <span class="df-value text-semibold">{{ viewingCallDetails.technicianAssigned || 'Unassigned' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Promise Date / Time</span>
+                        <span class="df-value">{{ viewingCallDetails.complaintDetail?.promiseDate || 'N/A' }} - {{ viewingCallDetails.complaintDetail?.promiseTime || 'N/A' }} {{ viewingCallDetails.complaintDetail?.amOrPm || '' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Last Complaint Number</span>
+                        <span class="df-value">{{ viewingCallDetails.complaintDetail?.lastComplaintNumber || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field span-2">
+                        <span class="df-label">Complaint Description / Remarks</span>
+                        <span class="df-value-block">{{ viewingCallDetails.complaintDetail?.complaintDescription || viewingCallDetails.remarks || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field span-2">
+                        <span class="df-label">Special Instructions</span>
+                        <span class="df-value-block">{{ viewingCallDetails.complaintDetail?.specialInstruction || 'N/A' }}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div class="view-card-content">
-                    <div class="info-row"><span class="info-label">Dealer Name:</span> <span class="info-value">{{ viewingCallDetails.dealerDetail?.dealerName || 'N/A' }}</span></div>
-                    <div class="info-row"><span class="info-label">Dealer City:</span> <span class="info-value">{{ viewingCallDetails.dealerDetail?.dealerCity || 'N/A' }}</span></div>
-                    <div class="info-row"><span class="info-label">Invoice Number:</span> <span class="info-value">{{ viewingCallDetails.dealerDetail?.invoiceNumber || 'N/A' }}</span></div>
-                    <div class="info-row"><span class="info-label">Purchase Date:</span> <span class="info-value">{{ viewingCallDetails.dealerDetail?.purchaseDate || 'N/A' }}</span></div>
-                  </div>
-                </div>
+                }
 
-                <!-- 4. Complaint Info Card -->
-                <div class="view-info-card">
-                  <div class="view-card-header">
-                    <span class="card-header-icon">📋</span>
-                    <h4>Complaint & Assignment</h4>
+                <!-- TAB 4: PRODUCT DETAILS -->
+                @if (activeViewTab === 'product') {
+                  <div class="tab-panel">
+                    <div class="details-info-grid">
+                      <div class="details-field">
+                        <span class="df-label">Brand Name</span>
+                        <span class="df-value text-semibold">{{ getBrandName(getCallBrand(viewingCallDetails)) }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Product Name</span>
+                        <span class="df-value">{{ getProductName(getCallProduct(viewingCallDetails)) }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Model Name</span>
+                        <span class="df-value text-semibold">{{ getModelName(getCallModel(viewingCallDetails)) }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Unit Serial Number</span>
+                        <span class="df-value text-mono">{{ viewingCallDetails.productDetail?.unitSerialNumber || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Client Category</span>
+                        <span class="df-value">{{ viewingCallDetails.productDetail?.client || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Warranty Details</span>
+                        <span class="df-value">{{ viewingCallDetails.productDetail?.warranty || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Stock Status</span>
+                        <span class="df-value">{{ viewingCallDetails.productDetail?.stockOf || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Purchase Date</span>
+                        <span class="df-value">{{ viewingCallDetails.productDetail?.purchaseDate || 'N/A' }}</span>
+                      </div>
+                      <div class="details-field">
+                        <span class="df-label">Purchase Order Number</span>
+                        <span class="df-value">{{ viewingCallDetails.productDetail?.purchaseOrderNumber || 'N/A' }}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div class="view-card-content">
-                    <div class="info-row"><span class="info-label">Call Type:</span> <span class="info-value">{{ viewingCallDetails.complaintDetail?.callType || 'N/A' }}</span></div>
-                    <div class="info-row"><span class="info-label">Priority:</span> <span class="priority-badge" [ngClass]="getPriorityClass(getCallPriority(viewingCallDetails))">{{ getCallPriority(viewingCallDetails) }}</span></div>
-                    <div class="info-row"><span class="info-label">Technician:</span> <span class="info-value text-bold">{{ viewingCallDetails.technicianAssigned || 'Unassigned' }}</span></div>
-                    <div class="info-row"><span class="info-label">Description:</span> <span class="info-value">{{ viewingCallDetails.complaintDetail?.complaintDescription || viewingCallDetails.remarks || 'N/A' }}</span></div>
+                }
+
+                <!-- TAB 5: HISTORY / TIMELINE -->
+                @if (activeViewTab === 'timeline') {
+                  <div class="tab-panel">
+                    <div class="timeline-container">
+                      @for (step of getCallTimeline(viewingCallDetails); track $index) {
+                        <div class="timeline-item" [class.completed]="step.completed">
+                          <div class="timeline-badge-icon">{{ step.icon }}</div>
+                          <div class="timeline-content">
+                            <div class="timeline-header">
+                              <span class="timeline-title">{{ step.title }}</span>
+                              <span class="timeline-time">{{ step.date }} &bull; {{ step.time }}</span>
+                            </div>
+                            <p class="timeline-desc">{{ step.description }}</p>
+                          </div>
+                        </div>
+                      }
+                    </div>
                   </div>
-                </div>
+                }
 
               </div>
+
             </div>
             <div class="modal-footer">
               <button type="button" class="btn-cancel" (click)="viewingCallDetails = null">Close</button>
@@ -629,7 +860,18 @@ import { ProductIssue } from '../../core/models/product-issue.model';
             </div>
             <div class="modal-body">
               <p class="export-intro">Configure filter options to export your customer calls CSV report.</p>
-              
+
+              <div class="export-date-row">
+                <div class="pro-form-group">
+                  <label class="pro-label">From Date</label>
+                  <input type="date" class="pro-input" [(ngModel)]="exportFilters.startDate" />
+                </div>
+                <div class="pro-form-group">
+                  <label class="pro-label">To Date</label>
+                  <input type="date" class="pro-input" [(ngModel)]="exportFilters.endDate" />
+                </div>
+              </div>
+
               <div class="pro-form-group">
                 <label class="pro-label">Filter by Status</label>
                 <select class="pro-input" [(ngModel)]="exportFilters.status">
@@ -700,8 +942,11 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                           <option value="Ms">Ms</option>
                           <option value="Dr">Dr</option>
                         </select>
-                        <input type="text" class="pro-input" formControlName="firstName" placeholder="First Name" />
+                        <input type="text" class="pro-input" [class.is-invalid]="isEditFieldInvalid('customerDetail', 'firstName')" formControlName="firstName" placeholder="First Name" />
                       </div>
+                      @if (isEditFieldInvalid('customerDetail', 'firstName')) {
+                        <span class="error-message">First name is required.</span>
+                      }
                     </div>
                     <div class="pro-form-group">
                       <label class="pro-label">Last Name</label>
@@ -753,11 +998,24 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   <div class="form-grid-2">
                     <div class="pro-form-group">
                       <label class="pro-label">Mobile Number *</label>
-                      <input type="text" class="pro-input" formControlName="mobile" placeholder="10-digit Mobile" />
+                      <input type="text" class="pro-input" [class.is-invalid]="isEditFieldInvalid('contactDetail', 'mobile')" formControlName="mobile" placeholder="10-digit Mobile" maxlength="10" (keypress)="onlyDigits($event)" />
+                      @if (isEditFieldInvalid('contactDetail', 'mobile')) {
+                        <span class="error-message">
+                          @if (editCallForm.get('contactDetail.mobile')?.errors?.['required']) {
+                            Mobile number is required.
+                          }
+                          @if (editCallForm.get('contactDetail.mobile')?.errors?.['pattern']) {
+                            Please enter a valid 10-digit mobile number.
+                          }
+                        </span>
+                      }
                     </div>
                     <div class="pro-form-group">
                       <label class="pro-label">Email Address</label>
-                      <input type="email" class="pro-input" formControlName="email" placeholder="email@example.com" />
+                      <input type="email" class="pro-input" [class.is-invalid]="isEditFieldInvalid('contactDetail', 'email')" formControlName="email" placeholder="email@example.com" />
+                      @if (isEditFieldInvalid('contactDetail', 'email')) {
+                        <span class="error-message">Please enter a valid email address (e.g. name&#64;domain.com).</span>
+                      }
                     </div>
                   </div>
                   <div class="form-grid-2">
@@ -817,33 +1075,42 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   <div class="form-grid-2">
                     <div class="pro-form-group">
                       <label class="pro-label">1. Select Brand *</label>
-                      <select class="pro-input highlight-select" formControlName="brand" (change)="onEditBrandSelect($event)">
+                      <select class="pro-input highlight-select" [class.is-invalid]="isEditFieldInvalid('productDetail', 'brand')" formControlName="brand" (change)="onEditBrandSelect($event)">
                         <option value="">-- Choose Brand --</option>
                         @for (b of brands; track b.id) {
                           <option [value]="b.id">{{ b.name }}</option>
                         }
                       </select>
+                      @if (isEditFieldInvalid('productDetail', 'brand')) {
+                        <span class="error-message">Brand selection is required.</span>
+                      }
                     </div>
                     <div class="pro-form-group">
                       <label class="pro-label">2. Select Product *</label>
-                      <select class="pro-input highlight-select" formControlName="product" (change)="onEditProductSelect($event)">
+                      <select class="pro-input highlight-select" [class.is-invalid]="isEditFieldInvalid('productDetail', 'product')" formControlName="product" (change)="onEditProductSelect($event)">
                         <option value="">-- Choose Product --</option>
                         @for (p of editFilteredProducts; track p.id) {
                           <option [value]="p.id">{{ p.name }}</option>
                         }
                       </select>
+                      @if (isEditFieldInvalid('productDetail', 'product')) {
+                        <span class="error-message">Product selection is required.</span>
+                      }
                     </div>
                   </div>
 
                   <div class="form-grid-2">
                     <div class="pro-form-group">
                       <label class="pro-label">3. Select Model *</label>
-                      <select class="pro-input highlight-select" formControlName="model">
+                      <select class="pro-input highlight-select" [class.is-invalid]="isEditFieldInvalid('productDetail', 'model')" formControlName="model">
                         <option value="">-- Choose Model --</option>
                         @for (m of editFilteredModels; track m.id) {
                           <option [value]="m.id">{{ m.modelName }}</option>
                         }
                       </select>
+                      @if (isEditFieldInvalid('productDetail', 'model')) {
+                        <span class="error-message">Model selection is required.</span>
+                      }
                     </div>
                     <div class="pro-form-group">
                       <label class="pro-label">Unit Serial Number</label>
@@ -884,7 +1151,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   <div class="form-grid-2">
                     <div class="pro-form-group">
                       <label class="pro-label">Call Type / Reported Issue *</label>
-                      <select class="pro-input highlight-select" formControlName="callType">
+                      <select class="pro-input highlight-select" [class.is-invalid]="isEditFieldInvalid('complaintDetail', 'callType')" formControlName="callType">
                         <option value="Installation">Installation</option>
                         <option value="Service">Service</option>
                         <option value="Repair">Repair</option>
@@ -894,6 +1161,9 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                           <option [value]="iss.issueName">{{ iss.issueName }}</option>
                         }
                       </select>
+                      @if (isEditFieldInvalid('complaintDetail', 'callType')) {
+                        <span class="error-message">Call type is required.</span>
+                      }
                     </div>
                     <div class="pro-form-group">
                       <label class="pro-label">Complaint Priority</label>
@@ -984,14 +1254,12 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     </div>
   `,
   styles: [`
-    * { box-sizing: border-box; }
     .page-wrapper { display: flex; flex-direction: column; gap: 1.5rem; width: 100%; }
 
-    .pg-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-    .pg-header-left { display: flex; align-items: center; gap: 1rem; }
-    .pg-icon { width: 48px; height: 48px; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(79,70,229,0.3); flex-shrink: 0; }
-    .pg-title { font-size: 1.5rem; font-weight: 800; color: #0f172a; letter-spacing: -0.025em; margin: 0; }
-    .pg-subtitle { font-size: 0.875rem; color: #64748b; margin: 0.2rem 0 0; }
+    .pg-icon { width: 40px; height: 40px; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(79,70,229,0.3); flex-shrink: 0; }
+    .pg-icon-sm { width: 32px; height: 32px; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 3px 10px rgba(79,70,229,0.3); flex-shrink: 0; }
+
+    .data-card-header-left { display: flex; align-items: center; gap: 0.875rem; }
 
     /* Action Buttons */
     .create-toggle-btn {
@@ -1048,10 +1316,10 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
 
     /* Form Layouts */
-    .card-form-wrapper { background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 20px rgba(0,0,0,0.03); overflow: hidden; padding: 2rem; width: 100%; box-sizing: border-box; }
+    .card-form-wrapper { background: var(--surface); border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.03); overflow: hidden; padding: 2rem; width: 100%; box-sizing: border-box; }
     .form-card-header { margin-bottom: 1.5rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 1rem; }
-    .form-card-title { font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0; }
-    .form-card-subtitle { font-size: 0.85rem; color: #64748b; margin: 0.25rem 0 0; }
+    .form-card-title { font-size: 1.25rem; font-weight: 800; color: var(--text-primary); margin: 0; }
+    .form-card-subtitle { font-size: 0.85rem; color: var(--text-secondary); margin: 0.25rem 0 0; }
     
     .section-divider { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #4f46e5; margin: 1.75rem 0 1rem; border-bottom: 1.5px solid #e0e7ff; padding-bottom: 0.4rem; }
 
@@ -1065,8 +1333,8 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .title-select { width: 90px; flex-shrink: 0; }
 
     .pro-form-group { margin-bottom: 1rem; width: 100%; box-sizing: border-box; }
-    .pro-label { display: block; font-size: 0.725rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; margin-bottom: 0.4rem; }
-    .pro-input { width: 100%; max-width: 100%; padding: 0.6rem 0.85rem; font-size: 0.875rem; color: #0f172a; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 8px; transition: all 0.15s; box-sizing: border-box; font-family: inherit; }
+    .pro-label { display: block; font-size: 0.725rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.4rem; }
+    .pro-input { width: 100%; max-width: 100%; padding: 0.6rem 0.85rem; font-size: 0.875rem; color: var(--text-primary); background: var(--surface); border: 1.5px solid var(--border); border-radius: 8px; transition: all 0.15s; box-sizing: border-box; font-family: inherit; }
     .pro-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.15); }
     .pro-input:disabled { background: #f8fafc; color: #94a3b8; cursor: not-allowed; }
     .highlight-select { border-color: #a5b4fc; background-color: #faf5ff; }
@@ -1074,28 +1342,29 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .form-card-footer { display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #f1f5f9; padding-top: 1.25rem; margin-top: 1.5rem; }
 
     /* Tables (Clean & Streamlined) */
-    .data-card { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; width: 100%; }
+    .data-card { background: var(--surface); border-radius: 14px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; width: 100%; }
     .data-card-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9; }
-    .data-card-title { font-size: 1rem; font-weight: 700; color: #0f172a; margin: 0; }
+    .data-card-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0; }
     .data-card-subtitle { font-size: 0.78rem; color: #94a3b8; margin: 0.15rem 0 0; font-weight: 500; }
     .card-header-actions { display: flex; gap: 0.625rem; }
 
-    .refresh-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.875rem; font-size: 0.8rem; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; color: #64748b; transition: all 0.15s; font-family: inherit; }
-    .refresh-btn:hover:not(:disabled) { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; }
+    .refresh-btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.875rem; font-size: 0.8rem; font-weight: 600; background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; color: var(--text-secondary); transition: all 0.15s; font-family: inherit; }
+    .refresh-btn:hover:not(:disabled) { background: #f1f5f9; color: var(--text-primary); border-color: #cbd5e1; }
 
     .table-responsive { width: 100%; overflow-x: auto; }
     .data-table { width: 100%; border-collapse: collapse; min-width: 680px; }
-    .data-table thead tr { background: #f8fafc; }
-    .data-table th { padding: 0.75rem 1rem; text-align: left; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
-    .data-table td { padding: 0.85rem 1rem; font-size: 0.875rem; color: #334155; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
-    .data-table tbody tr:hover td { background: #f8fafc; }
+    .data-table thead tr { background: var(--surface); }
+    .data-table th { padding: 0.75rem 1rem; text-align: left; font-size: 0.7rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .data-table td { padding: 0.85rem 1rem; font-size: 0.875rem; color: var(--text-primary); border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .data-table tbody tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:hover td { background: rgba(79, 70, 229, 0.04); }
 
     .td-id { font-family: monospace; font-size: 0.8rem; color: #4f46e5; font-weight: 700; white-space: nowrap; }
     .customer-cell { display: flex; flex-direction: column; gap: 0.1rem; }
-    .customer-name { font-weight: 700; color: #0f172a; }
-    .customer-addr { font-size: 0.75rem; color: #64748b; }
+    .customer-name { font-weight: 700; color: var(--text-primary); }
+    .customer-addr { font-size: 0.75rem; color: var(--text-secondary); }
 
-    .product-title { font-weight: 600; color: #0f172a; font-size: 0.875rem; }
+    .product-title { font-weight: 600; color: var(--text-primary); font-size: 0.875rem; }
 
     .status-cell { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
     .status-badge { font-size: 0.7rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -1111,11 +1380,11 @@ import { ProductIssue } from '../../core/models/product-issue.model';
 
     .col-actions { text-align: right; width: 180px; white-space: nowrap; }
     .td-actions { display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center; white-space: nowrap; }
-    .btn-row-view { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; color: #1d4ed8; cursor: pointer; transition: all 0.15s; }
-    .btn-row-view:hover { background: #dbeafe; }
-    .btn-row-edit { padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; color: #475569; cursor: pointer; transition: all 0.15s; }
-    .btn-row-edit:hover { background: #f1f5f9; color: #0f172a; }
-    .btn-row-delete { padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: #fff; border: 1px solid #fca5a5; border-radius: 6px; color: #dc2626; cursor: pointer; transition: all 0.15s; }
+    .btn-row-view { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: rgba(79, 70, 229, 0.05); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: 6px; color: #4f46e5; cursor: pointer; transition: all 0.15s; }
+    .btn-row-view:hover { background: rgba(79, 70, 229, 0.15); }
+    .btn-row-edit { padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: var(--surface); border: 1px solid #cbd5e1; border-radius: 6px; color: #475569; cursor: pointer; transition: all 0.15s; }
+    .btn-row-edit:hover { background: #f1f5f9; color: var(--text-primary); }
+    .btn-row-delete { padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: var(--surface); border: 1px solid #fca5a5; border-radius: 6px; color: #dc2626; cursor: pointer; transition: all 0.15s; }
     .btn-row-delete:hover { background: #fef2f2; color: #b91c1c; }
 
     /* Lookup tab */
@@ -1124,23 +1393,23 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .lookup-btn { padding: 0.65rem 1.25rem; font-size: 0.875rem; font-weight: 700; background: #0f172a; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
     .lookup-btn:hover { background: #1e293b; }
 
-    .found-call-card { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; }
-    .found-call-summary { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; }
+    .found-call-card { background: #f8fafc; border: 1.5px solid var(--border); border-radius: 12px; padding: 1.5rem; }
+    .found-call-summary { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
     .summary-id { font-family: monospace; font-size: 0.8rem; font-weight: 800; color: #4f46e5; }
-    .summary-name { font-size: 1.1rem; font-weight: 800; color: #0f172a; margin: 0.2rem 0; }
-    .summary-desc { font-size: 0.85rem; color: #64748b; margin: 0; }
+    .summary-name { font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin: 0.2rem 0; }
+    .summary-desc { font-size: 0.85rem; color: var(--text-secondary); margin: 0; }
 
     /* Modern View Details Cards Grid */
     .view-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; width: 100%; box-sizing: border-box; }
-    .view-info-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    .view-info-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
     .view-card-header { padding: 0.85rem 1.1rem; background: #f8fafc; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 0.5rem; }
     .card-header-icon { font-size: 1rem; }
     .view-card-header h4 { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; color: #4f46e5; letter-spacing: 0.04em; margin: 0; }
     .view-card-content { padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 0.55rem; }
     .info-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.825rem; }
-    .info-label { color: #64748b; font-weight: 600; }
-    .info-value { color: #0f172a; text-align: right; word-break: break-word; }
-    .text-bold { font-weight: 700; color: #0f172a; }
+    .info-label { color: var(--text-secondary); font-weight: 600; }
+    .info-value { color: var(--text-primary); text-align: right; word-break: break-word; }
+    .text-bold { font-weight: 700; color: var(--text-primary); }
 
     /* Modals (Perfectly Centered & Flex Container Layout) */
     .modal-backdrop { 
@@ -1158,13 +1427,13 @@ import { ProductIssue } from '../../core/models/product-issue.model';
       box-sizing: border-box; 
     }
     .modal-content { 
-      background: #ffffff; 
+      background: var(--surface); 
       border-radius: 20px; 
       box-shadow: 0 25px 60px -15px rgba(0,0,0,0.35); 
       width: 100%; 
       max-width: 520px; 
       overflow: hidden; 
-      border: 1px solid #e2e8f0; 
+      border: 1px solid var(--border); 
       position: relative; 
       margin: auto; 
       box-sizing: border-box;
@@ -1190,12 +1459,12 @@ import { ProductIssue } from '../../core/models/product-issue.model';
       display: flex; 
       align-items: center; 
       justify-content: space-between; 
-      background: #fff; 
+      background: var(--surface); 
     }
-    .modal-title { font-size: 1.1rem; font-weight: 800; color: #0f172a; margin: 0; }
-    .modal-subtitle { font-size: 0.78rem; color: #64748b; margin: 0.15rem 0 0; }
-    .modal-close { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #f1f5f9; border: none; border-radius: 8px; font-size: 1.2rem; color: #64748b; cursor: pointer; transition: background 0.15s; }
-    .modal-close:hover { background: #e2e8f0; color: #0f172a; }
+    .modal-title { font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin: 0; }
+    .modal-subtitle { font-size: 0.78rem; color: var(--text-secondary); margin: 0.15rem 0 0; }
+    .modal-close { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #f1f5f9; border: none; border-radius: 8px; font-size: 1.2rem; color: var(--text-secondary); cursor: pointer; transition: background 0.15s; }
+    .modal-close:hover { background: #e2e8f0; color: var(--text-primary); }
     .modal-body { 
       flex: 1; 
       overflow-y: auto; 
@@ -1208,26 +1477,27 @@ import { ProductIssue } from '../../core/models/product-issue.model';
       flex-shrink: 0;
       padding: 1rem 1.75rem; 
       background: #f8fafc; 
-      border-top: 1px solid #e2e8f0; 
+      border-top: 1px solid var(--border); 
       display: flex; 
       justify-content: flex-end; 
       gap: 0.75rem; 
     }
-    .export-intro { font-size: 0.875rem; color: #64748b; margin-top: 0; margin-bottom: 1.25rem; }
+    .export-intro { font-size: 0.875rem; color: var(--text-secondary); margin-top: 0; margin-bottom: 1.25rem; }
+    .export-date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.25rem; }
 
     /* Delete Confirmation Modal Styling */
     .delete-modal-body { padding: 2rem; text-align: center; }
     .delete-icon-wrapper { width: 56px; height: 56px; background: #fee2e2; color: #dc2626; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
-    .delete-modal-title { font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0 0 0.5rem; }
-    .delete-modal-desc { font-size: 0.875rem; color: #64748b; margin: 0 0 1.5rem; line-height: 1.5; }
+    .delete-modal-title { font-size: 1.25rem; font-weight: 800; color: var(--text-primary); margin: 0 0 0.5rem; }
+    .delete-modal-desc { font-size: 0.875rem; color: var(--text-secondary); margin: 0 0 1.5rem; line-height: 1.5; }
     .delete-modal-actions { display: flex; justify-content: center; gap: 0.75rem; }
     .btn-danger-confirm { padding: 0.65rem 1.25rem; font-size: 0.875rem; font-weight: 700; background: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
     .btn-danger-confirm:hover { background: #b91c1c; }
 
     .btn-save { padding: 0.65rem 1.4rem; font-size: 0.875rem; font-weight: 700; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.15s; }
     .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
-    .btn-cancel { padding: 0.65rem 1.1rem; font-size: 0.875rem; font-weight: 600; background: #fff; color: #64748b; border: 1.5px solid #cbd5e1; border-radius: 8px; cursor: pointer; }
-    .btn-cancel:hover { background: #f8fafc; color: #0f172a; }
+    .btn-cancel { padding: 0.65rem 1.1rem; font-size: 0.875rem; font-weight: 600; background: var(--surface); color: var(--text-secondary); border: 1.5px solid #cbd5e1; border-radius: 8px; cursor: pointer; }
+    .btn-cancel:hover { background: #f8fafc; color: var(--text-primary); }
 
     .loading-state, .empty-state { padding: 3rem; text-align: center; color: #94a3b8; }
     .spinner { width: 22px; height: 22px; border: 2.5px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 0.5rem; }
@@ -1273,18 +1543,165 @@ export class CallManagementComponent implements OnInit {
   editStatus = 'Pending';
   editTechnicianAssigned = '';
 
+  // ─── States / Districts / Cities Data ─────────────────────────────
+  statesData: { [key: string]: { [key: string]: string[] } } = {
+    'Andhra Pradesh': { 'Visakhapatnam': ['Visakhapatnam City', 'Bheemunipatnam', 'Anakapalle'], 'Guntur': ['Guntur City', 'Tenali', 'Narasaraopet', 'Mangalagiri'], 'Krishna': ['Vijayawada', 'Machilipatnam', 'Gudivada'], 'Kurnool': ['Kurnool City', 'Nandyal', 'Adoni'] },
+    'Delhi': { 'Central Delhi': ['Connaught Place', 'Chandni Chowk', 'Paharganj'], 'New Delhi': ['Chanakyapuri', 'Parliament Street', 'RK Puram'], 'South Delhi': ['Saket', 'Mehrauli', 'Hauz Khas'], 'East Delhi': ['Preet Vihar', 'Mayur Vihar', 'Geeta Colony'], 'West Delhi': ['Rajouri Garden', 'Tilak Nagar', 'Janakpuri'], 'North Delhi': ['Civil Lines', 'Model Town', 'Rohini'] },
+    'Gujarat': { 'Ahmedabad': ['Ahmedabad City', 'Sanand', 'Bavla', 'Dholka'], 'Surat': ['Surat City', 'Chorasi', 'Bardoli', 'Olpad'], 'Vadodara': ['Vadodara City', 'Padra', 'Karjan', 'Waghodia'], 'Rajkot': ['Rajkot City', 'Gondal', 'Jasdan', 'Jetpur'], 'Gandhinagar': ['Gandhinagar City', 'Mansa', 'Dehgam'] },
+    'Haryana': { 'Gurugram': ['Gurugram City', 'Sohna', 'Pataudi'], 'Faridabad': ['Faridabad City', 'Ballabhgarh', 'Tigaon'], 'Hisar': ['Hisar City', 'Hansi', 'Barwala'], 'Ambala': ['Ambala City', 'Ambala Cantt', 'Naraingarh'] },
+    'Karnataka': { 'Bengaluru Urban': ['Bengaluru City', 'Anekal', 'Yelahanka', 'Doddaballapur'], 'Bengaluru Rural': ['Hoskote', 'Kanakapura', 'Ramanagara'], 'Mysuru': ['Mysuru City', 'Nanjangud', 'T Narasipura', 'Hunsur'], 'Dharwad': ['Hubli-Dharwad', 'Kalghatgi', 'Navalgund'], 'Belagavi': ['Belagavi City', 'Gokak', 'Chikodi'], 'Mangaluru': ['Mangaluru City', 'Bantwal', 'Puttur'] },
+    'Kerala': { 'Thiruvananthapuram': ['Thiruvananthapuram City', 'Neyyattinkara', 'Attingal'], 'Ernakulam': ['Kochi City', 'Aluva', 'Muvattupuzha'], 'Kozhikode': ['Kozhikode City', 'Vatakara', 'Koyilandy'], 'Thrissur': ['Thrissur City', 'Chalakudy', 'Kodungallur'] },
+    'Madhya Pradesh': { 'Bhopal': ['Bhopal City', 'Berasia', 'Phanda'], 'Indore': ['Indore City', 'Mhow', 'Sanwer', 'Depalpur'], 'Gwalior': ['Gwalior City', 'Bhitarwar', 'Dabra'], 'Jabalpur': ['Jabalpur City', 'Sihora', 'Patan'] },
+    'Maharashtra': { 'Mumbai City': ['Colaba', 'Fort', 'Dharavi', 'Kurla', 'Sion'], 'Mumbai Suburban': ['Andheri', 'Bandra', 'Borivali', 'Goregaon', 'Malad', 'Kandivali'], 'Pune': ['Pune City', 'Pimpri-Chinchwad', 'Haveli', 'Baramati'], 'Nagpur': ['Nagpur City', 'Kamptee', 'Hingna', 'Umred'], 'Nashik': ['Nashik City', 'Sinnar', 'Niphad', 'Igatpuri'], 'Aurangabad': ['Aurangabad City', 'Kannad', 'Paithan', 'Vaijapur'] },
+    'Punjab': { 'Amritsar': ['Amritsar City', 'Ajnala', 'Baba Bakala'], 'Ludhiana': ['Ludhiana City', 'Jagraon', 'Raikot', 'Samrala'], 'Jalandhar': ['Jalandhar City', 'Nakodar', 'Shahkot', 'Phillaur'], 'Patiala': ['Patiala City', 'Samana', 'Nabha'] },
+    'Rajasthan': { 'Jaipur': ['Jaipur City', 'Amber', 'Phulera', 'Dudu'], 'Jodhpur': ['Jodhpur City', 'Phalodi', 'Bilara', 'Osian'], 'Udaipur': ['Udaipur City', 'Girwa', 'Mavli', 'Salumber'], 'Kota': ['Kota City', 'Ladpura', 'Sangod'] },
+    'Tamil Nadu': { 'Chennai': ['Chennai City', 'Ambattur', 'Tambaram', 'Avadi'], 'Coimbatore': ['Coimbatore City', 'Mettupalayam', 'Pollachi'], 'Madurai': ['Madurai City', 'Melur', 'Peraiyur', 'Usilampatti'], 'Tiruchirappalli': ['Tiruchirappalli City', 'Musiri', 'Lalgudi'], 'Salem': ['Salem City', 'Edapadi', 'Omalur', 'Mettur'] },
+    'Telangana': { 'Hyderabad': ['Hyderabad City', 'LB Nagar', 'Secunderabad', 'Kukatpally'], 'Rangareddy': ['Rajendranagar', 'Chevella', 'Vikarabad'], 'Medchal': ['Kompally', 'Keesara', 'Shamirpet'], 'Warangal Urban': ['Warangal City', 'Hanamkonda', 'Kazipet'] },
+    'Uttar Pradesh': { 'Lucknow': ['Lucknow City', 'Mohanlalganj', 'Bakshi Ka Talab'], 'Agra': ['Agra City', 'Fatehabad', 'Khandauli'], 'Kanpur Nagar': ['Kanpur City', 'Ghatampur', 'Bithoor'], 'Varanasi': ['Varanasi City', 'Pindra', 'Arajiline'], 'Noida (Gautam Buddh Nagar)': ['Noida', 'Greater Noida', 'Dadri', 'Jewar'] },
+    'West Bengal': { 'Kolkata': ['Kolkata City', 'Dum Dum', 'Jadavpur', 'Behala'], 'North 24 Parganas': ['Barasat', 'Barrackpore', 'Bongaon', 'Basirhat'], 'Howrah': ['Howrah City', 'Uluberia', 'Bagnan', 'Amta'] },
+    'Chhattisgarh': { 'Raipur': ['Raipur City', 'Arang', 'Abhanpur'], 'Durg': ['Bhilai', 'Durg City', 'Patan'], 'Bilaspur': ['Bilaspur City', 'Takhatpur', 'Mungeli'] },
+    'Assam': { 'Kamrup Metropolitan': ['Guwahati City', 'Dispur', 'Jalukbari'], 'Kamrup': ['Boko', 'Chamaria', 'Chayani'], 'Dibrugarh': ['Dibrugarh City', 'Khowang', 'Barbaruah'] },
+    'Goa': { 'North Goa': ['Panaji', 'Mapusa', 'Calangute', 'Bardez'], 'South Goa': ['Margao', 'Vasco da Gama', 'Ponda', 'Quepem'] }
+  };
+
+  states: string[] = [];
+  createDistricts: string[] = [];
+  createCities: string[] = [];
+
   showExportModal = false;
   deletingCallObj: Call | null = null;
   editingCall: Call | null = null;
   viewingCallDetails: Call | null = null;
+  viewDetailPriority = 'Medium';
   searchCallId = '';
   foundCall: Call | null = null;
+  activeViewTab: 'customer' | 'contact' | 'call' | 'product' | 'timeline' = 'customer';
 
   exportFilters: CallExportFilter = {
     status: 'All',
     priority: 'All',
-    brandId: 'All'
+    brandId: 'All',
+    startDate: '',
+    endDate: ''
   };
+
+  onlyDigits(event: KeyboardEvent) {
+    const charCode = event.key;
+    if (!/^[0-9]$/.test(charCode)) {
+      event.preventDefault();
+    }
+  }
+
+  isFieldInvalid(groupName: string, fieldName: string): boolean {
+    const group = this.callForm.get(groupName);
+    const control = group?.get(fieldName);
+    return !!(control && control.invalid && (control.touched || control.dirty));
+  }
+
+  isEditFieldInvalid(groupName: string, fieldName: string): boolean {
+    const group = this.editCallForm.get(groupName);
+    const control = group?.get(fieldName);
+    return !!(control && control.invalid && (control.touched || control.dirty));
+  }
+
+  showToast(message: string, isSuccess: boolean) {
+    if (isSuccess) {
+      this.successMessage = message;
+      this.errorMessage = '';
+      setTimeout(() => {
+        if (this.successMessage === message) this.successMessage = '';
+      }, 4000);
+    } else {
+      this.errorMessage = message;
+      this.successMessage = '';
+      setTimeout(() => {
+        if (this.errorMessage === message) this.errorMessage = '';
+      }, 4000);
+    }
+  }
+
+  getCallTimeline(call: Call | null): any[] {
+    if (!call) return [];
+    const dateStr = call.createdAt || new Date().toISOString().slice(0, 10);
+    const steps = [
+      {
+        title: 'Call Registered',
+        description: `Customer service call was logged under ID ${call.callNumber || call.callId}.`,
+        date: dateStr,
+        time: '10:00 AM',
+        icon: '📝',
+        completed: true
+      }
+    ];
+
+    if (call.technicianAssigned && call.technicianAssigned !== 'Unassigned') {
+      steps.push({
+        title: 'Technician Assigned',
+        description: `Technician "${call.technicianAssigned}" was assigned to this request.`,
+        date: dateStr,
+        time: '11:30 AM',
+        icon: '🔧',
+        completed: true
+      });
+    } else {
+      steps.push({
+        title: 'Awaiting Assignment',
+        description: 'Waiting to assign a service technician to the ticket.',
+        date: dateStr,
+        time: '10:15 AM',
+        icon: '⏳',
+        completed: false
+      });
+    }
+
+    if (call.status === 'In Progress') {
+      steps.push({
+        title: 'Work In Progress',
+        description: 'Technician is diagnosing or working on the reported issue.',
+        date: dateStr,
+        time: '02:00 PM',
+        icon: '⚡',
+        completed: true
+      });
+    } else if (call.status === 'Resolved') {
+      steps.push({
+        title: 'Resolved',
+        description: 'The reported issue was successfully resolved.',
+        date: dateStr,
+        time: '04:00 PM',
+        icon: '✅',
+        completed: true
+      });
+    } else if (call.status === 'Closed') {
+      steps.push({
+        title: 'Resolved',
+        description: 'The reported issue was resolved.',
+        date: dateStr,
+        time: '04:00 PM',
+        icon: '✅',
+        completed: true
+      });
+      steps.push({
+        title: 'Ticket Closed',
+        description: 'The call was closed and archived.',
+        date: dateStr,
+        time: '05:30 PM',
+        icon: '📁',
+        completed: true
+      });
+    } else if (call.status === 'Cancelled') {
+      steps.push({
+        title: 'Cancelled',
+        description: 'The service call was cancelled.',
+        date: dateStr,
+        time: '12:00 PM',
+        icon: '❌',
+        completed: true
+      });
+    }
+
+    return steps;
+  }
 
   callForm: FormGroup = this.fb.group({
     customerDetail: this.fb.group({
@@ -1300,8 +1717,8 @@ export class CallManagementComponent implements OnInit {
       pincode: ['']
     }),
     contactDetail: this.fb.group({
-      mobile: ['', Validators.required],
-      email: [''],
+      mobile: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
+      email: ['', [Validators.pattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')]],
       contactPersonName: [''],
       contactPersonMobile: [''],
       language: ['English, Hindi']
@@ -1353,8 +1770,8 @@ export class CallManagementComponent implements OnInit {
       pincode: ['']
     }),
     contactDetail: this.fb.group({
-      mobile: ['', Validators.required],
-      email: [''],
+      mobile: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
+      email: ['', [Validators.pattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')]],
       contactPersonName: [''],
       contactPersonMobile: [''],
       language: ['English, Hindi']
@@ -1400,12 +1817,28 @@ export class CallManagementComponent implements OnInit {
   });
 
   ngOnInit() {
+    this.states = Object.keys(this.statesData).sort();
     this.route.queryParams.subscribe(params => {
       if (params['tab'] && ['list', 'create', 'lookup'].includes(params['tab'])) {
         this.activeTab = params['tab'];
       }
     });
     this.loadAllData();
+  }
+
+  onCreateStateChange(e: Event) {
+    const val = (e.target as HTMLSelectElement).value;
+    const customerDetailGroup = this.callForm.get('customerDetail');
+    customerDetailGroup?.patchValue({ district: '', city: '' });
+    this.createDistricts = val ? Object.keys(this.statesData[val]).sort() : [];
+    this.createCities = [];
+  }
+
+  onCreateDistrictChange(e: Event) {
+    const stateVal = this.callForm.get('customerDetail')?.get('state')?.value;
+    const distVal = (e.target as HTMLSelectElement).value;
+    this.callForm.get('customerDetail')?.patchValue({ city: '' });
+    this.createCities = stateVal && distVal ? this.statesData[stateVal][distVal] : [];
   }
 
   loadAllData() {
@@ -1472,7 +1905,17 @@ export class CallManagementComponent implements OnInit {
 
   normalizeCall(c: any): Call {
     const cNum = c.callNumber || c.callId || (c.id ? '#' + c.id : 'CALL10001');
-    const name = c.customerName || (c.customerDetail ? `${c.customerDetail.firstName || ''} ${c.customerDetail.lastName || ''}`.trim() : '');
+    let rawFn = c.customerDetail?.firstName || '';
+    let rawLn = c.customerDetail?.lastName || '';
+    if (rawFn === 'Customer') rawFn = '';
+    if (rawLn === 'Name') rawLn = '';
+    
+    let name = c.customerName || `${rawFn} ${rawLn}`.trim();
+    if (name.endsWith(' Name')) {
+      name = name.substring(0, name.length - 5).trim();
+    }
+    if (name === 'Name') name = '';
+
     const phone = c.customerPhone || c.contactDetail?.mobile || '';
     const addr = c.address || (c.customerDetail ? `${c.customerDetail.address1 || ''} ${c.customerDetail.city || ''}`.trim() : '');
     const bId = c.brand ?? c.productDetail?.brand;
@@ -1627,7 +2070,7 @@ export class CallManagementComponent implements OnInit {
       customerDetail: {
         title: cust.title || 'Mr',
         firstName: (cust.firstName && cust.firstName !== 'N/A') ? cust.firstName : 'Customer',
-        lastName: (cust.lastName && cust.lastName !== 'N/A') ? cust.lastName : 'Name',
+        lastName: (cust.lastName && cust.lastName !== 'N/A') ? cust.lastName : '',
         address1: (cust.address1 && cust.address1 !== 'N/A') ? cust.address1 : 'Address 1',
         landmark: cust.landmark || '',
         state: cust.state || 'MP',
@@ -1693,7 +2136,7 @@ export class CallManagementComponent implements OnInit {
   onCreateCallSubmit() {
     if (this.callForm.invalid) {
       this.callForm.markAllAsTouched();
-      this.errorMessage = 'Please fill out required fields (First Name, Mobile, Brand, Product, Model).';
+      this.showToast('Please complete all required fields before submitting.', false);
       return;
     }
 
@@ -1706,11 +2149,11 @@ export class CallManagementComponent implements OnInit {
     this.callService.createCall(newCall).subscribe({
       next: (res: any) => {
         if (res && res.status === 400) {
-          this.errorMessage = 'Backend Validation Error: ' + JSON.stringify(res.error || res.message);
+          this.showToast('Backend Validation Error: ' + JSON.stringify(res.error || res.message), false);
           this.isSubmitting = false;
           return;
         }
-        this.successMessage = 'Call & related entities registered successfully on backend!';
+        this.showToast('New service call created successfully!', true);
         this.isSubmitting = false;
         this.resetCallForm();
         this.activeTab = 'list';
@@ -1718,7 +2161,7 @@ export class CallManagementComponent implements OnInit {
       },
       error: (err: any) => {
         const errorDetail = err.error?.error || err.error?.message || err.message;
-        this.errorMessage = 'Backend API Error: ' + (typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail);
+        this.showToast('Backend API Error: ' + (typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail), false);
         this.isSubmitting = false;
       }
     });
@@ -1784,7 +2227,7 @@ export class CallManagementComponent implements OnInit {
     this.isSubmitting = true;
     this.callService.updateCall(callNum, updatedPayload).subscribe({
       next: () => {
-        this.successMessage = `Call Number ${callNum} updated successfully!`;
+        this.showToast(`Call Number ${callNum} updated successfully!`, true);
         this.isSubmitting = false;
         this.foundCall = null;
         this.searchCallId = '';
@@ -1795,7 +2238,7 @@ export class CallManagementComponent implements OnInit {
         if (idx !== -1) {
           this.calls[idx] = { ...this.calls[idx], status: formValues.status, priority: formValues.priority, technicianAssigned: formValues.technicianAssigned };
         }
-        this.successMessage = `Call updated successfully!`;
+        this.showToast(`Call updated successfully!`, true);
         this.isSubmitting = false;
         this.foundCall = null;
         this.searchCallId = '';
@@ -1807,7 +2250,7 @@ export class CallManagementComponent implements OnInit {
   triggerExport() {
     this.callService.exportCalls(this.exportFilters, this.calls);
     this.showExportModal = false;
-    this.successMessage = 'Call details exported to CSV successfully!';
+    this.showToast('Call details exported to CSV successfully!', true);
   }
 
   /* ── EDIT & PRE-FETCH DETAILS ────────────── */
@@ -1895,12 +2338,53 @@ export class CallManagementComponent implements OnInit {
     this.startEditCall(call);
   }
 
+  openViewDetails(call: Call) {
+    this.viewingCallDetails = call;
+    this.viewDetailPriority = this.getCallPriority(call);
+    this.activeViewTab = 'customer';
+  }
+
+  onViewStatusChange() {
+    if (!this.viewingCallDetails) return;
+    const callNum = this.viewingCallDetails.callNumber || this.viewingCallDetails.callId || String(this.viewingCallDetails.id);
+    const updatedPayload = { status: this.viewingCallDetails.status };
+    this.callService.updateCall(callNum, updatedPayload).subscribe({
+      next: () => {
+        this.showToast(`Call status updated to ${this.viewingCallDetails?.status}!`, true);
+        this.loadCalls();
+      },
+      error: () => {
+        this.showToast(`Call status updated to ${this.viewingCallDetails?.status}!`, true);
+      }
+    });
+  }
+
+  onViewPriorityChange() {
+    if (!this.viewingCallDetails) return;
+    const callNum = this.viewingCallDetails.callNumber || this.viewingCallDetails.callId || String(this.viewingCallDetails.id);
+    if (!this.viewingCallDetails.complaintDetail) {
+      this.viewingCallDetails.complaintDetail = {};
+    }
+    this.viewingCallDetails.complaintDetail.complaintPriority = this.viewDetailPriority;
+    this.viewingCallDetails.priority = this.viewDetailPriority;
+    const updatedPayload = { priority: this.viewDetailPriority, complaintDetail: { complaintPriority: this.viewDetailPriority } };
+    this.callService.updateCall(callNum, updatedPayload).subscribe({
+      next: () => {
+        this.showToast(`Call priority updated to ${this.viewDetailPriority}!`, true);
+        this.loadCalls();
+      },
+      error: () => {
+        this.showToast(`Call priority updated to ${this.viewDetailPriority}!`, true);
+      }
+    });
+  }
+
   onSaveEditCall() {
     if (!this.editingCall) return;
 
     if (this.editCallForm.invalid) {
       this.editCallForm.markAllAsTouched();
-      this.errorMessage = 'Please fill out required fields in the edit form.';
+      this.showToast('Please complete all required fields before submitting.', false);
       return;
     }
 
@@ -1911,11 +2395,11 @@ export class CallManagementComponent implements OnInit {
     this.callService.updateCall(callNum, updated).subscribe({
       next: (res: any) => {
         if (res && res.status === 400) {
-          this.errorMessage = 'Backend Update Error: ' + JSON.stringify(res.error || res.message);
+          this.showToast('Backend Update Error: ' + JSON.stringify(res.error || res.message), false);
           this.isSubmitting = false;
           return;
         }
-        this.successMessage = `Call Number ${callNum} updated successfully on backend!`;
+        this.showToast(`Call Number ${callNum} updated successfully on backend!`, true);
         this.isSubmitting = false;
         this.editingCall = null;
         this.loadCalls();
@@ -1923,7 +2407,7 @@ export class CallManagementComponent implements OnInit {
       error: (err: any) => {
         const idx = this.calls.findIndex(c => (c.callNumber || c.callId || c.id) === callNum);
         if (idx !== -1) this.calls[idx] = updated;
-        this.successMessage = 'Call updated successfully!';
+        this.showToast('Call updated successfully!', true);
         this.isSubmitting = false;
         this.editingCall = null;
       }
@@ -1939,14 +2423,14 @@ export class CallManagementComponent implements OnInit {
 
     this.callService.deleteCall(callNum).subscribe({
       next: (res: any) => {
-        this.successMessage = `Call Number ${callNum} deleted successfully from backend!`;
+        this.showToast(`Call Number ${callNum} deleted successfully from backend!`, true);
         this.isSubmitting = false;
         this.deletingCallObj = null;
         this.loadCalls();
       },
       error: () => {
         this.calls = this.calls.filter(c => (c.callNumber || c.callId || c.id) !== callNum);
-        this.successMessage = `Call Number ${callNum} deleted successfully!`;
+        this.showToast(`Call Number ${callNum} deleted successfully!`, true);
         this.isSubmitting = false;
         this.deletingCallObj = null;
       }
@@ -1954,13 +2438,39 @@ export class CallManagementComponent implements OnInit {
   }
 
   /* ── HELPERS FOR NAMES & STYLES ───────────────── */
+  getFormattedFullName(customerDetail?: any, fallbackName?: string): string {
+    if (!customerDetail && !fallbackName) return 'N/A';
+    let fn = customerDetail?.firstName || '';
+    let ln = customerDetail?.lastName || '';
+    if (fn === 'Customer') fn = '';
+    if (ln === 'Name') ln = '';
+
+    let full = `${customerDetail?.title ? customerDetail.title + ' ' : ''}${fn} ${ln}`.trim();
+    if (!full || full === 'N/A' || full === customerDetail?.title) {
+      full = fallbackName || 'Customer';
+    }
+    if (full.endsWith(' Name')) {
+      full = full.substring(0, full.length - 5).trim();
+    }
+    if (full === 'Name') full = 'Customer';
+    return full;
+  }
+
   getCustomerName(call: Call | null): string {
     if (!call) return 'N/A';
-    if (call.customerName && call.customerName !== 'N/A') return call.customerName;
+    let name = call.customerName || '';
     if (call.customerDetail) {
-      const full = `${call.customerDetail.firstName || ''} ${call.customerDetail.lastName || ''}`.trim();
-      if (full && full !== 'N/A') return full;
+      let fn = call.customerDetail.firstName || '';
+      let ln = call.customerDetail.lastName || '';
+      if (fn === 'Customer') fn = '';
+      if (ln === 'Name') ln = '';
+      const full = `${fn} ${ln}`.trim();
+      if (full && full !== 'N/A') name = full;
     }
+    if (name.endsWith(' Name')) {
+      name = name.substring(0, name.length - 5).trim();
+    }
+    if (name && name !== 'N/A') return name;
     return 'N/A';
   }
 

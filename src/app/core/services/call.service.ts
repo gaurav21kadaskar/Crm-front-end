@@ -33,8 +33,8 @@ export class CallService {
     let filtered = [...calls];
     if (filters.status && filters.status !== 'All') filtered = filtered.filter(c => c.status === filters.status);
     if (filters.priority && filters.priority !== 'All') filtered = filtered.filter(c => c.complaintDetail?.complaintPriority === filters.priority);
-    if (filters.startDate) filtered = filtered.filter(c => c.createdAt && c.createdAt >= filters.startDate!);
-    if (filters.endDate) filtered = filtered.filter(c => c.createdAt && c.createdAt <= filters.endDate!);
+    if (filters.startDate && filters.startDate !== '') filtered = filtered.filter(c => c.createdAt && c.createdAt >= filters.startDate!);
+    if (filters.endDate && filters.endDate !== '') filtered = filtered.filter(c => c.createdAt && c.createdAt <= filters.endDate!);
 
     const headers = ['Call ID','Customer','Mobile','City','Brand','Product','Model','Call Type','Priority','Status','Created'];
     const rows = filtered.map(c => [

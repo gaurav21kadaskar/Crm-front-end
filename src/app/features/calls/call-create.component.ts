@@ -66,9 +66,27 @@ import { ProductIssue } from '../../../core/models/product-issue.model';
           <div class="fg"><label class="lbl">Locality</label><input class="inp" formControlName="locality" placeholder="Colony/Area" /></div>
         </div>
         <div class="form-row-4">
-          <div class="fg"><label class="lbl">City</label><input class="inp" formControlName="city" placeholder="City" /></div>
-          <div class="fg"><label class="lbl">District</label><input class="inp" formControlName="district" placeholder="District" /></div>
-          <div class="fg"><label class="lbl">State</label><input class="inp" formControlName="state" placeholder="State" /></div>
+          <div class="fg">
+            <label class="lbl">State</label>
+            <select class="inp" formControlName="state" (change)="onStateChange($event)">
+              <option value="">Select State</option>
+              @for (s of states; track s) { <option [value]="s">{{ s }}</option> }
+            </select>
+          </div>
+          <div class="fg">
+            <label class="lbl">District</label>
+            <select class="inp" formControlName="district" (change)="onDistrictChange($event)" [attr.disabled]="!districts.length ? true : null">
+              <option value="">Select District</option>
+              @for (d of districts; track d) { <option [value]="d">{{ d }}</option> }
+            </select>
+          </div>
+          <div class="fg">
+            <label class="lbl">City</label>
+            <select class="inp" formControlName="city" [attr.disabled]="!cities.length ? true : null">
+              <option value="">Select City</option>
+              @for (c of cities; track c) { <option [value]="c">{{ c }}</option> }
+            </select>
+          </div>
           <div class="fg"><label class="lbl">Pincode</label><input class="inp" type="number" formControlName="pincode" placeholder="000000" /></div>
         </div>
       </form>
@@ -259,46 +277,46 @@ import { ProductIssue } from '../../../core/models/product-issue.model';
     .alert-error { background:#fef2f2; color:#991b1b; border:1px solid #fca5a5; }
 
     /* Steps bar */
-    .steps-bar { display:flex; align-items:center; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:1rem 1.5rem; gap:0; overflow-x:auto; }
+    .steps-bar { display:flex; align-items:center; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem 1.5rem; gap:0; overflow-x:auto; }
     .step { display:flex; flex-direction:column; align-items:center; gap:0.3rem; cursor:pointer; min-width:80px; }
-    .step-circle { width:30px; height:30px; border-radius:50%; background:#e2e8f0; color:#64748b; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; transition:all 0.2s; }
+    .step-circle { width:30px; height:30px; border-radius:50%; background:var(--border); color:var(--text-muted); display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; transition:all 0.2s; }
     .step.active .step-circle { background:linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff; box-shadow:0 3px 10px rgba(79,70,229,0.35); }
     .step.done .step-circle { background:#10b981; color:#fff; }
-    .step-label { font-size:0.7rem; font-weight:600; color:#94a3b8; text-align:center; }
+    .step-label { font-size:0.7rem; font-weight:600; color:var(--text-muted); text-align:center; }
     .step.active .step-label { color:#4f46e5; }
     .step.done .step-label { color:#10b981; }
-    .step-line { flex:1; height:2px; background:#e2e8f0; min-width:20px; }
+    .step-line { flex:1; height:2px; background:var(--border); min-width:20px; }
     .step-line.done { background:#10b981; }
 
     /* Step Card */
-    .step-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:1.75rem; box-shadow:0 2px 8px rgba(0,0,0,0.04); }
-    .step-header { margin-bottom:1.25rem; border-bottom:1px solid #f1f5f9; padding-bottom:0.875rem; }
-    .step-header h3 { font-size:1.1rem; font-weight:800; color:#0f172a; margin:0; }
-    .step-header p { font-size:0.8rem; color:#94a3b8; margin:0.2rem 0 0; }
+    .step-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.75rem; box-shadow:var(--shadow-sm); }
+    .step-header { margin-bottom:1.25rem; border-bottom:1px solid var(--border); padding-bottom:0.875rem; }
+    .step-header h3 { font-size:1.1rem; font-weight:800; color:var(--text-primary); margin:0; }
+    .step-header p { font-size:0.8rem; color:var(--text-secondary); margin:0.2rem 0 0; }
 
     /* Form */
     .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
     .form-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; }
     .form-row-4 { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:1rem; }
     .fg { margin-bottom:1rem; }
-    .lbl { display:block; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#64748b; margin-bottom:0.4rem; }
-    .inp { width:100%; padding:0.6rem 0.85rem; font-size:0.875rem; color:#0f172a; background:#fff; border:1.5px solid #e2e8f0; border-radius:8px; box-sizing:border-box; font-family:inherit; transition:border-color 0.15s, box-shadow 0.15s; }
+    .lbl { display:block; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-secondary); margin-bottom:0.4rem; }
+    .inp { width:100%; padding:0.6rem 0.85rem; font-size:0.875rem; color:var(--text-primary); background:var(--surface); border:1.5px solid var(--border); border-radius:8px; box-sizing:border-box; font-family:inherit; transition:border-color 0.15s, box-shadow 0.15s; }
     .inp:focus { outline:none; border-color:#4f46e5; box-shadow:0 0 0 3px rgba(79,70,229,0.12); }
-    .inp:disabled { background:#f8fafc; color:#94a3b8; cursor:not-allowed; }
+    .inp:disabled { background:var(--surface-2); color:var(--text-muted); cursor:not-allowed; }
 
-    .cascade-info { display:flex; align-items:center; gap:0.5rem; background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px; padding:0.6rem 0.875rem; font-size:0.8rem; color:#3730a3; margin-bottom:1rem; }
-    .cascade-note { font-size:0.65rem; font-weight:600; color:#94a3b8; text-transform:none; letter-spacing:0; }
+    .cascade-info { display:flex; align-items:center; gap:0.5rem; background:rgba(79,70,229,0.1); border:1px solid rgba(79,70,229,0.2); border-radius:8px; padding:0.6rem 0.875rem; font-size:0.8rem; color:var(--primary); margin-bottom:1rem; }
+    .cascade-note { font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:none; letter-spacing:0; }
 
     .checkbox-group { display:flex; flex-wrap:wrap; gap:0.625rem; margin-top:0.25rem; }
-    .checkbox-item { display:flex; align-items:center; gap:0.375rem; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:7px; padding:0.4rem 0.75rem; cursor:pointer; font-size:0.825rem; font-weight:500; color:#475569; transition:all 0.15s; }
-    .checkbox-item:has(input:checked) { background:#eef2ff; border-color:#4f46e5; color:#4f46e5; }
+    .checkbox-item { display:flex; align-items:center; gap:0.375rem; background:var(--surface-2); border:1.5px solid var(--border); border-radius:7px; padding:0.4rem 0.75rem; cursor:pointer; font-size:0.825rem; font-weight:500; color:var(--text-secondary); transition:all 0.15s; }
+    .checkbox-item:has(input:checked) { background:rgba(79,70,229,0.1); border-color:#4f46e5; color:#4f46e5; }
     .checkbox-item input { accent-color:#4f46e5; }
 
     /* Footer */
-    .step-footer { display:flex; align-items:center; justify-content:space-between; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:1rem 1.5rem; }
-    .step-indicator-text { font-size:0.8rem; font-weight:600; color:#94a3b8; }
-    .btn-back { padding:0.575rem 1.125rem; font-size:0.875rem; font-weight:600; background:#fff; color:#64748b; border:1.5px solid #e2e8f0; border-radius:8px; cursor:pointer; font-family:inherit; transition:all 0.15s; }
-    .btn-back:hover:not(:disabled) { background:#f1f5f9; }
+    .step-footer { display:flex; align-items:center; justify-content:space-between; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem 1.5rem; }
+    .step-indicator-text { font-size:0.8rem; font-weight:600; color:var(--text-muted); }
+    .btn-back { padding:0.575rem 1.125rem; font-size:0.875rem; font-weight:600; background:var(--surface); color:var(--text-secondary); border:1.5px solid var(--border); border-radius:8px; cursor:pointer; font-family:inherit; transition:all 0.15s; }
+    .btn-back:hover:not(:disabled) { background:var(--surface-2); }
     .btn-back:disabled { opacity:0.4; cursor:not-allowed; }
     .btn-next { padding:0.575rem 1.25rem; font-size:0.875rem; font-weight:700; background:linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff; border:none; border-radius:8px; cursor:pointer; font-family:inherit; box-shadow:0 3px 10px rgba(79,70,229,0.3); transition:all 0.2s; }
     .btn-next:hover { transform:translateY(-1px); box-shadow:0 5px 14px rgba(79,70,229,0.4); }
@@ -334,6 +352,121 @@ export class CallCreateComponent implements OnInit {
   filteredIssues: ProductIssue[] = [];
   languages = ['English', 'Hindi', 'Marathi', 'Gujarati', 'Tamil', 'Telugu', 'Bengali', 'Kannada'];
   selectedLanguages: string[] = [];
+
+  // Dropdown States/Districts/Cities data
+  statesData: { [key: string]: { [key: string]: string[] } } = {
+    'Andhra Pradesh': {
+      'Visakhapatnam': ['Visakhapatnam City', 'Bheemunipatnam', 'Anakapalle'],
+      'Guntur': ['Guntur City', 'Tenali', 'Narasaraopet', 'Mangalagiri'],
+      'Krishna': ['Vijayawada', 'Machilipatnam', 'Gudivada'],
+      'Kurnool': ['Kurnool City', 'Nandyal', 'Adoni']
+    },
+    'Delhi': {
+      'Central Delhi': ['Connaught Place', 'Chandni Chowk', 'Paharganj'],
+      'New Delhi': ['Chanakyapuri', 'Parliament Street', 'RK Puram'],
+      'South Delhi': ['Saket', 'Mehrauli', 'Hauz Khas', 'Lajpat Nagar'],
+      'East Delhi': ['Preet Vihar', 'Mayur Vihar', 'Geeta Colony'],
+      'West Delhi': ['Rajouri Garden', 'Tilak Nagar', 'Janakpuri'],
+      'North Delhi': ['Civil Lines', 'Model Town', 'Rohini']
+    },
+    'Gujarat': {
+      'Ahmedabad': ['Ahmedabad City', 'Sanand', 'Bavla', 'Dholka', 'Detroj'],
+      'Surat': ['Surat City', 'Chorasi', 'Bardoli', 'Olpad', 'Kamrej'],
+      'Vadodara': ['Vadodara City', 'Padra', 'Karjan', 'Waghodia'],
+      'Rajkot': ['Rajkot City', 'Gondal', 'Jasdan', 'Jetpur'],
+      'Gandhinagar': ['Gandhinagar City', 'Mansa', 'Dehgam']
+    },
+    'Haryana': {
+      'Gurugram': ['Gurugram City', 'Sohna', 'Pataudi', 'Farukhnagar'],
+      'Faridabad': ['Faridabad City', 'Ballabhgarh', 'Tigaon'],
+      'Hisar': ['Hisar City', 'Hansi', 'Barwala'],
+      'Ambala': ['Ambala City', 'Ambala Cantt', 'Naraingarh']
+    },
+    'Karnataka': {
+      'Bengaluru Urban': ['Bengaluru City', 'Anekal', 'Yelahanka', 'Doddaballapur'],
+      'Bengaluru Rural': ['Hoskote', 'Doddaballapur', 'Kanakapura', 'Ramanagara'],
+      'Mysuru': ['Mysuru City', 'Nanjangud', 'T Narasipura', 'Hunsur', 'K R Nagar'],
+      'Dharwad': ['Hubli-Dharwad', 'Kalghatgi', 'Navalgund'],
+      'Belagavi': ['Belagavi City', 'Gokak', 'Bailhongal', 'Chikodi'],
+      'Mangaluru': ['Mangaluru City', 'Bantwal', 'Belthangady', 'Puttur']
+    },
+    'Kerala': {
+      'Thiruvananthapuram': ['Thiruvananthapuram City', 'Neyyattinkara', 'Attingal'],
+      'Ernakulam': ['Kochi City', 'Aluva', 'Muvattupuzha', 'Kothamangalam'],
+      'Kozhikode': ['Kozhikode City', 'Vatakara', 'Koyilandy'],
+      'Thrissur': ['Thrissur City', 'Chalakudy', 'Kodungallur']
+    },
+    'Madhya Pradesh': {
+      'Bhopal': ['Bhopal City', 'Berasia', 'Phanda'],
+      'Indore': ['Indore City', 'Mhow', 'Sanwer', 'Depalpur'],
+      'Gwalior': ['Gwalior City', 'Bhitarwar', 'Dabra'],
+      'Jabalpur': ['Jabalpur City', 'Sihora', 'Patan']
+    },
+    'Maharashtra': {
+      'Mumbai City': ['Colaba', 'Fort', 'Dharavi', 'Kurla', 'Sion'],
+      'Mumbai Suburban': ['Andheri', 'Bandra', 'Borivali', 'Goregaon', 'Malad', 'Kandivali'],
+      'Pune': ['Pune City', 'Pimpri-Chinchwad', 'Haveli', 'Baramati', 'Khed'],
+      'Nagpur': ['Nagpur City', 'Kamptee', 'Hingna', 'Umred'],
+      'Nashik': ['Nashik City', 'Sinnar', 'Niphad', 'Igatpuri'],
+      'Aurangabad': ['Aurangabad City', 'Kannad', 'Paithan', 'Vaijapur']
+    },
+    'Punjab': {
+      'Amritsar': ['Amritsar City', 'Ajnala', 'Baba Bakala'],
+      'Ludhiana': ['Ludhiana City', 'Jagraon', 'Raikot', 'Samrala'],
+      'Jalandhar': ['Jalandhar City', 'Nakodar', 'Shahkot', 'Phillaur'],
+      'Patiala': ['Patiala City', 'Samana', 'Nabha', 'Fatehgarh Sahib']
+    },
+    'Rajasthan': {
+      'Jaipur': ['Jaipur City', 'Amber', 'Phulera', 'Dudu'],
+      'Jodhpur': ['Jodhpur City', 'Phalodi', 'Bilara', 'Osian'],
+      'Udaipur': ['Udaipur City', 'Girwa', 'Mavli', 'Salumber'],
+      'Kota': ['Kota City', 'Ladpura', 'Sangod', 'Pipalda']
+    },
+    'Tamil Nadu': {
+      'Chennai': ['Chennai City', 'Ambattur', 'Tambaram', 'Avadi'],
+      'Coimbatore': ['Coimbatore City', 'Mettupalayam', 'Pollachi', 'Annur'],
+      'Madurai': ['Madurai City', 'Melur', 'Peraiyur', 'Usilampatti'],
+      'Tiruchirappalli': ['Tiruchirappalli City', 'Musiri', 'Lalgudi', 'Manachanallur'],
+      'Salem': ['Salem City', 'Edapadi', 'Omalur', 'Mettur']
+    },
+    'Telangana': {
+      'Hyderabad': ['Hyderabad City', 'LB Nagar', 'Secunderabad', 'Kukatpally'],
+      'Rangareddy': ['Rajendranagar', 'Chevella', 'Vikarabad', 'Tandur'],
+      'Medchal': ['Kompally', 'Keesara', 'Shamirpet'],
+      'Warangal Urban': ['Warangal City', 'Hanamkonda', 'Kazipet']
+    },
+    'Uttar Pradesh': {
+      'Lucknow': ['Lucknow City', 'Mohanlalganj', 'Bakshi Ka Talab', 'Malihabad'],
+      'Agra': ['Agra City', 'Fatehabad', 'Khandauli', 'Fatehpur Sikri'],
+      'Kanpur Nagar': ['Kanpur City', 'Ghatampur', 'Bithoor', 'Kalyanpur'],
+      'Varanasi': ['Varanasi City', 'Pindra', 'Arajiline', 'Kashi Vidyapeeth'],
+      'Noida (Gautam Buddh Nagar)': ['Noida', 'Greater Noida', 'Dadri', 'Jewar']
+    },
+    'West Bengal': {
+      'Kolkata': ['Kolkata City', 'Dum Dum', 'Jadavpur', 'Behala'],
+      'North 24 Parganas': ['Barasat', 'Barrackpore', 'Bongaon', 'Basirhat'],
+      'South 24 Parganas': ['Alipurduar', 'Diamond Harbour', 'Joynagar'],
+      'Howrah': ['Howrah City', 'Uluberia', 'Bagnan', 'Amta']
+    },
+    'Chhattisgarh': {
+      'Raipur': ['Raipur City', 'Arang', 'Abhanpur', 'Tilda'],
+      'Durg': ['Bhilai', 'Durg City', 'Patan', 'Bemetara'],
+      'Bilaspur': ['Bilaspur City', 'Takhatpur', 'Mungeli']
+    },
+    'Assam': {
+      'Kamrup Metropolitan': ['Guwahati City', 'Dispur', 'Jalukbari'],
+      'Kamrup': ['Boko', 'Chamaria', 'Chayani'],
+      'Dibrugarh': ['Dibrugarh City', 'Khowang', 'Barbaruah']
+    },
+    'Goa': {
+      'North Goa': ['Panaji', 'Mapusa', 'Calangute', 'Bardez'],
+      'South Goa': ['Margao', 'Vasco da Gama', 'Ponda', 'Quepem']
+    }
+  };
+
+  states: string[] = [];
+  districts: string[] = [];
+  cities: string[] = [];
 
   steps = [
     { num: 1, label: 'Customer' },
@@ -374,6 +507,8 @@ export class CallCreateComponent implements OnInit {
   });
 
   ngOnInit() {
+    // Initialize states after class is fully constructed
+    this.states = Object.keys(this.statesData).sort();
     this.brandService.getBrands().subscribe({ next: (r: any) => this.brands = Array.isArray(r) ? r : (r.data || []) });
     this.productService.getProducts().subscribe({ next: (r: any) => this.products = Array.isArray(r) ? r : (r.data || []) });
     this.modelService.getProductModels().subscribe({ next: (r: any) => this.models = Array.isArray(r) ? r : (r.data || []) });
@@ -396,6 +531,20 @@ export class CallCreateComponent implements OnInit {
     this.productForm.patchValue({ model: '', issue: '' });
     this.filteredModels = id ? this.models.filter(m => m.product === id) : [];
     this.filteredIssues = id ? this.issues.filter(i => i.product === id) : [];
+  }
+
+  onStateChange(e: Event) {
+    const val = (e.target as HTMLSelectElement).value;
+    this.customerForm.patchValue({ district: '', city: '' });
+    this.districts = val ? Object.keys(this.statesData[val]) : [];
+    this.cities = [];
+  }
+
+  onDistrictChange(e: Event) {
+    const stateVal = this.customerForm.get('state')?.value;
+    const distVal = (e.target as HTMLSelectElement).value;
+    this.customerForm.patchValue({ city: '' });
+    this.cities = stateVal && distVal ? this.statesData[stateVal][distVal] : [];
   }
 
   isLangSelected(l: string) { return this.selectedLanguages.includes(l); }
@@ -430,6 +579,8 @@ export class CallCreateComponent implements OnInit {
         this.customerForm.reset(); this.contactForm.reset();
         this.dealerForm.reset(); this.productForm.reset(); this.complaintForm.reset();
         this.selectedLanguages = [];
+        this.districts = [];
+        this.cities = [];
         this.callCreated.emit();
       },
       error: () => {

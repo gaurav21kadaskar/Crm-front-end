@@ -168,8 +168,8 @@ import { ToastService } from '../../../shared/services/toast.service';
     .pro-auth-card {
       width: 100%;
       max-width: 600px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 16px;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
       padding: 2.25rem;
@@ -200,14 +200,14 @@ import { ToastService } from '../../../shared/services/toast.service';
     .pro-title {
       font-size: 1.35rem;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--text-primary);
       margin: 0;
       letter-spacing: -0.02em;
     }
 
     .pro-subtitle {
       font-size: 0.85rem;
-      color: #64748b;
+      color: var(--text-secondary);
       margin: 0.2rem 0 0 0;
     }
 
@@ -230,7 +230,7 @@ import { ToastService } from '../../../shared/services/toast.service';
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #64748b;
+      color: var(--text-secondary);
       margin-bottom: 0.5rem;
     }
 
@@ -238,9 +238,9 @@ import { ToastService } from '../../../shared/services/toast.service';
       width: 100%;
       padding: 0.65rem 0.9rem;
       font-size: 0.9rem;
-      color: #0f172a;
-      background-color: #ffffff;
-      border: 1.5px solid #e2e8f0;
+      color: var(--text-primary);
+      background-color: var(--surface);
+      border: 1.5px solid var(--border);
       border-radius: 8px;
       transition: all 0.15s ease;
       box-sizing: border-box;
@@ -281,10 +281,10 @@ import { ToastService } from '../../../shared/services/toast.service';
       justify-content: center;
       gap: 0.35rem;
       padding: 0.875rem 0.5rem;
-      border: 1.5px solid #e2e8f0;
+      border: 1.5px solid var(--border);
       border-radius: 10px;
       cursor: pointer;
-      background-color: #ffffff;
+      background-color: var(--surface);
       transition: all 0.2s ease;
     }
 
