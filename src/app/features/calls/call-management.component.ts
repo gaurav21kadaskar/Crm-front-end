@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CallService } from '../../core/services/call.service';
 import { BrandService } from '../../core/services/brand.service';
 import { ProductService } from '../../core/services/product.service';
@@ -116,12 +116,14 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                         </span>
                       </td>
                       <td class="td-actions">
-                        <button class="btn-row-view" (click)="openViewDetails(call)" title="View Full Details">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                          View
-                        </button>
-                        <button class="btn-row-edit" (click)="startEditCall(call)" title="Edit Call">Edit</button>
-                        <button class="btn-row-delete" (click)="deletingCallObj = call" title="Delete Call">Delete</button>
+                        <div class="action-btns">
+                          <button class="btn-row-view" (click)="openViewDetails(call)" title="View Full Details">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            View
+                          </button>
+                          <button class="btn-row-edit" (click)="startEditCall(call)" title="Edit Call">Edit</button>
+                          <button class="btn-row-delete" (click)="deletingCallObj = call" title="Delete Call">Delete</button>
+                        </div>
                       </td>
                     </tr>
                   }
@@ -596,64 +598,68 @@ import { ProductIssue } from '../../core/models/product-issue.model';
             
             <div class="modal-body call-details-modal-body">
               
-              <!-- Customer Full Name Banner -->
-              <div class="details-name-banner">
-                <span class="name-banner-label">Customer</span>
-                <span class="name-banner-value">{{ getFormattedFullName(viewingCallDetails?.customerDetail, viewingCallDetails?.customerName) | titlecase }}</span>
+              <!-- Top section: customer banner + badges -->
+              <div class="call-details-top-section">
+                <!-- Customer Full Name Banner -->
+                <div class="details-name-banner" style="margin-bottom: 1rem;">
+                  <span class="name-banner-label">Customer</span>
+                  <span class="name-banner-value">{{ getFormattedFullName(viewingCallDetails?.customerDetail, viewingCallDetails?.customerName) | titlecase }}</span>
+                </div>
+
+                <!-- Editable Badges Header -->
+                <div class="details-badges-row" style="margin-bottom: 1rem;">
+                  <div class="badge-item">
+                    <span class="badge-label">Status</span>
+                    <select class="inline-badge-select status-select" [(ngModel)]="viewingCallDetails.status" (change)="onViewStatusChange()">
+                      <option value="Pending">Pending</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Resolved">Resolved</option>
+                      <option value="Closed">Closed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  <div class="badge-item">
+                    <span class="badge-label">Priority</span>
+                    <select class="inline-badge-select priority-select" [(ngModel)]="viewDetailPriority" (change)="onViewPriorityChange()">
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                      <option value="Urgent">Urgent</option>
+                    </select>
+                  </div>
+                  <div class="badge-item">
+                    <span class="badge-label">Call Type</span>
+                    <span class="call-type-badge">
+                      {{ viewingCallDetails.complaintDetail?.callType || 'N/A' }}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <!-- Editable Badges Header -->
-              <div class="details-badges-row">
-                <div class="badge-item">
-                  <span class="badge-label">Status</span>
-                  <select class="inline-badge-select status-select" [(ngModel)]="viewingCallDetails.status" (change)="onViewStatusChange()">
-                    <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Resolved">Resolved</option>
-                    <option value="Closed">Closed</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
-                </div>
-                <div class="badge-item">
-                  <span class="badge-label">Priority</span>
-                  <select class="inline-badge-select priority-select" [(ngModel)]="viewDetailPriority" (change)="onViewPriorityChange()">
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
-                  </select>
-                </div>
-                <div class="badge-item">
-                  <span class="badge-label">Call Type</span>
-                  <span class="call-type-badge">
-                    {{ viewingCallDetails.complaintDetail?.callType || 'N/A' }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Enterprise Tabs Navigation -->
-              <div class="details-tabs-nav">
-                <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'customer'" (click)="activeViewTab = 'customer'">
-                  👤 Customer Details
-                </button>
-                <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'contact'" (click)="activeViewTab = 'contact'">
-                  📞 Contact Details
-                </button>
-                <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'call'" (click)="activeViewTab = 'call'">
-                  📋 Call Details
-                </button>
-                @if (getCallProduct(viewingCallDetails)) {
-                  <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'product'" (click)="activeViewTab = 'product'">
-                    📦 Product Details
+              <!-- Sticky Tabs Navigation -->
+              <div class="call-details-tabs-sticky">
+                <div class="details-tabs-nav" style="border-bottom: none;">
+                  <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'customer'" (click)="activeViewTab = 'customer'">
+                    👤 Customer
                   </button>
-                }
-                <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'timeline'" (click)="activeViewTab = 'timeline'">
-                  🕒 History/Timeline
-                </button>
+                  <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'contact'" (click)="activeViewTab = 'contact'">
+                    📞 Contact
+                  </button>
+                  <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'call'" (click)="activeViewTab = 'call'">
+                    📋 Call Details
+                  </button>
+                  <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'product'" (click)="activeViewTab = 'product'">
+                    📦 Product
+                  </button>
+                  <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'timeline'" (click)="activeViewTab = 'timeline'">
+                    🕒 Timeline
+                  </button>
+                </div>
               </div>
 
-              <!-- Tab Content Container -->
-              <div class="details-tab-content animate-fade-in">
+              <!-- Tab Content -->
+              <div class="call-details-tab-body">
+                <div class="details-tab-content">
                 
                 <!-- TAB 1: CUSTOMER DETAILS -->
                 @if (activeViewTab === 'customer') {
@@ -839,9 +845,10 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   </div>
                 }
 
-              </div>
+              </div><!-- /details-tab-content -->
+              </div><!-- /call-details-tab-body -->
 
-            </div>
+            </div><!-- /modal-body -->
             <div class="modal-footer">
               <button type="button" class="btn-cancel" (click)="viewingCallDetails = null">Close</button>
               <button type="button" class="btn-save" (click)="startEditFromDetails(viewingCallDetails)">Edit Call</button>
@@ -1379,7 +1386,8 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .priority-low { color: #059669; background: #d1fae5; }
 
     .col-actions { text-align: right; width: 180px; white-space: nowrap; }
-    .td-actions { display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center; white-space: nowrap; }
+    .td-actions { text-align: right; vertical-align: middle; white-space: nowrap; }
+    .action-btns { display: inline-flex; gap: 0.35rem; justify-content: flex-end; align-items: center; }
     .btn-row-view { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: rgba(79, 70, 229, 0.05); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: 6px; color: #4f46e5; cursor: pointer; transition: all 0.15s; }
     .btn-row-view:hover { background: rgba(79, 70, 229, 0.15); }
     .btn-row-edit { padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: var(--surface); border: 1px solid #cbd5e1; border-radius: 6px; color: #475569; cursor: pointer; transition: all 0.15s; }
@@ -1398,6 +1406,156 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .summary-id { font-family: monospace; font-size: 0.8rem; font-weight: 800; color: #4f46e5; }
     .summary-name { font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin: 0.2rem 0; }
     .summary-desc { font-size: 0.85rem; color: var(--text-secondary); margin: 0; }
+
+    /* ── View Call Details Modal Styles ────────────────────────── */
+    .call-details-modal-body {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .call-details-top-section {
+      padding: 1.25rem 1.75rem 0;
+      flex-shrink: 0;
+    }
+    .call-details-tabs-sticky {
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 10;
+      padding: 0 1.75rem;
+      border-bottom: 2px solid var(--border-light, #e2e8f0);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .call-details-tab-body {
+      padding: 1.25rem 1.75rem 1.5rem;
+      flex: 1;
+    }
+    .details-name-banner {
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(124, 58, 237, 0.08));
+      border: 1px solid rgba(79, 70, 229, 0.2);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .name-banner-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #6366f1;
+    }
+    .name-banner-value {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+    .details-badges-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      background: var(--surface-2, #f8fafc);
+      padding: 0.85rem 1.1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .badge-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .badge-label {
+      font-size: 0.725rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+    .inline-badge-select {
+      padding: 0.35rem 0.65rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+    .details-tabs-nav {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid var(--border-light, #e2e8f0);
+      overflow-x: auto;
+      padding-bottom: 0.25rem;
+    }
+    .tab-nav-btn {
+      padding: 0.55rem 0.95rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .tab-nav-btn:hover {
+      color: #4f46e5;
+    }
+    .tab-nav-btn.active {
+      color: #4f46e5;
+      border-bottom-color: #4f46e5;
+      font-weight: 700;
+    }
+    .details-tab-content {
+      flex: 1;
+    }
+    .tab-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .details-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem 1.25rem;
+    }
+    .details-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      background: var(--surface-2, #f8fafc);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .details-field.span-2 {
+      grid-column: span 2;
+    }
+    @media (max-width: 640px) {
+      .details-field.span-2 { grid-column: span 1; }
+    }
+    .df-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+    .df-value {
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
+    .df-value-block {
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .text-semibold { font-weight: 600; }
+    .text-mono { font-family: monospace; }
 
     /* Modern View Details Cards Grid */
     .view-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; width: 100%; box-sizing: border-box; }
@@ -1420,11 +1578,12 @@ import { ProductIssue } from '../../core/models/product-issue.model';
       background: rgba(15, 23, 42, 0.75); 
       backdrop-filter: blur(10px); 
       display: flex; 
-      align-items: center; 
+      align-items: flex-start; 
       justify-content: center; 
       z-index: 9999999; 
-      padding: 1rem; 
+      padding: 72px 1rem 1rem 1rem; 
       box-sizing: border-box; 
+      overflow-y: auto;
     }
     .modal-content { 
       background: var(--surface); 
@@ -1443,7 +1602,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .modal-content-lg { 
       max-width: 800px; 
       width: 95vw; 
-      max-height: 88vh; 
+      max-height: calc(100vh - 90px); 
     }
     .modal-content-sm { max-width: 440px; }
     .modal-form-container {
@@ -1467,9 +1626,10 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .modal-close:hover { background: #e2e8f0; color: var(--text-primary); }
     .modal-body { 
       flex: 1; 
+      min-height: 0;
       overflow-y: auto; 
       overflow-x: hidden;
-      padding: 1.5rem 1.75rem; 
+      padding: 0; 
       width: 100%; 
       box-sizing: border-box; 
     }
@@ -1512,6 +1672,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
 export class CallManagementComponent implements OnInit {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private callService = inject(CallService);
   private brandService = inject(BrandService);
   private productService = inject(ProductService);
@@ -1707,7 +1868,7 @@ export class CallManagementComponent implements OnInit {
     customerDetail: this.fb.group({
       title: ['Mr'],
       firstName: ['', Validators.required],
-      lastName: [''],
+      lastName: ['', Validators.required],
       address1: [''],
       landmark: [''],
       state: [''],
@@ -1904,11 +2065,19 @@ export class CallManagementComponent implements OnInit {
   }
 
   normalizeCall(c: any): Call {
+    if (!c) return {} as Call;
     const cNum = c.callNumber || c.callId || (c.id ? '#' + c.id : 'CALL10001');
-    let rawFn = c.customerDetail?.firstName || '';
-    let rawLn = c.customerDetail?.lastName || '';
+
+    const customerObj = c.customerDetail || c.customer || {};
+    const contactObj = c.contactDetail || c.contact || {};
+    const productObj = c.productDetail || c.product || {};
+    const complaintObj = c.complaintDetail || c.complaint || {};
+    const dealerObj = c.dealerDetail || c.dealer || {};
+
+    let rawFn = customerObj.firstName || '';
+    let rawLn = customerObj.lastName || '';
     if (rawFn === 'Customer') rawFn = '';
-    if (rawLn === 'Name') rawLn = '';
+    if (rawLn === 'Name' || rawLn === '.') rawLn = '';
     
     let name = c.customerName || `${rawFn} ${rawLn}`.trim();
     if (name.endsWith(' Name')) {
@@ -1916,12 +2085,12 @@ export class CallManagementComponent implements OnInit {
     }
     if (name === 'Name') name = '';
 
-    const phone = c.customerPhone || c.contactDetail?.mobile || '';
-    const addr = c.address || (c.customerDetail ? `${c.customerDetail.address1 || ''} ${c.customerDetail.city || ''}`.trim() : '');
-    const bId = c.brand ?? c.productDetail?.brand;
-    const pId = c.product ?? c.productDetail?.product;
-    const mId = c.model ?? c.productDetail?.model;
-    const prio = c.priority || c.complaintDetail?.complaintPriority || 'Medium';
+    const phone = c.customerPhone || contactObj.mobile || '';
+    const addr = c.address || `${customerObj.address1 || ''} ${customerObj.city || ''}`.trim();
+    const bId = c.brand ?? productObj.brand;
+    const pId = c.product ?? productObj.product;
+    const mId = c.model ?? productObj.model;
+    const prio = c.priority || complaintObj.complaintPriority || 'Medium';
 
     return {
       ...c,
@@ -1934,7 +2103,12 @@ export class CallManagementComponent implements OnInit {
       product: pId,
       model: mId,
       priority: prio,
-      status: c.status || 'Pending'
+      status: c.status || 'Pending',
+      customerDetail: customerObj,
+      contactDetail: contactObj,
+      productDetail: productObj,
+      complaintDetail: complaintObj,
+      dealerDetail: dealerObj
     };
   }
 
@@ -2070,7 +2244,7 @@ export class CallManagementComponent implements OnInit {
       customerDetail: {
         title: cust.title || 'Mr',
         firstName: (cust.firstName && cust.firstName !== 'N/A') ? cust.firstName : 'Customer',
-        lastName: (cust.lastName && cust.lastName !== 'N/A') ? cust.lastName : '',
+        lastName: (cust.lastName && cust.lastName.trim() && cust.lastName !== 'N/A') ? cust.lastName.trim() : '.',
         address1: (cust.address1 && cust.address1 !== 'N/A') ? cust.address1 : 'Address 1',
         landmark: cust.landmark || '',
         state: cust.state || 'MP',
@@ -2156,7 +2330,7 @@ export class CallManagementComponent implements OnInit {
         this.showToast('New service call created successfully!', true);
         this.isSubmitting = false;
         this.resetCallForm();
-        this.activeTab = 'list';
+        this.router.navigate(['/calls'], { queryParams: { tab: 'list' } });
         this.loadCalls();
       },
       error: (err: any) => {
@@ -2339,9 +2513,23 @@ export class CallManagementComponent implements OnInit {
   }
 
   openViewDetails(call: Call) {
-    this.viewingCallDetails = call;
-    this.viewDetailPriority = this.getCallPriority(call);
+    const normalized = this.normalizeCall(call);
+    this.viewingCallDetails = normalized;
+    this.viewDetailPriority = this.getCallPriority(normalized);
     this.activeViewTab = 'customer';
+
+    const identifier = call.callNumber || call.callId || call.id;
+    if (identifier) {
+      this.callService.getCallById(identifier).subscribe({
+        next: (response: any) => {
+          const fetched = response.data || response;
+          if (fetched && typeof fetched === 'object') {
+            this.viewingCallDetails = this.normalizeCall({ ...normalized, ...fetched });
+          }
+        },
+        error: (err) => console.warn('Could not fetch full call details', err)
+      });
+    }
   }
 
   onViewStatusChange() {

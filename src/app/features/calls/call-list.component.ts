@@ -93,8 +93,10 @@ import { Brand } from '../../../core/models/brand.model';
                     <button class="btn-no" (click)="deletingId = null">No</button>
                   </div>
                 } @else {
-                  <button class="btn-edit" (click)="startEdit(c)">Edit</button>
-                  <button class="btn-del" (click)="deletingId = c.id || null">Delete</button>
+                  <div class="action-btns">
+                    <button class="btn-edit" (click)="startEdit(c)">Edit</button>
+                    <button class="btn-del" (click)="deletingId = c.id || null">Delete</button>
+                  </div>
                 }
               </td>
             </tr>
@@ -235,8 +237,8 @@ import { Brand } from '../../../core/models/brand.model';
     .table-scroll { background: var(--surface); border: 1px solid var(--border); border-radius:12px; overflow:hidden; overflow-x:auto; }
     .tbl { width:100%; border-collapse:collapse; min-width:900px; }
     .tbl thead tr { background:#f8fafc; }
-    .tbl th { padding:0.7rem 1rem; text-align:left; font-size:0.68rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.07em; border-bottom:1px solid #f1f5f9; white-space:nowrap; }
-    .tbl td { padding:0.85rem 1rem; font-size:0.85rem; color:#334155; border-bottom:1px solid #f8fafc; vertical-align:middle; }
+    .tbl th { padding:0.7rem 1rem; text-align:left; font-size:0.68rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.07em; border-bottom:1px solid var(--border); white-space:nowrap; }
+    .tbl td { padding:0.85rem 1rem; font-size:0.85rem; color:#334155; border-bottom:1px solid var(--border-light); vertical-align:middle; }
     .tbl tbody tr:hover td { background:#fafbff; }
     .tbl tbody tr:last-child td { border-bottom:none; }
     .ta-r { text-align:right; }
@@ -258,7 +260,8 @@ import { Brand } from '../../../core/models/brand.model';
     .p-med { color:#d97706; background:#fef3c7; }
     .p-low { color:#059669; background:#d1fae5; }
 
-    .td-actions { display:flex; align-items:center; justify-content:flex-end; gap:0.4rem; }
+    .td-actions { text-align:right; vertical-align:middle; white-space:nowrap; }
+    .action-btns { display:inline-flex; align-items:center; justify-content:flex-end; gap:0.4rem; }
     .btn-edit { padding:0.32rem 0.6rem; font-size:0.75rem; font-weight:600; background: var(--surface); border: 1.5px solid var(--border); border-radius:6px; color:#475569; cursor:pointer; transition:all 0.15s; }
     .btn-edit:hover { background:#f1f5f9; }
     .btn-del { padding:0.32rem 0.6rem; font-size:0.75rem; font-weight:600; background: var(--surface); border:1.5px solid #fee2e2; border-radius:6px; color:#dc2626; cursor:pointer; transition:all 0.15s; }

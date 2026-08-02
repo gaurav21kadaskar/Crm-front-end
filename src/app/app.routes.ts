@@ -53,6 +53,10 @@ export const routes: Routes = [
         path: 'calls',
         loadComponent: () => import('./features/calls/call-management.component').then(m => m.CallManagementComponent)
       },
+      {
+        path: 'customer/products',
+        loadComponent: () => import('./features/customer/customer-products.component').then(m => m.CustomerProductsComponent)
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

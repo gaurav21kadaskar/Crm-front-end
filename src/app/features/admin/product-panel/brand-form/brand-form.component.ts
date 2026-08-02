@@ -157,8 +157,10 @@ import { Brand } from '../../../../core/models/brand.model';
                         <button class="btn-no" (click)="deletingBrandId = null">No</button>
                       </div>
                     } @else {
-                      <button class="btn-action-edit" (click)="startEdit(brand)">Edit</button>
-                      <button class="btn-action-delete" (click)="deletingBrandId = brand.id || null">Delete</button>
+                      <div class="action-btns">
+                        <button class="btn-action-edit" (click)="startEdit(brand)">Edit</button>
+                        <button class="btn-action-delete" (click)="deletingBrandId = brand.id || null">Delete</button>
+                      </div>
                     }
                   </td>
                 </tr>
@@ -223,7 +225,8 @@ import { Brand } from '../../../../core/models/brand.model';
     }
 
     /* Action Buttons */
-    .actions-cell { display: flex; gap: 0.5rem; align-items: center; }
+    .actions-cell { vertical-align: middle; white-space: nowrap; }
+    .action-btns { display: inline-flex; gap: 0.5rem; align-items: center; }
     .btn-action-edit { padding: 0.375rem 0.75rem; font-size: 0.825rem; font-weight: 600; border: 1px solid #cbd5e1; border-radius: 6px; background-color: var(--surface); color: #334155; cursor: pointer; transition: all 0.15s ease; }
     .btn-action-edit:hover { background-color: #f1f5f9; color: var(--text-primary); border-color: #94a3b8; }
     .btn-action-delete { padding: 0.375rem 0.75rem; font-size: 0.825rem; font-weight: 600; border: 1px solid #fee2e2; border-radius: 6px; background-color: var(--surface); color: #dc2626; cursor: pointer; transition: all 0.15s ease; }
@@ -236,28 +239,41 @@ import { Brand } from '../../../../core/models/brand.model';
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: rgba(15, 23, 42, 0.4);
+      background-color: rgba(15, 23, 42, 0.6);
       backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 99999;
+      padding: 1rem;
+      box-sizing: border-box;
     }
     .modal-content {
       background-color: var(--surface);
       border-radius: 12px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      width: 90%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      width: 100%;
       max-width: 500px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
       border: 1px solid var(--border);
     }
+    .modal-content form {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
     .modal-header {
       padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid var(--border-light);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
     }
     .modal-title {
       font-size: 1.1rem;
@@ -275,14 +291,15 @@ import { Brand } from '../../../../core/models/brand.model';
       line-height: 1;
     }
     .modal-close:hover { color: var(--text-primary); }
-    .modal-body { padding: 1.5rem; }
+    .modal-body { padding: 1.5rem; flex: 1; overflow-y: auto; }
     .modal-footer {
       padding: 1rem 1.5rem;
-      background-color: #f8fafc;
-      border-top: 1px solid #f1f5f9;
+      background-color: var(--surface-2, #f8fafc);
+      border-top: 1px solid var(--border-light);
       display: flex;
       justify-content: flex-end;
       gap: 0.75rem;
+      flex-shrink: 0;
     }
 
     .btn-save { padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; background-color: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }

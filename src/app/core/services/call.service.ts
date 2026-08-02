@@ -30,6 +30,39 @@ export class CallService {
   }
 
   exportCalls(filters: CallExportFilter, calls: Call[]): void {
+    const params: any = {};
+    if (filters.status && filters.status !== 'All') {
+      params.callStatus = filters.status;
+    }
+    if (filters.startDate) {
+      params.startDate = filters.startDate;
+    }
+    if (filters.endDate) {
+      params.endDate = filters.endDate;
+    }
+
+    this.http.get(`${this.apiUrl}/api/ExportCallReport/`, {
+      params,
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob: Blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `CallReport_${new Date().toISOString().slice(0,10)}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        console.warn('Backend export API failed, falling back to client-side CSV export', err);
+        this.fallbackClientExport(filters, calls);
+      }
+    });
+  }
+
+  private fallbackClientExport(filters: CallExportFilter, calls: Call[]): void {
     let filtered = [...calls];
     if (filters.status && filters.status !== 'All') filtered = filtered.filter(c => c.status === filters.status);
     if (filters.priority && filters.priority !== 'All') filtered = filtered.filter(c => c.complaintDetail?.complaintPriority === filters.priority);

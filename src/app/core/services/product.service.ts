@@ -12,16 +12,33 @@ export class ProductService {
 
   constructor(private http: HttpClient) {}
 
-  createProduct(productData: Product): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/api/product/`, productData);
+  createProduct(productData: any): Observable<any> {
+    const formData = this.toFormData(productData);
+    return this.http.post<any>(`${this.apiUrl}/api/product/`, formData);
   }
 
   getProducts(): Observable<Product[]> {
     return this.http.get<Product[]>(`${this.apiUrl}/api/product/`);
   }
 
-  updateProduct(id: number, productData: Partial<Product>): Observable<any> {
-    return this.http.patch<any>(`${this.apiUrl}/api/product/${id}/`, productData);
+  updateProduct(id: number, productData: any): Observable<any> {
+    const formData = this.toFormData(productData);
+    return this.http.patch<any>(`${this.apiUrl}/api/product/${id}/`, formData);
+  }
+
+  private toFormData(data: any): FormData {
+    const formData = new FormData();
+    for (const key of Object.keys(data)) {
+      if (data[key] !== null && data[key] !== undefined) {
+        // Only append file if it is a File object, else stringify/append other fields
+        if (data[key] instanceof File) {
+          formData.append(key, data[key], data[key].name);
+        } else {
+          formData.append(key, data[key]);
+        }
+      }
+    }
+    return formData;
   }
 
   deleteProduct(id: number): Observable<any> {

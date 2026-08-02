@@ -15,11 +15,15 @@ import { CallService } from '../../core/services/call.service';
       <aside class="sidebar">
         <!-- Logo -->
         <div class="sidebar-logo">
-          <div class="logo-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <div class="logo-img-box">
+            <img src="assets/logo.png" alt="Shri Govind Enterprises Logo" class="sidebar-logo-img" />
           </div>
-          <span class="logo-text">CRM Pro</span>
+          <div class="logo-text-box">
+            <span class="logo-text">Shri Govind</span>
+            <span class="logo-subtext">Enterprises</span>
+          </div>
         </div>
+
 
         <nav class="sidebar-nav">
           <p class="nav-section-label">Main Menu</p>
@@ -72,6 +76,15 @@ import { CallService } from '../../core/services/call.service';
               }
             </li>
 
+            <!-- Customers Section -->
+            <p class="nav-section-label" style="margin-top: 1.25rem;">Customers</p>
+            <li class="nav-item">
+              <a routerLink="/customer/products" routerLinkActive="active" class="nav-link">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                <span>Products</span>
+              </a>
+            </li>
+
             <!-- Admin Only Links: Product Management -->
             @if (authService.getRole() === 'Admin') {
               <p class="nav-section-label" style="margin-top: 1.5rem;">Products</p>
@@ -111,17 +124,6 @@ import { CallService } from '../../core/services/call.service';
             }
           </ul>
         </nav>
-
-        <!-- User Card at Bottom -->
-        <div class="sidebar-footer">
-          <div class="sidebar-user">
-            <div class="avatar">{{ getInitial() }}</div>
-            <div class="sidebar-user-info">
-              <span class="sidebar-user-name">{{ authService.getUsername() }}</span>
-              <span class="sidebar-user-role">{{ authService.getRole() }}</span>
-            </div>
-          </div>
-        </div>
       </aside>
 
       <!-- Main Content -->
@@ -130,7 +132,7 @@ import { CallService } from '../../core/services/call.service';
         <header class="topbar">
           <div class="topbar-left">
             <div class="topbar-breadcrumb">
-              <span class="breadcrumb-root">CRM Pro</span>
+              <span class="breadcrumb-root">Shri Govind Enterprises</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
               <span class="breadcrumb-current">{{ getCurrentPageTitle() }}</span>
             </div>
@@ -241,25 +243,45 @@ import { CallService } from '../../core/services/call.service';
       box-sizing: border-box;
     }
 
-    .logo-icon {
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      border-radius: 10px;
+    .logo-img-box {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
-      box-shadow: 0 4px 12px rgba(79,70,229,0.35);
       flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .logo-text-box {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
     }
 
     .logo-text {
-      font-size: 1.1rem;
+      font-size: 0.95rem;
       font-weight: 800;
       color: #f8fafc;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.01em;
     }
+
+    .logo-subtext {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #a5b4fc;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
 
     .sidebar-nav {
       flex: 1;
@@ -1012,8 +1034,10 @@ export class DashboardLayoutComponent implements OnInit {
     if (url.startsWith('/admin/issues')) return 'Manage Issues';
     if (url.startsWith('/create-user')) return 'Create User';
     if (url.startsWith('/calls')) return 'Call Management';
+    if (url.startsWith('/customer/products')) return 'Products';
     return 'Dashboard';
   }
+
 
   logout() {
     this.authService.logout();

@@ -13,9 +13,18 @@ import { ToastService } from '../../../shared/services/toast.service';
     <div class="auth-container">
       <div class="auth-card animate-fade-in hover-lift">
         <div class="auth-header">
-          <h2>Welcome Back</h2>
-          <p>Please enter your details to sign in.</p>
+          <div class="logo-wrapper">
+            <img src="assets/logo.png" alt="Shri Govind Enterprises Logo" class="brand-logo-img" />
+          </div>
+          <h2 class="company-title">Shri Govind Enterprises</h2>
+          <div class="company-address">
+            <span>F-B1 NANDADEEP APARTMENT</span>
+            <span>12 NATHMANDIR COLONY SOUTH, TUKOGANJ</span>
+            <span>INDORE 452001</span>
+          </div>
+          <p class="signin-subtitle">Sign in to your account</p>
         </div>
+
         
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
           <div class="form-group">
@@ -80,23 +89,50 @@ import { ToastService } from '../../../shared/services/toast.service';
 
     .auth-header {
       text-align: center;
-      margin-bottom: 2rem;
+      margin-bottom: 1.75rem;
     }
 
-    .auth-header h2 {
+    .logo-wrapper {
+      margin-bottom: 0.75rem;
+    }
+
+    .brand-logo-img {
+      width: 76px;
+      height: 76px;
+      object-fit: contain;
+      border-radius: 50%;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .company-title {
+      font-size: 1.25rem;
+      font-weight: 800;
       color: var(--text-primary);
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.35rem;
+      letter-spacing: -0.01em;
     }
 
-    .auth-header p {
+    .company-address {
+      display: flex;
+      flex-direction: column;
+      font-size: 0.72rem;
+      font-weight: 600;
       color: var(--text-secondary);
-      font-size: 0.875rem;
+      line-height: 1.35;
+      margin-bottom: 1rem;
+      letter-spacing: 0.02em;
     }
 
-    .auth-footer p {
-      font-size: 0.875rem;
-      color: var(--text-secondary);
+    .signin-subtitle {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--primary, #4f46e5);
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
+
   `]
 })
 export class LoginComponent {

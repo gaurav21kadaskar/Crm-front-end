@@ -5,6 +5,7 @@ import { ProductService } from '../../../../core/services/product.service';
 import { BrandService } from '../../../../core/services/brand.service';
 import { Brand } from '../../../../core/models/brand.model';
 import { Product } from '../../../../core/models/product.model';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-product-form',
@@ -87,6 +88,23 @@ import { Product } from '../../../../core/models/product.model';
                     rows="3"
                   ></textarea>
                 </div>
+
+                <div class="pro-form-group">
+                  <label class="pro-label">Product Image</label>
+                  <div class="image-upload-zone" (click)="createFileInput.click()" [class.has-preview]="imagePreview">
+                    <input type="file" #createFileInput class="hidden-input" (change)="onFileChange($event, false)" accept="image/*" />
+                    @if (imagePreview) {
+                      <img [src]="imagePreview" class="image-preview" />
+                      <div class="image-change-label">Click to change</div>
+                    } @else {
+                      <div class="upload-placeholder">
+                        <span class="upload-icon">📷</span>
+                        <span class="upload-text">Click to upload image</span>
+                        <span class="upload-hint">PNG, JPG up to 5MB</span>
+                      </div>
+                    }
+                  </div>
+                </div>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn-cancel" (click)="showCreateForm = false">Cancel</button>
@@ -155,6 +173,23 @@ import { Product } from '../../../../core/models/product.model';
                     rows="3"
                   ></textarea>
                 </div>
+
+                <div class="pro-form-group">
+                  <label class="pro-label">Product Image</label>
+                  <div class="image-upload-zone" (click)="editFileInput.click()" [class.has-preview]="editImagePreview">
+                    <input type="file" #editFileInput class="hidden-input" (change)="onFileChange($event, true)" accept="image/*" />
+                    @if (editImagePreview) {
+                      <img [src]="editImagePreview" class="image-preview" />
+                      <div class="image-change-label">Click to change</div>
+                    } @else {
+                      <div class="upload-placeholder">
+                        <span class="upload-icon">📷</span>
+                        <span class="upload-text">Click to upload image</span>
+                        <span class="upload-hint">PNG, JPG up to 5MB</span>
+                      </div>
+                    }
+                  </div>
+                </div>
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn-cancel" (click)="cancelEdit()">Cancel</button>
@@ -189,7 +224,7 @@ import { Product } from '../../../../core/models/product.model';
           <table class="data-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th style="width: 60px;">Image</th>
                 <th>Product Name</th>
                 <th>Brand</th>
                 <th>Code</th>
@@ -199,7 +234,13 @@ import { Product } from '../../../../core/models/product.model';
             <tbody>
               @for (product of products; track product.id) {
                 <tr>
-                  <td class="id-cell">{{ product.id }}</td>
+                  <td class="img-cell">
+                    @if (product.productImage) {
+                      <img [src]="getImageUrl(product.productImage)" alt="Product" class="list-thumbnail" />
+                    } @else {
+                      <div class="no-image-placeholder">📦</div>
+                    }
+                  </td>
                   <td class="name-cell">{{ product.name }}</td>
                   <td class="brand-cell">{{ getBrandName(product.brand) }}</td>
                   <td class="code-cell">{{ product.productCode || '—' }}</td>
@@ -211,8 +252,10 @@ import { Product } from '../../../../core/models/product.model';
                         <button class="btn-no" (click)="deletingProductId = null">No</button>
                       </div>
                     } @else {
-                      <button class="btn-action-edit" (click)="startEdit(product)">Edit</button>
-                      <button class="btn-action-delete" (click)="deletingProductId = product.id || null">Delete</button>
+                      <div class="action-btns">
+                        <button class="btn-action-edit" (click)="startEdit(product)">Edit</button>
+                        <button class="btn-action-delete" (click)="deletingProductId = product.id || null">Delete</button>
+                      </div>
                     }
                   </td>
                 </tr>
@@ -277,7 +320,8 @@ import { Product } from '../../../../core/models/product.model';
     }
 
     /* Action Buttons */
-    .actions-cell { display: flex; gap: 0.5rem; align-items: center; }
+    .actions-cell { vertical-align: middle; white-space: nowrap; }
+    .action-btns { display: inline-flex; gap: 0.5rem; align-items: center; }
     .btn-action-edit { padding: 0.375rem 0.75rem; font-size: 0.825rem; font-weight: 600; border: 1px solid #cbd5e1; border-radius: 6px; background-color: var(--surface); color: #334155; cursor: pointer; transition: all 0.15s ease; }
     .btn-action-edit:hover { background-color: #f1f5f9; color: var(--text-primary); border-color: #94a3b8; }
     .btn-action-delete { padding: 0.375rem 0.75rem; font-size: 0.825rem; font-weight: 600; border: 1px solid #fee2e2; border-radius: 6px; background-color: var(--surface); color: #dc2626; cursor: pointer; transition: all 0.15s ease; }
@@ -290,28 +334,41 @@ import { Product } from '../../../../core/models/product.model';
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: rgba(15, 23, 42, 0.4);
+      background-color: rgba(15, 23, 42, 0.6);
       backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 99999;
+      padding: 1rem;
+      box-sizing: border-box;
     }
     .modal-content {
       background-color: var(--surface);
       border-radius: 12px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-      width: 90%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      width: 100%;
       max-width: 500px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
       border: 1px solid var(--border);
     }
+    .modal-content form {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
     .modal-header {
       padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid var(--border-light);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
     }
     .modal-title {
       font-size: 1.1rem;
@@ -329,14 +386,15 @@ import { Product } from '../../../../core/models/product.model';
       line-height: 1;
     }
     .modal-close:hover { color: var(--text-primary); }
-    .modal-body { padding: 1.5rem; }
+    .modal-body { padding: 1.5rem; flex: 1; overflow-y: auto; }
     .modal-footer {
       padding: 1rem 1.5rem;
-      background-color: #f8fafc;
-      border-top: 1px solid #f1f5f9;
+      background-color: var(--surface-2, #f8fafc);
+      border-top: 1px solid var(--border-light);
       display: flex;
       justify-content: flex-end;
       gap: 0.75rem;
+      flex-shrink: 0;
     }
 
     .btn-save { padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; background-color: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
@@ -365,13 +423,30 @@ import { Product } from '../../../../core/models/product.model';
 
     .data-table { width: 100%; border-collapse: collapse; }
     .data-table th { background: #f8fafc; padding: 0.75rem 1rem; text-align: left; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
-    .data-table td { padding: 0.875rem 1rem; font-size: 0.9rem; color: #334155; border-bottom: 1px solid #f1f5f9; }
+    .data-table td { padding: 0.875rem 1rem; font-size: 0.9rem; color: #334155; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
     .data-table tr:last-child td { border-bottom: none; }
-    .data-table tr:hover td { background: #f8fafc; }
-    .id-cell { color: #94a3b8; font-size: 0.8rem; width: 60px; }
+    .data-table tr:hover td { background: rgba(248,250,252,0.5); }
     .name-cell { font-weight: 500; color: var(--text-primary); }
     .brand-cell { color: #4f46e5; font-size: 0.875rem; }
     .code-cell { color: var(--text-secondary); font-family: monospace; font-size: 0.875rem; }
+
+    /* Image cells */
+    .img-cell { width: 60px; }
+    .list-thumbnail { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; border: 1px solid #e2e8f0; }
+    .no-image-placeholder { width: 40px; height: 40px; border-radius: 6px; background: #f1f5f9; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+
+    /* Image upload */
+    .hidden-input { display: none; }
+    .image-upload-zone { border: 2px dashed #cbd5e1; border-radius: 8px; background: #f8fafc; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+    .image-upload-zone:hover { border-color: #4f46e5; background: #f5f3ff; }
+    .image-upload-zone.has-preview { border-style: solid; border-color: #e2e8f0; background: white; }
+    .image-preview { max-width: 100%; max-height: 150px; object-fit: contain; display: block; margin: 0 auto; }
+    .image-change-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.5); color: white; text-align: center; font-size: 0.75rem; padding: 0.35rem; opacity: 0; transition: opacity 0.2s; }
+    .image-upload-zone:hover .image-change-label { opacity: 1; }
+    .upload-placeholder { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 1.5rem; }
+    .upload-icon { font-size: 1.5rem; }
+    .upload-text { font-size: 0.85rem; font-weight: 500; color: #334155; }
+    .upload-hint { font-size: 0.75rem; color: #94a3b8; }
 
     .animate-fade-in {
       animation: fadeIn 0.25s ease-out;
@@ -397,19 +472,25 @@ export class ProductFormComponent implements OnInit {
   brands: Brand[] = [];
   products: Product[] = [];
   loadingList = false;
+  apiUrl = environment.apiUrl;
+
+  imagePreview: string | ArrayBuffer | null = null;
+  editImagePreview: string | ArrayBuffer | null = null;
 
   productForm: FormGroup = this.fb.group({
     brand: ['', Validators.required],
     name: ['', Validators.required],
     productCode: [''],
-    description: ['']
+    description: [''],
+    productImage: [null]
   });
 
   editForm: FormGroup = this.fb.group({
     brand: ['', Validators.required],
     name: ['', Validators.required],
     productCode: [''],
-    description: ['']
+    description: [''],
+    productImage: [null]
   });
 
   isLoading = false;
@@ -460,6 +541,28 @@ export class ProductFormComponent implements OnInit {
     return brand ? brand.name : `Brand #${brandId}`;
   }
 
+  onFileChange(event: any, isEdit: boolean) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (isEdit) {
+        this.editImagePreview = reader.result;
+        this.editForm.patchValue({ productImage: file });
+      } else {
+        this.imagePreview = reader.result;
+        this.productForm.patchValue({ productImage: file });
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  getImageUrl(path: string | File | null | undefined): string {
+    if (!path || path instanceof File) return '';
+    if (path.startsWith('http')) return path;
+    return `${this.apiUrl}${path}`;
+  }
+
   onSubmit(): void {
     this.submitted = true;
     this.successMessage = '';
@@ -475,6 +578,7 @@ export class ProductFormComponent implements OnInit {
         this.successMessage = 'Product created successfully!';
         this.productForm.reset();
         this.productForm.patchValue({ brand: '' });
+        this.imagePreview = null;
         this.submitted = false;
         this.isLoading = false;
         this.showCreateForm = false;
@@ -495,13 +599,16 @@ export class ProductFormComponent implements OnInit {
       brand: product.brand,
       name: product.name,
       productCode: product.productCode || '',
-      description: product.description || ''
+      description: product.description || '',
+      productImage: null
     });
+    this.editImagePreview = this.getImageUrl(product.productImage);
   }
 
   cancelEdit() {
     this.editingProductId = null;
     this.editForm.reset();
+    this.editImagePreview = null;
   }
 
   onUpdate(id: number): void {
@@ -518,6 +625,7 @@ export class ProductFormComponent implements OnInit {
         this.successMessage = 'Product updated successfully!';
         this.editingProductId = null;
         this.editForm.reset();
+        this.editImagePreview = null;
         this.isUpdating = false;
         this.loadProducts();
       },
