@@ -867,7 +867,7 @@ export class DashboardLayoutComponent implements OnInit {
         const username = this.authService.getUsername() || '';
 
         if (role === 'Customer') {
-          filteredCalls = rawCalls.filter(c => {
+          filteredCalls = rawCalls.filter((c: any) => {
             const fn = (c.customerDetail?.firstName || '').toLowerCase();
             const ln = (c.customerDetail?.lastName || '').toLowerCase();
             const fullname = `${fn} ${ln}`.trim();
