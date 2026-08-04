@@ -603,7 +603,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                 <!-- Customer Full Name Banner -->
                 <div class="details-name-banner" style="margin-bottom: 1rem;">
                   <span class="name-banner-label">Customer</span>
-                  <span class="name-banner-value">{{ getFormattedFullName(viewingCallDetails?.customerDetail, viewingCallDetails?.customerName) | titlecase }}</span>
+                  <span class="name-banner-value">{{ getFormattedFullName(viewingCallDetails.customerDetail, viewingCallDetails.customerName) | titlecase }}</span>
                 </div>
 
                 <!-- Editable Badges Header -->
@@ -675,11 +675,11 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                       </div>
                       <div class="details-field">
                         <span class="df-label">Last Name</span>
-                        <span class="df-value text-semibold">{{ (viewingCallDetails?.customerDetail?.lastName && viewingCallDetails?.customerDetail?.lastName !== 'Name') ? viewingCallDetails?.customerDetail?.lastName : 'N/A' }}</span>
+                        <span class="df-value text-semibold">{{ (viewingCallDetails.customerDetail?.lastName && viewingCallDetails.customerDetail?.lastName !== 'Name') ? viewingCallDetails.customerDetail?.lastName : 'N/A' }}</span>
                       </div>
                       <div class="details-field">
                         <span class="df-label">Full Name</span>
-                        <span class="df-value text-semibold">{{ getFormattedFullName(viewingCallDetails?.customerDetail, viewingCallDetails?.customerName) }}</span>
+                        <span class="df-value text-semibold">{{ getFormattedFullName(viewingCallDetails.customerDetail, viewingCallDetails.customerName) }}</span>
                       </div>
                       <div class="details-field span-2">
                         <span class="df-label">Address Line 1</span>
