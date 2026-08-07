@@ -58,6 +58,11 @@ export interface Call {
   id?: number | string;
   callId?: string;
   callNumber?: string;
+  user_id?: any;
+  user?: any;
+  created_by?: any;
+  customer_id?: any;
+  customer_user_id?: any;
   customerDetail?: CustomerDetail;
   contactDetail?: ContactDetail;
   dealerDetail?: DealerDetail;

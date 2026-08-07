@@ -7,6 +7,7 @@ import { BrandService } from '../../core/services/brand.service';
 import { ProductService } from '../../core/services/product.service';
 import { ProductModelService } from '../../core/services/product-model.service';
 import { ProductIssueService } from '../../core/services/product-issue.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Call, CallExportFilter } from '../../core/models/call.model';
 import { Brand } from '../../core/models/brand.model';
 import { Product } from '../../core/models/product.model';
@@ -1678,6 +1679,14 @@ export class CallManagementComponent implements OnInit {
   private productService = inject(ProductService);
   private modelService = inject(ProductModelService);
   private issueService = inject(ProductIssueService);
+  authService = inject(AuthService);
+
+  private parseArray(res: any): any[] {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.results)) return res.results;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
+  }
 
   activeTab: 'list' | 'create' | 'lookup' = 'list';
   loading = false;
@@ -2014,12 +2023,28 @@ export class CallManagementComponent implements OnInit {
     this.loading = true;
     this.callService.getCalls().subscribe({
       next: (res: any) => {
-        const raw = Array.isArray(res) ? res : (res.data || []);
+        let raw = this.parseArray(res);
+        if (this.authService.getRole() === 'Customer') {
+          const uId = this.authService.getUserId();
+          const uName = (this.authService.getUsername() || '').toLowerCase();
+          raw = raw.filter((c: any) => {
+            const callUserId = c.user_id || c.user || c.customer_id || c.created_by || c.customer_user_id;
+            if (uId && callUserId && String(callUserId) === String(uId)) {
+              return true;
+            }
+            const cName = (c.customerName || c.customerDetail?.firstName || '').toLowerCase();
+            const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
+            if (uName && uName.length > 0 && (cName.includes(uName) || (cEmail && cEmail.includes(uName)))) {
+              return true;
+            }
+            return false;
+          });
+        }
         this.calls = raw.map((c: any) => this.normalizeCall(c));
         this.loading = false;
       },
       error: () => {
-        this.calls = [
+        let raw = [
           {
             id: 1,
             callNumber: 'CALL10001',
@@ -2058,7 +2083,24 @@ export class CallManagementComponent implements OnInit {
             productDetail: { brand: 2, product: 2, model: 2, client: 'Retail' },
             complaintDetail: { callType: 'Repair', complaintPriority: 'Medium', complaintDescription: 'Washing Machine Drainage Leak' }
           }
-        ].map(c => this.normalizeCall(c));
+        ];
+        if (this.authService.getRole() === 'Customer') {
+          const uId = this.authService.getUserId();
+          const uName = (this.authService.getUsername() || '').toLowerCase();
+          raw = raw.filter((c: any) => {
+            const callUserId = c.user_id || c.user || c.customer_id || c.created_by || c.customer_user_id;
+            if (uId && callUserId && String(callUserId) === String(uId)) {
+              return true;
+            }
+            const cName = (c.customerName || c.customerDetail?.firstName || '').toLowerCase();
+            const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
+            if (uName && uName.length > 0 && (cName.includes(uName) || (cEmail && cEmail.includes(uName)))) {
+              return true;
+            }
+            return false;
+          });
+        }
+        this.calls = raw.map(c => this.normalizeCall(c));
         this.loading = false;
       }
     });
@@ -2114,7 +2156,7 @@ export class CallManagementComponent implements OnInit {
 
   loadBrands() {
     this.brandService.getBrands().subscribe({
-      next: (res: any) => this.brands = Array.isArray(res) ? res : (res.data || []),
+      next: (res: any) => this.brands = this.parseArray(res),
       error: () => this.brands = [
         { id: 1, name: 'Samsung', description: 'Samsung Electronics' },
         { id: 2, name: 'LG', description: 'LG Home Appliances' }
@@ -2124,7 +2166,7 @@ export class CallManagementComponent implements OnInit {
 
   loadProducts() {
     this.productService.getProducts().subscribe({
-      next: (res: any) => this.products = Array.isArray(res) ? res : (res.data || []),
+      next: (res: any) => this.products = this.parseArray(res),
       error: () => this.products = [
         { id: 1, name: 'Air Conditioner', brand: 1 },
         { id: 2, name: 'Washing Machine', brand: 2 }
@@ -2134,7 +2176,7 @@ export class CallManagementComponent implements OnInit {
 
   loadModels() {
     this.modelService.getProductModels().subscribe({
-      next: (res: any) => this.models = Array.isArray(res) ? res : (res.data || []),
+      next: (res: any) => this.models = this.parseArray(res),
       error: () => this.models = [
         { id: 1, modelName: 'WindFree Split AC 1.5T', product: 1 },
         { id: 2, modelName: 'Vivace Front Load 8kg', product: 2 }
@@ -2144,7 +2186,7 @@ export class CallManagementComponent implements OnInit {
 
   loadIssues() {
     this.issueService.getProductIssues().subscribe({
-      next: (res: any) => this.issues = Array.isArray(res) ? res : (res.data || []),
+      next: (res: any) => this.issues = this.parseArray(res),
       error: () => this.issues = [
         { id: 1, issueName: 'Cooling Failure', product: 1 },
         { id: 2, issueName: 'Drainage Leakage', product: 2 }
@@ -2236,11 +2278,15 @@ export class CallManagementComponent implements OnInit {
 
     const statusVal = existingId ? this.editStatus : this.createStatus;
     const techVal = existingId ? this.editTechnicianAssigned : this.createTechnicianAssigned;
+    const currentUserId = this.authService.getUserId();
 
     return {
       id: existingId || genCallNum,
       callNumber: genCallNum,
       callId: genCallNum,
+      user_id: currentUserId,
+      created_by: currentUserId,
+      customer_id: currentUserId,
       customerDetail: {
         title: cust.title || 'Mr',
         firstName: (cust.firstName && cust.firstName !== 'N/A') ? cust.firstName : 'Customer',

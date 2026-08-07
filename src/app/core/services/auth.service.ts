@@ -66,6 +66,17 @@ export class AuthService {
     }
   }
 
+  getUserId(): string | number | null {
+    const token = this.getToken();
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.user_id || payload.id || payload.sub || payload.userId || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   private setToken(token: string): void {
     sessionStorage.setItem(this.TOKEN_KEY, token);
     this.tokenSignal.set(token);

@@ -540,11 +540,18 @@ export class DashboardComponent implements OnInit {
     this.loadData();
   }
 
+  private parseArray(res: any): any[] {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.results)) return res.results;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
+  }
+
   loadData() {
     // Load brands
     this.brandService.getBrands().subscribe({
       next: (res: any) => {
-        this.brands = Array.isArray(res) ? res : (res.data || []);
+        this.brands = this.parseArray(res);
         this.summary.brands = this.brands.length;
         // Reload products next to map correctly
         this.loadProductsAndCalls();
@@ -564,7 +571,7 @@ export class DashboardComponent implements OnInit {
     // Load products
     this.productService.getProducts().subscribe({
       next: (res: any) => {
-        this.products = Array.isArray(res) ? res : (res.data || []);
+        this.products = this.parseArray(res);
         this.summary.products = this.products.length;
         this.loadCalls();
       },
@@ -582,7 +589,7 @@ export class DashboardComponent implements OnInit {
   loadCalls() {
     this.callService.getCalls().subscribe({
       next: (res: any) => {
-        const rawCalls = Array.isArray(res) ? res : (res.data || []);
+        const rawCalls = this.parseArray(res);
         this.processCalls(rawCalls);
       },
       error: () => {
@@ -612,6 +619,23 @@ export class DashboardComponent implements OnInit {
 
   processCalls(rawCalls: any[]) {
     let filteredCalls = [...rawCalls];
+
+    if (this.authService.getRole() === 'Customer') {
+      const uId = this.authService.getUserId();
+      const uName = (this.authService.getUsername() || '').toLowerCase();
+      filteredCalls = filteredCalls.filter((c: any) => {
+        const callUserId = c.user_id || c.user || c.customer_id || c.created_by || c.customer_user_id;
+        if (uId && callUserId && String(callUserId) === String(uId)) {
+          return true;
+        }
+        const cName = (c.customerName || c.customerDetail?.firstName || '').toLowerCase();
+        const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
+        if (uName && uName.length > 0 && (cName.includes(uName) || (cEmail && cEmail.includes(uName)))) {
+          return true;
+        }
+        return false;
+      });
+    }
 
     // Sort calls by ID / creation desc
     filteredCalls.sort((a, b) => {
