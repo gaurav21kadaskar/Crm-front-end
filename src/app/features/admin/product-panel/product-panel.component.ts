@@ -4,18 +4,19 @@ import { BrandFormComponent } from './brand-form/brand-form.component';
 import { ProductFormComponent } from './product-form/product-form.component';
 import { ProductModelFormComponent } from './product-model-form/product-model-form.component';
 import { ProductIssueFormComponent } from './product-issue-form/product-issue-form.component';
+import { ProductPartFormComponent } from './product-part-form/product-part-form.component';
 
-type TabId = 'brand' | 'product' | 'model' | 'issue';
+type TabId = 'brand' | 'product' | 'model' | 'issue' | 'part';
 
 @Component({
   selector: 'app-product-panel',
   standalone: true,
-  imports: [CommonModule, BrandFormComponent, ProductFormComponent, ProductModelFormComponent, ProductIssueFormComponent],
+  imports: [CommonModule, BrandFormComponent, ProductFormComponent, ProductModelFormComponent, ProductIssueFormComponent, ProductPartFormComponent],
   template: `
     <div class="panel-wrapper">
       <div class="panel-header">
         <h2 class="panel-title">Product Management</h2>
-        <p class="panel-subtitle">Create and manage Brands, Products, Models, and Issues</p>
+        <p class="panel-subtitle">Create and manage Brands, Products, Models, Issues, and Parts</p>
       </div>
 
       <!-- Tab Navigation -->
@@ -56,6 +57,15 @@ type TabId = 'brand' | 'product' | 'model' | 'issue';
           <span class="tab-icon">⚠️</span>
           Product Issue
         </button>
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'part'"
+          (click)="activeTab = 'part'"
+          id="tab-part"
+        >
+          <span class="tab-icon">⚙️</span>
+          Product Part
+        </button>
       </div>
 
       <!-- Tab Content -->
@@ -71,6 +81,9 @@ type TabId = 'brand' | 'product' | 'model' | 'issue';
         }
         @if (activeTab === 'issue') {
           <app-product-issue-form />
+        }
+        @if (activeTab === 'part') {
+          <app-product-part-form />
         }
       </div>
     </div>

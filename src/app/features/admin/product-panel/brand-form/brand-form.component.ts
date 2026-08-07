@@ -384,12 +384,19 @@ export class BrandFormComponent implements OnInit {
     this.loadBrands();
   }
 
+  private parseArray(res: any): any[] {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.results)) return res.results;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
+  }
+
   loadBrands() {
     this.loadingList = true;
 
     this.brandService.getBrands().subscribe({
       next: (response: any) => {
-        this.brands = response.data;
+        this.brands = this.parseArray(response);
         this.loadingList = false;
       },
       error: (err) => {

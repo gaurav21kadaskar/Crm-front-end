@@ -510,10 +510,17 @@ export class ProductFormComponent implements OnInit {
     this.loadProducts();
   }
 
+  private parseArray(res: any): any[] {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.results)) return res.results;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
+  }
+
   loadBrands() {
     this.brandService.getBrands().subscribe({
       next: (response: any) => {
-        this.brands = response.data;
+        this.brands = this.parseArray(response);
       },
       error: (err) => {
         console.error(err);
@@ -526,7 +533,7 @@ export class ProductFormComponent implements OnInit {
 
     this.productService.getProducts().subscribe({
       next: (response: any) => {
-        this.products = response.data;
+        this.products = this.parseArray(response);
         this.loadingList = false;
       },
       error: (err) => {

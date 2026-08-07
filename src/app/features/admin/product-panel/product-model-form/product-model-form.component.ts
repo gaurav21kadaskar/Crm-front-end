@@ -348,9 +348,16 @@ export class ProductModelFormComponent implements OnInit {
     this.loadModels();
   }
 
+  private parseArray(res: any): any[] {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.results)) return res.results;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
+  }
+
   loadProducts() {
     this.productService.getProducts().subscribe({
-      next: (response: any) => { this.products = response.data; },
+      next: (response: any) => { this.products = this.parseArray(response); },
       error: (err) => console.error(err)
     });
   }
@@ -359,7 +366,7 @@ export class ProductModelFormComponent implements OnInit {
     this.loadingList = true;
     this.modelService.getProductModels().subscribe({
       next: (response: any) => {
-        this.models = response.data;
+        this.models = this.parseArray(response);
         this.loadingList = false;
       },
       error: (err) => {

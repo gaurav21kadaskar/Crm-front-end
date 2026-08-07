@@ -440,9 +440,16 @@ export class ProductPartFormComponent implements OnInit {
     this.loadParts();
   }
 
+  private parseArray(res: any): any[] {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.results)) return res.results;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
+  }
+
   loadProducts() {
     this.productService.getProducts().subscribe({
-      next: (response: any) => { this.products = response.data; },
+      next: (response: any) => { this.products = this.parseArray(response); },
       error: (err) => console.error(err)
     });
   }
@@ -451,7 +458,7 @@ export class ProductPartFormComponent implements OnInit {
     this.loadingList = true;
     this.partService.getProductParts().subscribe({
       next: (response: any) => {
-        this.parts = response.data;
+        this.parts = this.parseArray(response);
         this.loadingList = false;
       },
       error: (err) => {
