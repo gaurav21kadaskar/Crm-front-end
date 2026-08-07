@@ -372,6 +372,7 @@ export class BrandFormComponent implements OnInit {
   submitted = false;
   successMessage = '';
   errorMessage = '';
+  private messageTimer: any = null;
 
   showCreateForm = false;
   editingBrandId: number | null = null;
@@ -406,6 +407,16 @@ export class BrandFormComponent implements OnInit {
     });
   }
 
+  showMessage(success: string = '', error: string = '') {
+    this.successMessage = success;
+    this.errorMessage = error;
+    if (this.messageTimer) clearTimeout(this.messageTimer);
+    this.messageTimer = setTimeout(() => {
+      this.successMessage = '';
+      this.errorMessage = '';
+    }, 4000);
+  }
+
   onSubmit(): void {
     this.submitted = true;
     this.successMessage = '';
@@ -416,7 +427,7 @@ export class BrandFormComponent implements OnInit {
     this.isLoading = true;
     this.brandService.createBrand(this.brandForm.value).subscribe({
       next: () => {
-        this.successMessage = 'Brand created successfully!';
+        this.showMessage('Brand created successfully!');
         this.brandForm.reset();
         this.submitted = false;
         this.isLoading = false;
@@ -424,7 +435,7 @@ export class BrandFormComponent implements OnInit {
         this.loadBrands();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to create brand. Please try again.';
+        this.showMessage('', err.error?.message || 'Failed to create brand. Please try again.');
         this.isLoading = false;
       }
     });
@@ -454,14 +465,14 @@ export class BrandFormComponent implements OnInit {
 
     this.brandService.updateBrand(id, this.editForm.value).subscribe({
       next: () => {
-        this.successMessage = 'Brand updated successfully!';
+        this.showMessage('Brand updated successfully!');
         this.editingBrandId = null;
         this.editForm.reset();
         this.isUpdating = false;
         this.loadBrands();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to update brand. Please try again.';
+        this.showMessage('', err.error?.message || 'Failed to update brand. Please try again.');
         this.isUpdating = false;
       }
     });
@@ -473,12 +484,12 @@ export class BrandFormComponent implements OnInit {
 
     this.brandService.deleteBrand(id).subscribe({
       next: () => {
-        this.successMessage = 'Brand deleted successfully!';
+        this.showMessage('Brand deleted successfully!');
         this.deletingBrandId = null;
         this.loadBrands();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to delete brand. Please try again.';
+        this.showMessage('', err.error?.message || 'Failed to delete brand. Please try again.');
         this.deletingBrandId = null;
       }
     });

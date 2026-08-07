@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 import { CallService } from '../../core/services/call.service';
@@ -7,6 +7,7 @@ import { ProductService } from '../../core/services/product.service';
 import { Call } from '../../core/models/call.model';
 import { Brand } from '../../core/models/brand.model';
 import { Product } from '../../core/models/product.model';
+import { Subscription, interval } from 'rxjs';
 
 @Component({
   selector: 'app-dashboard',
@@ -24,8 +25,12 @@ import { Product } from '../../core/models/product.model';
             <p class="welcome-sub">Here is what's happening with your service calls and products today.</p>
           </div>
         </div>
-        <div class="welcome-badge">
+        <div class="welcome-right">
           <span class="role-chip">{{ authService.getRole() }}</span>
+          <button class="refresh-dash-btn" (click)="manualRefresh()" [disabled]="refreshing" title="Refresh Dashboard">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" [class.spinning]="refreshing"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            {{ refreshing ? 'Refreshing...' : 'Refresh' }}
+          </button>
         </div>
       </div>
 
@@ -233,7 +238,13 @@ import { Product } from '../../core/models/product.model';
       font-size: 0.9rem;
     }
 
-    .welcome-badge { z-index: 1; }
+    .welcome-right {
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.6rem;
+    }
 
     .role-chip {
       display: inline-block;
@@ -248,6 +259,27 @@ import { Product } from '../../core/models/product.model';
       text-transform: uppercase;
       backdrop-filter: blur(6px);
     }
+
+    .refresh-dash-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff;
+      padding: 0.3rem 0.85rem;
+      border-radius: 2rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: inherit;
+    }
+    .refresh-dash-btn:hover { background: rgba(255,255,255,0.25); }
+    .refresh-dash-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .refresh-dash-btn svg { flex-shrink: 0; }
+    .spinning { animation: spinIcon 1s linear infinite; }
+    @keyframes spinIcon { to { transform: rotate(360deg); } }
 
     /* ── Stats Grid ─────────────────────────────── */
     .stats-grid {
@@ -508,12 +540,15 @@ import { Product } from '../../core/models/product.model';
     }
   `]
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   authService = inject(AuthService);
   private callService = inject(CallService);
   private brandService = inject(BrandService);
   private productService = inject(ProductService);
-  
+  private refreshSub?: Subscription;
+
+  refreshing = false;
+
   stats = {
     totalCalls: 0,
     pendingCalls: 0,
@@ -537,6 +572,17 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.loadData();
+    // Auto-refresh every 30 seconds
+    this.refreshSub = interval(30000).subscribe(() => this.loadData());
+  }
+
+  ngOnDestroy() {
+    this.refreshSub?.unsubscribe();
+  }
+
+  manualRefresh() {
+    this.refreshing = true;
     this.loadData();
   }
 
@@ -617,8 +663,41 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  private getUpdatedCallMap(): { [callNum: string]: any } {
+    try {
+      const data = localStorage.getItem('crm_updated_calls_map');
+      return data ? JSON.parse(data) : {};
+    } catch {
+      return {};
+    }
+  }
+
   processCalls(rawCalls: any[]) {
-    let filteredCalls = [...rawCalls];
+    const map = this.getUpdatedCallMap();
+    let filteredCalls = rawCalls.map(c => {
+      const cNum = c.callNumber || c.callId || (c.id ? '#' + c.id : '');
+      const rawId = c.id ? String(c.id) : '';
+      const cNumClean = cNum.replace(/^#/, '').trim();
+      const rawIdClean = rawId.replace(/^#/, '').trim();
+
+      const override = map[cNum] ||
+                       map[cNumClean] ||
+                       map[cNum.toLowerCase()] ||
+                       map[cNumClean.toLowerCase()] ||
+                       (rawId ? map[rawId] : null) ||
+                       (rawIdClean ? map[rawIdClean] : null) ||
+                       (rawId ? map[rawId.toLowerCase()] : null);
+
+      if (override) {
+        return {
+          ...c,
+          status: override.status || c.status,
+          priority: override.priority || c.priority,
+          technicianAssigned: override.technicianAssigned || c.technicianAssigned
+        };
+      }
+      return c;
+    });
 
     if (this.authService.getRole() === 'Customer') {
       const uId = this.authService.getUserId();
@@ -628,10 +707,16 @@ export class DashboardComponent implements OnInit {
         if (uId && callUserId && String(callUserId) === String(uId)) {
           return true;
         }
-        const cName = (c.customerName || c.customerDetail?.firstName || '').toLowerCase();
+        const cFirstName = (c.customerDetail?.firstName || '').toLowerCase();
+        const cLastName = (c.customerDetail?.lastName || '').toLowerCase();
+        const cName = (c.customerName || `${cFirstName} ${cLastName}`).toLowerCase();
         const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
-        if (uName && uName.length > 0 && (cName.includes(uName) || (cEmail && cEmail.includes(uName)))) {
-          return true;
+
+        if (uName && uName.length > 0 && uName !== 'customer') {
+          const parts = uName.split(/[\s._-]+/).filter(p => p.length > 1);
+          const matchesName = parts.some(p => cName.includes(p));
+          const matchesEmail = cEmail && parts.some(p => cEmail.includes(p));
+          return matchesName || matchesEmail;
         }
         return false;
       });
@@ -644,20 +729,44 @@ export class DashboardComponent implements OnInit {
       return bId - aId;
     });
 
-    // Calculate stats
+    // Calculate real-time stats
     this.stats.totalCalls = filteredCalls.length;
-    this.stats.pendingCalls = filteredCalls.filter(c => c.status === 'Pending' || c.status === 'OPEN').length;
-    this.stats.inProgressCalls = filteredCalls.filter(c => c.status === 'In Progress').length;
-    this.stats.resolvedCalls = filteredCalls.filter(c => c.status === 'Resolved' || c.status === 'Closed' || c.status === 'COMPLETED').length;
+    const UP = (s: string) => s ? String(s).trim().toUpperCase().replace(/[\s_-]+/g, '') : '';
+
+    this.stats.pendingCalls = filteredCalls.filter(c => {
+      const s = UP(c.status);
+      return s === 'OPEN' || s === 'PENDING' || s === '';
+    }).length;
+
+    this.stats.inProgressCalls = filteredCalls.filter(c => {
+      const s = UP(c.status);
+      return s === 'INPROGRESS';
+    }).length;
+
+    this.stats.resolvedCalls = filteredCalls.filter(c => {
+      const s = UP(c.status);
+      return s === 'COMPLETED' || s === 'CLOSED' || s === 'RESOLVED' || s === 'CANCELLED' || s === 'CANCELED';
+    }).length;
+
+    this.refreshing = false;
 
     // Recent calls
     this.recentCalls = filteredCalls.slice(0, 5).map(c => {
       const pId = c.productDetail?.product || c.product;
+      let rawStatus = c.status || 'Open';
+      // Normalize 'OPEN' -> 'Open', 'IN_PROGRESS' -> 'In Progress', 'RESOLVED' -> 'Resolved'
+      const up = rawStatus.toUpperCase().replace(/[\s_-]+/g, '');
+      if (up === 'OPEN' || up === 'PENDING') rawStatus = 'Open';
+      else if (up === 'INPROGRESS') rawStatus = 'In Progress';
+      else if (up === 'RESOLVED') rawStatus = 'Resolved';
+      else if (up === 'CLOSED') rawStatus = 'Closed';
+      else if (up === 'CANCELLED' || up === 'CANCELED') rawStatus = 'Cancelled';
+
       return {
         id: c.callNumber || c.callId || ('#' + c.id),
         customer: this.getCustomerName(c),
         productInfo: this.getProductName(pId),
-        status: c.status || 'Pending'
+        status: rawStatus
       };
     });
   }
@@ -677,10 +786,11 @@ export class DashboardComponent implements OnInit {
       let fn = call.customerDetail.firstName || '';
       let ln = call.customerDetail.lastName || '';
       if (fn === 'Customer') fn = '';
-      if (ln === 'Name') ln = '';
+      if (ln === 'Name' || ln === '.') ln = '';
       const full = `${fn} ${ln}`.trim();
       if (full && full !== 'N/A') name = full;
     }
+    if (name.endsWith(' .')) name = name.substring(0, name.length - 2).trim();
     if (name.endsWith(' Name')) {
       name = name.substring(0, name.length - 5).trim();
     }
@@ -695,10 +805,11 @@ export class DashboardComponent implements OnInit {
 
   getStatusClass(status?: string): string {
     if (!status) return 'status-pending';
-    const s = status.toUpperCase();
+    const s = status.toUpperCase().replace(/[\s_-]+/g, '');
     if (s === 'PENDING' || s === 'OPEN') return 'status-pending';
-    if (s === 'IN PROGRESS') return 'status-progress';
+    if (s === 'INPROGRESS') return 'status-progress';
     if (s === 'RESOLVED' || s === 'CLOSED' || s === 'COMPLETED') return 'status-resolved';
+    if (s === 'CANCELLED' || s === 'CANCELED') return 'status-closed';
     return 'status-pending';
   }
 }

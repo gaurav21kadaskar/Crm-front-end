@@ -28,13 +28,20 @@ export class ProductService {
 
   private toFormData(data: any): FormData {
     const formData = new FormData();
+    // Map camelCase form keys to snake_case backend keys
+    const keyMap: { [key: string]: string } = {
+      productCode: 'product_code',
+      productImage: 'product_image',
+      isActive: 'is_active'
+    };
     for (const key of Object.keys(data)) {
       if (data[key] !== null && data[key] !== undefined) {
+        const apiKey = keyMap[key] || key;
         // Only append file if it is a File object, else stringify/append other fields
         if (data[key] instanceof File) {
-          formData.append(key, data[key], data[key].name);
+          formData.append(apiKey, data[key], data[key].name);
         } else {
-          formData.append(key, data[key]);
+          formData.append(apiKey, data[key]);
         }
       }
     }

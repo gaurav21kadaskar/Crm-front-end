@@ -50,6 +50,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/product-panel/product-issue-form/product-issue-form.component').then(m => m.ProductIssueFormComponent)
       },
       {
+        path: 'admin/parts',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/product-panel/product-part-form/product-part-form.component').then(m => m.ProductPartFormComponent)
+      },
+      {
         path: 'calls',
         loadComponent: () => import('./features/calls/call-management.component').then(m => m.CallManagementComponent)
       },

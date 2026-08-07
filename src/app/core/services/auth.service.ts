@@ -35,7 +35,7 @@ export class AuthService {
   }
 
   logout(): void {
-    sessionStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.TOKEN_KEY);
     this.tokenSignal.set(null);
     this.router.navigate(['/auth/login']);
   }
@@ -78,11 +78,11 @@ export class AuthService {
   }
 
   private setToken(token: string): void {
-    sessionStorage.setItem(this.TOKEN_KEY, token);
+    localStorage.setItem(this.TOKEN_KEY, token);
     this.tokenSignal.set(token);
   }
 
   private getTokenFromStorage(): string | null {
-    return sessionStorage.getItem(this.TOKEN_KEY);
+    return localStorage.getItem(this.TOKEN_KEY);
   }
 }

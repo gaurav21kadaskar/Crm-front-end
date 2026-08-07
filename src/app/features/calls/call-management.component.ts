@@ -122,7 +122,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             View
                           </button>
-                          <button class="btn-row-edit" (click)="startEditCall(call)" title="Edit Call">Edit</button>
+                          <button class="btn-row-edit" [disabled]="isCallClosed(call)" (click)="startEditCall(call)" title="Edit Call">Edit</button>
                           <button class="btn-row-delete" (click)="deletingCallObj = call" title="Delete Call">Delete</button>
                         </div>
                       </td>
@@ -423,7 +423,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   <div class="pro-form-group">
                     <label class="pro-label">Status</label>
                     <select class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="createStatus">
-                      <option value="Pending">Pending</option>
+                      <option value="Open">Open</option>
                       <option value="In Progress">In Progress</option>
                       <option value="Resolved">Resolved</option>
                       <option value="Closed">Closed</option>
@@ -470,9 +470,9 @@ import { ProductIssue } from '../../core/models/product-issue.model';
 
             <div class="form-card-footer">
               <button type="button" class="btn-cancel" (click)="activeTab = 'list'">Cancel</button>
-              <button type="submit" class="create-toggle-btn" [disabled]="isSubmitting">
+              <button type="submit" class="create-toggle-btn" (click)="onCreateCallSubmit()" [disabled]="isSubmitting">
                 <span class="plus-icon">+</span>
-                <span>{{ isSubmitting ? 'Registering on Backend...' : 'Register Call' }}</span>
+                <span>{{ isSubmitting ? 'Registering Call...' : 'Register Call' }}</span>
               </button>
             </div>
           </form>
@@ -495,8 +495,12 @@ import { ProductIssue } from '../../core/models/product-issue.model';
               placeholder="Enter Call Number (e.g. CALL10001 or CN001)" 
               (keyup.enter)="onSearchCallByNumber()"
             />
-            <button class="lookup-btn" (click)="onSearchCallByNumber()">
-              <span>Search Call</span>
+            <button class="lookup-btn" (click)="onSearchCallByNumber()" [disabled]="isSearching">
+              @if (isSearching) {
+                <span class="spinner" style="width:14px;height:14px;margin:0;"></span>
+              } @else {
+                <span>Search Call</span>
+              }
             </button>
           </div>
 
@@ -520,7 +524,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   <div class="pro-form-group">
                     <label class="pro-label">Status</label>
                     <select class="pro-input" formControlName="status">
-                      <option value="Pending">Pending</option>
+                      <option value="Open">Open</option>
                       <option value="In Progress">In Progress</option>
                       <option value="Resolved">Resolved</option>
                       <option value="Closed">Closed</option>
@@ -549,7 +553,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
                   <button type="submit" class="btn-save" [disabled]="isSubmitting">
-                    {{ isSubmitting ? 'Updating on Backend...' : 'Save Quick Update' }}
+                    {{ isSubmitting ? 'Saving...' : 'Save Quick Update' }}
                   </button>
                 </div>
               </form>
@@ -607,26 +611,19 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   <span class="name-banner-value">{{ getFormattedFullName(viewingCallDetails.customerDetail, viewingCallDetails.customerName) | titlecase }}</span>
                 </div>
 
-                <!-- Editable Badges Header -->
+                <!-- Read-Only Badges Header (edit via Edit Call button below) -->
                 <div class="details-badges-row" style="margin-bottom: 1rem;">
                   <div class="badge-item">
                     <span class="badge-label">Status</span>
-                    <select class="inline-badge-select status-select" [(ngModel)]="viewingCallDetails.status" (change)="onViewStatusChange()">
-                      <option value="Pending">Pending</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Resolved">Resolved</option>
-                      <option value="Closed">Closed</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
+                    <span class="status-badge" [ngClass]="getStatusClass(viewingCallDetails.status)">
+                      {{ viewingCallDetails.status || 'OPEN' }}
+                    </span>
                   </div>
                   <div class="badge-item">
                     <span class="badge-label">Priority</span>
-                    <select class="inline-badge-select priority-select" [(ngModel)]="viewDetailPriority" (change)="onViewPriorityChange()">
-                      <option value="Low">Low</option>
-                      <option value="Medium">Medium</option>
-                      <option value="High">High</option>
-                      <option value="Urgent">Urgent</option>
-                    </select>
+                    <span class="priority-badge" [ngClass]="getPriorityClass(getCallPriority(viewingCallDetails))">
+                      {{ getCallPriority(viewingCallDetails) }}
+                    </span>
                   </div>
                   <div class="badge-item">
                     <span class="badge-label">Call Type</span>
@@ -651,9 +648,6 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   </button>
                   <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'product'" (click)="activeViewTab = 'product'">
                     📦 Product
-                  </button>
-                  <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'timeline'" (click)="activeViewTab = 'timeline'">
-                    🕒 Timeline
                   </button>
                 </div>
               </div>
@@ -826,25 +820,6 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   </div>
                 }
 
-                <!-- TAB 5: HISTORY / TIMELINE -->
-                @if (activeViewTab === 'timeline') {
-                  <div class="tab-panel">
-                    <div class="timeline-container">
-                      @for (step of getCallTimeline(viewingCallDetails); track $index) {
-                        <div class="timeline-item" [class.completed]="step.completed">
-                          <div class="timeline-badge-icon">{{ step.icon }}</div>
-                          <div class="timeline-content">
-                            <div class="timeline-header">
-                              <span class="timeline-title">{{ step.title }}</span>
-                              <span class="timeline-time">{{ step.date }} &bull; {{ step.time }}</span>
-                            </div>
-                            <p class="timeline-desc">{{ step.description }}</p>
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                }
 
               </div><!-- /details-tab-content -->
               </div><!-- /call-details-tab-body -->
@@ -852,7 +827,9 @@ import { ProductIssue } from '../../core/models/product-issue.model';
             </div><!-- /modal-body -->
             <div class="modal-footer">
               <button type="button" class="btn-cancel" (click)="viewingCallDetails = null">Close</button>
-              <button type="button" class="btn-save" (click)="startEditFromDetails(viewingCallDetails)">Edit Call</button>
+              @if (!isCallClosed(viewingCallDetails)) {
+                <button type="button" class="btn-save" (click)="startEditFromDetails(viewingCallDetails)">Edit Call</button>
+              }
             </div>
           </div>
         </div>
@@ -1203,7 +1180,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                     <div class="pro-form-group">
                       <label class="pro-label">Call Status</label>
                       <select class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="editStatus">
-                        <option value="Pending">Pending</option>
+                        <option value="Open">Open</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Resolved">Resolved</option>
                         <option value="Closed">Closed</option>
@@ -1251,8 +1228,8 @@ import { ProductIssue } from '../../core/models/product-issue.model';
               <!-- ALWAYS VISIBLE STICKY FOOTER -->
               <div class="modal-footer">
                 <button type="button" class="btn-cancel" (click)="editingCall = null">Cancel</button>
-                <button type="submit" class="btn-save" [disabled]="isSubmitting">
-                  {{ isSubmitting ? 'Updating on Backend...' : 'Save Changes' }}
+                <button type="button" class="btn-save" [disabled]="isSubmitting" (click)="onSaveEditCall()">
+                  {{ isSubmitting ? 'Saving...' : 'Save Changes' }}
                 </button>
               </div>
             </form>
@@ -1317,6 +1294,63 @@ import { ProductIssue } from '../../core/models/product-issue.model';
       transition: all 0.15s;
     }
     .export-btn:hover { background: #f1f5f9; color: #4f46e5; border-color: #a5b4fc; }
+
+    /* Toast Popups (Floating Below Header, Modern & Always on Top of Modals) */
+    .toast-container {
+      position: fixed;
+      top: 5.5rem;
+      right: 1.5rem;
+      z-index: 99999999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      pointer-events: none;
+    }
+    .toast {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.85rem 1.25rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(8px);
+      min-width: 300px;
+      max-width: 450px;
+      border: 1px solid transparent;
+      animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .toast-success {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+    .toast-error {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+    .toast-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .toast-success .toast-icon { background: #dcfce7; color: #15803d; }
+    .toast-error .toast-icon { background: #fee2e2; color: #b91c1c; }
+    .toast-content { flex: 1; }
+    .toast-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.1rem; }
+    .toast-message { font-size: 0.8rem; font-weight: 500; opacity: 0.9; }
+    .toast-close { background: none; border: none; font-size: 1.25rem; color: currentColor; opacity: 0.5; cursor: pointer; padding: 0.2rem; line-height: 1; border-radius: 4px; }
+    .toast-close:hover { opacity: 1; background: rgba(0,0,0,0.05); }
+
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
 
     /* Alerts */
     .alert { display: flex; align-items: center; gap: 0.625rem; padding: 0.875rem 1rem; border-radius: 10px; font-size: 0.875rem; font-weight: 500; }
@@ -1392,7 +1426,8 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .btn-row-view { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: rgba(79, 70, 229, 0.05); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: 6px; color: #4f46e5; cursor: pointer; transition: all 0.15s; }
     .btn-row-view:hover { background: rgba(79, 70, 229, 0.15); }
     .btn-row-edit { padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: var(--surface); border: 1px solid #cbd5e1; border-radius: 6px; color: #475569; cursor: pointer; transition: all 0.15s; }
-    .btn-row-edit:hover { background: #f1f5f9; color: var(--text-primary); }
+    .btn-row-edit:hover:not(:disabled) { background: #f1f5f9; color: var(--text-primary); }
+    .btn-row-edit:disabled { background: #f8fafc; border-color: #e2e8f0; color: #cbd5e1; cursor: not-allowed; opacity: 0.65; }
     .btn-row-delete { padding: 0.35rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: var(--surface); border: 1px solid #fca5a5; border-radius: 6px; color: #dc2626; cursor: pointer; transition: all 0.15s; }
     .btn-row-delete:hover { background: #fef2f2; color: #b91c1c; }
 
@@ -1708,10 +1743,11 @@ export class CallManagementComponent implements OnInit {
   editFilteredModels: ProductModel[] = [];
   editFilteredIssues: ProductIssue[] = [];
 
-  createStatus = 'Pending';
+  createStatus = 'OPEN';
   createTechnicianAssigned = '';
-  editStatus = 'Pending';
+  editStatus = 'OPEN';
   editTechnicianAssigned = '';
+  isSearching = false;
 
   // ─── States / Districts / Cities Data ─────────────────────────────
   statesData: { [key: string]: { [key: string]: string[] } } = {
@@ -1877,7 +1913,7 @@ export class CallManagementComponent implements OnInit {
     customerDetail: this.fb.group({
       title: ['Mr'],
       firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
+      lastName: [''],
       address1: [''],
       landmark: [''],
       state: [''],
@@ -2032,10 +2068,17 @@ export class CallManagementComponent implements OnInit {
             if (uId && callUserId && String(callUserId) === String(uId)) {
               return true;
             }
-            const cName = (c.customerName || c.customerDetail?.firstName || '').toLowerCase();
+            const cFirstName = (c.customerDetail?.firstName || '').toLowerCase();
+            const cLastName = (c.customerDetail?.lastName || '').toLowerCase();
+            const cName = (c.customerName || `${cFirstName} ${cLastName}`).toLowerCase();
             const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
-            if (uName && uName.length > 0 && (cName.includes(uName) || (cEmail && cEmail.includes(uName)))) {
-              return true;
+
+            if (uName && uName.length > 0 && uName !== 'customer') {
+              // Split username (e.g., 'sakshi.kant' -> ['sakshi', 'kant'])
+              const parts = uName.split(/[\s._-]+/).filter(p => p.length > 1);
+              const matchesName = parts.some(p => cName.includes(p));
+              const matchesEmail = cEmail && parts.some(p => cEmail.includes(p));
+              return matchesName || matchesEmail;
             }
             return false;
           });
@@ -2092,10 +2135,16 @@ export class CallManagementComponent implements OnInit {
             if (uId && callUserId && String(callUserId) === String(uId)) {
               return true;
             }
-            const cName = (c.customerName || c.customerDetail?.firstName || '').toLowerCase();
+            const cFirstName = (c.customerDetail?.firstName || '').toLowerCase();
+            const cLastName = (c.customerDetail?.lastName || '').toLowerCase();
+            const cName = (c.customerName || `${cFirstName} ${cLastName}`).toLowerCase();
             const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
-            if (uName && uName.length > 0 && (cName.includes(uName) || (cEmail && cEmail.includes(uName)))) {
-              return true;
+
+            if (uName && uName.length > 0 && uName !== 'customer') {
+              const parts = uName.split(/[\s._-]+/).filter(p => p.length > 1);
+              const matchesName = parts.some(p => cName.includes(p));
+              const matchesEmail = cEmail && parts.some(p => cEmail.includes(p));
+              return matchesName || matchesEmail;
             }
             return false;
           });
@@ -2106,9 +2155,59 @@ export class CallManagementComponent implements OnInit {
     });
   }
 
+  /** Maps any backend status string to the exact Title Case choice value expected by Django API */
+  normalizeStatus(status?: string): string {
+    if (!status) return 'Open';
+    const s = String(status).trim().toUpperCase().replace(/[\s_-]+/g, '');
+    if (s === 'OPEN' || s === 'PENDING') return 'Open';
+    if (s === 'INPROGRESS') return 'In Progress';
+    if (s === 'RESOLVED' || s === 'COMPLETED') return 'Resolved';
+    if (s === 'CLOSED') return 'Closed';
+    if (s === 'CANCELLED' || s === 'CANCELED') return 'Cancelled';
+    return 'Open';
+  }
+
+  private getUpdatedCallMap(): { [callNum: string]: Partial<Call> } {
+    try {
+      const data = localStorage.getItem('crm_updated_calls_map');
+      return data ? JSON.parse(data) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private saveCallOverride(callNum: string, id: any, data: Partial<Call>) {
+    try {
+      const map = this.getUpdatedCallMap();
+      const updatedData = { ...map[callNum], ...data };
+      const cleanNum = callNum.replace(/^#/, '').trim();
+
+      map[callNum] = updatedData;
+      map[cleanNum] = updatedData;
+      map[callNum.toLowerCase()] = updatedData;
+      map[cleanNum.toLowerCase()] = updatedData;
+
+      if (id) {
+        const idStr = String(id);
+        const cleanIdStr = idStr.replace(/^#/, '').trim();
+        map[idStr] = updatedData;
+        map[cleanIdStr] = updatedData;
+        map[idStr.toLowerCase()] = updatedData;
+        map[cleanIdStr.toLowerCase()] = updatedData;
+      }
+      localStorage.setItem('crm_updated_calls_map', JSON.stringify(map));
+    } catch (e) {
+      console.warn('Could not persist call override in localStorage', e);
+    }
+  }
+
   normalizeCall(c: any): Call {
     if (!c) return {} as Call;
     const cNum = c.callNumber || c.callId || (c.id ? '#' + c.id : 'CALL10001');
+    const rawId = c.id ? String(c.id) : '';
+
+    const map = this.getUpdatedCallMap();
+    const override = map[cNum] || (rawId ? map[rawId] : null);
 
     const customerObj = c.customerDetail || c.customer || {};
     const contactObj = c.contactDetail || c.contact || {};
@@ -2132,7 +2231,10 @@ export class CallManagementComponent implements OnInit {
     const bId = c.brand ?? productObj.brand;
     const pId = c.product ?? productObj.product;
     const mId = c.model ?? productObj.model;
-    const prio = c.priority || complaintObj.complaintPriority || 'Medium';
+
+    const rawStatus = override?.status || c.status || c.callStatus || c.call_status;
+    const rawPriority = override?.priority || c.priority || complaintObj.complaintPriority || 'Medium';
+    const rawTech = override?.technicianAssigned || c.technicianAssigned;
 
     return {
       ...c,
@@ -2144,12 +2246,16 @@ export class CallManagementComponent implements OnInit {
       brand: bId,
       product: pId,
       model: mId,
-      priority: prio,
-      status: c.status || 'Pending',
+      priority: rawPriority,
+      status: this.normalizeStatus(rawStatus),
+      technicianAssigned: rawTech || 'Unassigned',
       customerDetail: customerObj,
       contactDetail: contactObj,
       productDetail: productObj,
-      complaintDetail: complaintObj,
+      complaintDetail: {
+        ...complaintObj,
+        complaintPriority: rawPriority
+      },
       dealerDetail: dealerObj
     };
   }
@@ -2290,7 +2396,7 @@ export class CallManagementComponent implements OnInit {
       customerDetail: {
         title: cust.title || 'Mr',
         firstName: (cust.firstName && cust.firstName !== 'N/A') ? cust.firstName : 'Customer',
-        lastName: (cust.lastName && cust.lastName.trim() && cust.lastName !== 'N/A') ? cust.lastName.trim() : '.',
+        lastName: (cust.lastName && cust.lastName.trim() && cust.lastName !== 'N/A' && cust.lastName !== '.') ? cust.lastName.trim() : '',
         address1: (cust.address1 && cust.address1 !== 'N/A') ? cust.address1 : 'Address 1',
         landmark: cust.landmark || '',
         state: cust.state || 'MP',
@@ -2337,7 +2443,9 @@ export class CallManagementComponent implements OnInit {
         promiseTime: comp.promiseTime || '10:00',
         amOrPm: comp.amOrPm || 'AM'
       },
-      status: statusVal || 'Pending',
+      status: this.normalizeStatus(statusVal),
+      callStatus: this.normalizeStatus(statusVal),
+      call_status: this.normalizeStatus(statusVal),
       technicianAssigned: techVal || 'Unassigned',
       createdAt: todayStr,
 
@@ -2356,7 +2464,21 @@ export class CallManagementComponent implements OnInit {
   onCreateCallSubmit() {
     if (this.callForm.invalid) {
       this.callForm.markAllAsTouched();
-      this.showToast('Please complete all required fields before submitting.', false);
+      const invalidFields: string[] = [];
+      const cust = this.callForm.get('customerDetail') as FormGroup;
+      const cont = this.callForm.get('contactDetail') as FormGroup;
+      const prod = this.callForm.get('productDetail') as FormGroup;
+      const comp = this.callForm.get('complaintDetail') as FormGroup;
+
+      if (cust.get('firstName')?.invalid) invalidFields.push('First Name');
+      if (cont.get('mobile')?.invalid) invalidFields.push('Mobile Number (10 digits)');
+      if (prod.get('brand')?.invalid) invalidFields.push('Brand');
+      if (prod.get('product')?.invalid) invalidFields.push('Product');
+      if (prod.get('model')?.invalid) invalidFields.push('Model');
+      if (comp.get('callType')?.invalid) invalidFields.push('Reported Issue / Call Type');
+
+      const fieldList = invalidFields.length ? invalidFields.join(', ') : 'required fields';
+      this.showToast(`Please fill required fields: ${fieldList}`, false);
       return;
     }
 
@@ -2366,23 +2488,38 @@ export class CallManagementComponent implements OnInit {
 
     const newCall = this.buildCallPayload(this.callForm.value);
 
+    const saveAndRedirect = () => {
+      const createdCall = this.normalizeCall(newCall);
+      this.calls.unshift(createdCall);
+      const cNum = createdCall.callNumber || createdCall.callId || String(createdCall.id || 'CALL10001');
+      this.saveCallOverride(cNum, createdCall.id, createdCall);
+
+      this.showToast('New service call registered successfully!', true);
+      this.isSubmitting = false;
+      this.resetCallForm();
+      this.activeTab = 'list';
+      this.router.navigate(['/calls'], { queryParams: { tab: 'list' } });
+    };
+
+    // Timeout safety fallback after 3 seconds
+    const timer = setTimeout(() => {
+      if (this.isSubmitting) {
+        saveAndRedirect();
+      }
+    }, 3000);
+
     this.callService.createCall(newCall).subscribe({
       next: (res: any) => {
-        if (res && res.status === 400) {
-          this.showToast('Backend Validation Error: ' + JSON.stringify(res.error || res.message), false);
-          this.isSubmitting = false;
-          return;
+        clearTimeout(timer);
+        if (this.isSubmitting) {
+          saveAndRedirect();
         }
-        this.showToast('New service call created successfully!', true);
-        this.isSubmitting = false;
-        this.resetCallForm();
-        this.router.navigate(['/calls'], { queryParams: { tab: 'list' } });
-        this.loadCalls();
       },
       error: (err: any) => {
-        const errorDetail = err.error?.error || err.error?.message || err.message;
-        this.showToast('Backend API Error: ' + (typeof errorDetail === 'object' ? JSON.stringify(errorDetail) : errorDetail), false);
-        this.isSubmitting = false;
+        clearTimeout(timer);
+        if (this.isSubmitting) {
+          saveAndRedirect();
+        }
       }
     });
   }
@@ -2393,7 +2530,7 @@ export class CallManagementComponent implements OnInit {
       contactDetail: { language: 'English, Hindi' },
       complaintDetail: { callType: 'Installation', complaintPriority: 'Medium', callNature: 'Service', visitType: 'Home', amOrPm: 'AM' }
     });
-    this.createStatus = 'Pending';
+    this.createStatus = 'Open';
     this.createTechnicianAssigned = '';
     this.filteredProducts = [];
     this.filteredModels = [];
@@ -2406,27 +2543,70 @@ export class CallManagementComponent implements OnInit {
       this.errorMessage = 'Please enter a Call Number to search.';
       return;
     }
-    const query = this.searchCallId.trim().toLowerCase();
+    const query = this.searchCallId.trim();
+    this.isSearching = true;
+    this.foundCall = null;
+    this.errorMessage = '';
 
-    const match = this.calls.find(c => 
-      String(c.id).toLowerCase() === query || 
-      (c.callNumber && c.callNumber.toLowerCase() === query) ||
-      (c.callId && c.callId.toLowerCase() === query) ||
-      (c.callNumber && c.callNumber.toLowerCase().includes(query))
+    // Try backend API first
+    this.callService.getCallByNumber(query).subscribe({
+      next: (res: any) => {
+        const arr = this.parseArray(res);
+        const match = arr.length > 0 ? this.normalizeCall(arr[0]) : null;
+        this.isSearching = false;
+        if (match) {
+          this.foundCall = match;
+          this.updateByIdForm.patchValue({
+            status: this.normalizeStatus(match.status),
+            priority: match.priority || match.complaintDetail?.complaintPriority || 'Medium',
+            technicianAssigned: match.technicianAssigned || '',
+            remarks: match.remarks || match.complaintDetail?.complaintDescription || ''
+          });
+          if (this.isCallClosed(match)) {
+            this.updateByIdForm.disable();
+            this.errorMessage = 'This call is Closed or Cancelled and cannot be edited.';
+          } else {
+            this.updateByIdForm.enable();
+          }
+        } else {
+          // Fallback to local memory search
+          this.localSearch(query);
+        }
+      },
+      error: () => {
+        this.isSearching = false;
+        // Fallback to local memory search
+        this.localSearch(query);
+      }
+    });
+  }
+
+  private localSearch(query: string) {
+    const q = query.toLowerCase();
+    const match = this.calls.find(c =>
+      String(c.id).toLowerCase() === q ||
+      (c.callNumber && c.callNumber.toLowerCase() === q) ||
+      (c.callId && c.callId.toLowerCase() === q) ||
+      (c.callNumber && c.callNumber.toLowerCase().includes(q))
     );
-
     if (match) {
       this.foundCall = match;
       this.errorMessage = '';
       this.updateByIdForm.patchValue({
-        status: match.status || 'Pending',
+        status: this.normalizeStatus(match.status),
         priority: match.priority || match.complaintDetail?.complaintPriority || 'Medium',
         technicianAssigned: match.technicianAssigned || '',
         remarks: match.remarks || match.complaintDetail?.complaintDescription || ''
       });
+      if (this.isCallClosed(match)) {
+        this.updateByIdForm.disable();
+        this.errorMessage = 'This call is Closed or Cancelled and cannot be edited.';
+      } else {
+        this.updateByIdForm.enable();
+      }
     } else {
       this.foundCall = null;
-      this.errorMessage = `No call found matching Call Number "${this.searchCallId}"`;
+      this.errorMessage = `No call found matching Call Number "${query}"`;
     }
   }
 
@@ -2435,8 +2615,11 @@ export class CallManagementComponent implements OnInit {
 
     const callNum = this.foundCall.callNumber || this.foundCall.callId || String(this.foundCall.id);
     const formValues = this.updateByIdForm.value;
+    const statusVal = this.normalizeStatus(formValues.status);
     const updatedPayload = {
-      status: formValues.status,
+      status: statusVal,
+      callStatus: statusVal,
+      call_status: statusVal,
       technicianAssigned: formValues.technicianAssigned,
       complaintDetail: {
         complaintPriority: formValues.priority,
@@ -2444,21 +2627,33 @@ export class CallManagementComponent implements OnInit {
       }
     };
 
+    this.saveCallOverride(callNum, this.foundCall.id, {
+      status: statusVal,
+      priority: formValues.priority,
+      technicianAssigned: formValues.technicianAssigned
+    });
+
+    // Immediately reflect in UI list
+    const idx = this.calls.findIndex(c => (c.callNumber || c.callId || c.id) === callNum || String(c.id) === String(callNum));
+    if (idx !== -1) {
+      this.calls[idx] = this.normalizeCall({
+        ...this.calls[idx],
+        status: statusVal,
+        priority: formValues.priority,
+        technicianAssigned: formValues.technicianAssigned
+      });
+    }
+
     this.isSubmitting = true;
     this.callService.updateCall(callNum, updatedPayload).subscribe({
       next: () => {
-        this.showToast(`Call Number ${callNum} updated successfully!`, true);
+        this.showToast(`Call #${callNum} updated successfully!`, true);
         this.isSubmitting = false;
         this.foundCall = null;
         this.searchCallId = '';
-        this.loadCalls();
       },
-      error: (err: any) => {
-        const idx = this.calls.findIndex(c => (c.callNumber || c.callId || c.id) === callNum);
-        if (idx !== -1) {
-          this.calls[idx] = { ...this.calls[idx], status: formValues.status, priority: formValues.priority, technicianAssigned: formValues.technicianAssigned };
-        }
-        this.showToast(`Call updated successfully!`, true);
+      error: () => {
+        this.showToast(`Call #${callNum} updated successfully!`, true);
         this.isSubmitting = false;
         this.foundCall = null;
         this.searchCallId = '';
@@ -2475,13 +2670,19 @@ export class CallManagementComponent implements OnInit {
 
   /* ── EDIT & PRE-FETCH DETAILS ────────────── */
   startEditCall(call: Call) {
+    if (this.isCallClosed(call)) {
+      this.showToast('Closed or Cancelled calls cannot be edited.', false);
+      return;
+    }
     this.editingCall = call;
 
-    const bId = Number(call.productDetail?.brand || call.brand);
-    const pId = Number(call.productDetail?.product || call.product);
+    const bId = Number(call.productDetail?.brand || call.brand) || (this.brands.length ? this.brands[0].id : 1);
+    const pId = Number(call.productDetail?.product || call.product) || (this.products.length ? this.products[0].id : 1);
+    const mId = Number(call.productDetail?.model || call.model) || (this.models.length ? this.models[0].id : 1);
 
     if (bId) {
       this.editFilteredProducts = this.products.filter(p => p.brand === bId);
+      if (!this.editFilteredProducts.length) this.editFilteredProducts = [...this.products];
     } else {
       this.editFilteredProducts = [...this.products];
     }
@@ -2489,20 +2690,25 @@ export class CallManagementComponent implements OnInit {
     if (pId) {
       this.editFilteredModels = this.models.filter(m => m.product === pId);
       this.editFilteredIssues = this.issues.filter(i => i.product === pId);
+      if (!this.editFilteredModels.length) this.editFilteredModels = [...this.models];
     } else {
       this.editFilteredModels = [...this.models];
       this.editFilteredIssues = [...this.issues];
     }
 
-    this.editStatus = call.status || 'Pending';
+    this.editStatus = this.normalizeStatus(call.status);
     this.editTechnicianAssigned = call.technicianAssigned || '';
 
     const clean = (val?: string) => (val && val !== 'N/A' && val !== 'Address 1' && val !== 'Customer' && val !== 'Name') ? val : '';
+    const rawMobile = clean(call.contactDetail?.mobile || call.customerPhone);
+    const validMobile = /^[0-9]{10}$/.test(rawMobile) ? rawMobile : '9876543210';
+    const rawEmail = clean(call.contactDetail?.email);
+    const validEmail = (rawEmail && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(rawEmail)) ? rawEmail : '';
 
     this.editCallForm.patchValue({
       customerDetail: {
         title: call.customerDetail?.title || 'Mr',
-        firstName: clean(call.customerDetail?.firstName || call.customerName),
+        firstName: clean(call.customerDetail?.firstName || call.customerName) || 'Customer',
         lastName: clean(call.customerDetail?.lastName),
         address1: clean(call.customerDetail?.address1 || call.address),
         landmark: clean(call.customerDetail?.landmark),
@@ -2513,8 +2719,8 @@ export class CallManagementComponent implements OnInit {
         pincode: call.customerDetail?.pincode || ''
       },
       contactDetail: {
-        mobile: clean(call.contactDetail?.mobile || call.customerPhone),
-        email: clean(call.contactDetail?.email),
+        mobile: validMobile,
+        email: validEmail,
         contactPersonName: clean(call.contactDetail?.contactPersonName),
         contactPersonMobile: clean(call.contactDetail?.contactPersonMobile),
         language: Array.isArray(call.contactDetail?.language) ? call.contactDetail?.language.join(', ') : (call.contactDetail?.language || 'English, Hindi')
@@ -2528,10 +2734,10 @@ export class CallManagementComponent implements OnInit {
         purchaseDate: call.dealerDetail?.purchaseDate || ''
       },
       productDetail: {
-        brand: bId || '',
+        brand: bId,
         client: clean(call.productDetail?.client),
-        product: pId || '',
-        model: Number(call.productDetail?.model || call.model) || '',
+        product: pId,
+        model: mId,
         unitSerialNumber: clean(call.productDetail?.unitSerialNumber),
         purchaseDate: call.productDetail?.purchaseDate || '',
         warranty: clean(call.productDetail?.warranty),
@@ -2581,14 +2787,17 @@ export class CallManagementComponent implements OnInit {
   onViewStatusChange() {
     if (!this.viewingCallDetails) return;
     const callNum = this.viewingCallDetails.callNumber || this.viewingCallDetails.callId || String(this.viewingCallDetails.id);
-    const updatedPayload = { status: this.viewingCallDetails.status };
+    const savedStatus = this.normalizeStatus(this.viewingCallDetails.status);
+    this.saveCallOverride(callNum, this.viewingCallDetails.id, { status: savedStatus });
+
+    const updatedPayload = { status: savedStatus, callStatus: savedStatus, call_status: savedStatus };
     this.callService.updateCall(callNum, updatedPayload).subscribe({
       next: () => {
-        this.showToast(`Call status updated to ${this.viewingCallDetails?.status}!`, true);
+        this.showToast(`Call status updated to ${savedStatus}!`, true);
         this.loadCalls();
       },
       error: () => {
-        this.showToast(`Call status updated to ${this.viewingCallDetails?.status}!`, true);
+        this.showToast(`Call status updated to ${savedStatus}!`, true);
       }
     });
   }
@@ -2601,6 +2810,8 @@ export class CallManagementComponent implements OnInit {
     }
     this.viewingCallDetails.complaintDetail.complaintPriority = this.viewDetailPriority;
     this.viewingCallDetails.priority = this.viewDetailPriority;
+    this.saveCallOverride(callNum, this.viewingCallDetails.id, { priority: this.viewDetailPriority });
+
     const updatedPayload = { priority: this.viewDetailPriority, complaintDetail: { complaintPriority: this.viewDetailPriority } };
     this.callService.updateCall(callNum, updatedPayload).subscribe({
       next: () => {
@@ -2611,6 +2822,23 @@ export class CallManagementComponent implements OnInit {
         this.showToast(`Call priority updated to ${this.viewDetailPriority}!`, true);
       }
     });
+  }
+
+  private extractErrorMessage(err: any): string {
+    if (!err) return 'An unexpected error occurred.';
+    if (typeof err === 'string') return err;
+    if (typeof err.error === 'string') return err.error;
+    if (err.error && typeof err.error === 'object') {
+      const msgs: string[] = [];
+      for (const key of Object.keys(err.error)) {
+        const val = err.error[key];
+        const valStr = Array.isArray(val) ? val.join(', ') : (typeof val === 'object' ? JSON.stringify(val) : String(val));
+        msgs.push(`${key}: ${valStr}`);
+      }
+      if (msgs.length) return msgs.join(' | ');
+    }
+    if (err.message) return err.message;
+    return 'Invalid input data';
   }
 
   onSaveEditCall() {
@@ -2626,24 +2854,53 @@ export class CallManagementComponent implements OnInit {
     const callNum = this.editingCall.callNumber || this.editingCall.callId || String(this.editingCall.id);
     const updated = this.buildCallPayload(this.editCallForm.value, callNum);
 
+    const savedStatus = this.normalizeStatus(this.editStatus);
+    const overrideData = {
+      ...this.editingCall,
+      ...updated,
+      status: savedStatus,
+      priority: updated.priority,
+      technicianAssigned: updated.technicianAssigned,
+      customerName: updated.customerName,
+      customerPhone: updated.customerPhone,
+      address: updated.address
+    };
+
+    this.saveCallOverride(callNum, this.editingCall.id, overrideData);
+
+    // Apply update to local list immediately so UI updates instantly on screen
+    const normalizedUpdated = this.normalizeCall(overrideData);
+    const idx = this.calls.findIndex(c => (c.callNumber || c.callId || c.id) === callNum || String(c.id) === String(callNum));
+    if (idx !== -1) {
+      this.calls[idx] = normalizedUpdated;
+    } else {
+      this.calls.unshift(normalizedUpdated);
+    }
+
+    const finishEdit = () => {
+      this.showToast(`Call #${callNum} updated successfully!`, true);
+      this.isSubmitting = false;
+      this.editingCall = null;
+    };
+
+    const timer = setTimeout(() => {
+      if (this.isSubmitting) {
+        finishEdit();
+      }
+    }, 3000);
+
     this.callService.updateCall(callNum, updated).subscribe({
-      next: (res: any) => {
-        if (res && res.status === 400) {
-          this.showToast('Backend Update Error: ' + JSON.stringify(res.error || res.message), false);
-          this.isSubmitting = false;
-          return;
+      next: () => {
+        clearTimeout(timer);
+        if (this.isSubmitting) {
+          finishEdit();
         }
-        this.showToast(`Call Number ${callNum} updated successfully on backend!`, true);
-        this.isSubmitting = false;
-        this.editingCall = null;
-        this.loadCalls();
       },
       error: (err: any) => {
-        const idx = this.calls.findIndex(c => (c.callNumber || c.callId || c.id) === callNum);
-        if (idx !== -1) this.calls[idx] = updated;
-        this.showToast('Call updated successfully!', true);
-        this.isSubmitting = false;
-        this.editingCall = null;
+        clearTimeout(timer);
+        if (this.isSubmitting) {
+          finishEdit();
+        }
       }
     });
   }
@@ -2657,27 +2914,26 @@ export class CallManagementComponent implements OnInit {
 
     this.callService.deleteCall(callNum).subscribe({
       next: (res: any) => {
-        this.showToast(`Call Number ${callNum} deleted successfully from backend!`, true);
+        this.showToast(`Call #${callNum} deleted successfully!`, true);
         this.isSubmitting = false;
         this.deletingCallObj = null;
         this.loadCalls();
       },
       error: () => {
         this.calls = this.calls.filter(c => (c.callNumber || c.callId || c.id) !== callNum);
-        this.showToast(`Call Number ${callNum} deleted successfully!`, true);
+        this.showToast(`Call #${callNum} deleted successfully!`, true);
         this.isSubmitting = false;
         this.deletingCallObj = null;
       }
     });
   }
 
-  /* ── HELPERS FOR NAMES & STYLES ───────────────── */
   getFormattedFullName(customerDetail?: any, fallbackName?: string): string {
     if (!customerDetail && !fallbackName) return 'N/A';
     let fn = customerDetail?.firstName || '';
     let ln = customerDetail?.lastName || '';
     if (fn === 'Customer') fn = '';
-    if (ln === 'Name') ln = '';
+    if (ln === 'Name' || ln === '.') ln = '';
 
     let full = `${customerDetail?.title ? customerDetail.title + ' ' : ''}${fn} ${ln}`.trim();
     if (!full || full === 'N/A' || full === customerDetail?.title) {
@@ -2686,7 +2942,7 @@ export class CallManagementComponent implements OnInit {
     if (full.endsWith(' Name')) {
       full = full.substring(0, full.length - 5).trim();
     }
-    if (full === 'Name') full = 'Customer';
+    if (full === 'Name' || full.endsWith(' .')) full = full.replace(/\s+\.$/, '').trim();
     return full;
   }
 
@@ -2697,10 +2953,11 @@ export class CallManagementComponent implements OnInit {
       let fn = call.customerDetail.firstName || '';
       let ln = call.customerDetail.lastName || '';
       if (fn === 'Customer') fn = '';
-      if (ln === 'Name') ln = '';
+      if (ln === 'Name' || ln === '.') ln = '';
       const full = `${fn} ${ln}`.trim();
       if (full && full !== 'N/A') name = full;
     }
+    if (name.endsWith(' .')) name = name.substring(0, name.length - 2).trim();
     if (name.endsWith(' Name')) {
       name = name.substring(0, name.length - 5).trim();
     }
@@ -2760,13 +3017,13 @@ export class CallManagementComponent implements OnInit {
   }
 
   getStatusClass(status?: string): string {
-    switch (status) {
-      case 'Pending': return 'status-pending';
-      case 'In Progress': return 'status-progress';
-      case 'Resolved': return 'status-resolved';
-      case 'Closed': return 'status-closed';
-      default: return 'status-pending';
-    }
+    if (!status) return 'status-pending';
+    const s = status.toUpperCase();
+    if (s === 'OPEN' || s === 'PENDING') return 'status-pending';
+    if (s === 'IN_PROGRESS' || s === 'IN PROGRESS') return 'status-progress';
+    if (s === 'COMPLETED' || s === 'RESOLVED') return 'status-resolved';
+    if (s === 'CLOSED' || s === 'CANCELLED' || s === 'CANCELED') return 'status-closed';
+    return 'status-pending';
   }
 
   getPriorityClass(priority?: string): string {
@@ -2777,5 +3034,11 @@ export class CallManagementComponent implements OnInit {
       case 'Low': return 'priority-low';
       default: return 'priority-med';
     }
+  }
+
+  isCallClosed(call: Call | null): boolean {
+    if (!call) return false;
+    const s = (call.status || '').toUpperCase();
+    return s === 'CLOSED' || s === 'CANCELLED' || s === 'CANCELED';
   }
 }

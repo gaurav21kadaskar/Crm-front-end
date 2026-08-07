@@ -76,14 +76,7 @@ import { CallService } from '../../core/services/call.service';
               }
             </li>
 
-            <!-- Customers Section -->
-            <p class="nav-section-label" style="margin-top: 1.25rem;">Customers</p>
-            <li class="nav-item">
-              <a routerLink="/customer/products" routerLinkActive="active" class="nav-link">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                <span>Products</span>
-              </a>
-            </li>
+
 
             <!-- Admin Only Links: Product Management -->
             @if (authService.getRole() === 'Admin') {
@@ -116,6 +109,11 @@ import { CallService } from '../../core/services/call.service';
                     <li>
                       <a routerLink="/admin/issues" routerLinkActive="active" class="submenu-link">
                         <span class="submenu-dot"></span> Manage Issues
+                      </a>
+                    </li>
+                    <li>
+                      <a routerLink="/admin/parts" routerLinkActive="active" class="submenu-link">
+                        <span class="submenu-dot"></span> Manage Parts
                       </a>
                     </li>
                   </ul>
@@ -846,7 +844,7 @@ export class DashboardLayoutComponent implements OnInit {
     typeClass: string;
   }> = [];
 
-  private readonly productRoutes = ['/admin/brands', '/admin/products', '/admin/models', '/admin/issues'];
+  private readonly productRoutes = ['/admin/brands', '/admin/products', '/admin/models', '/admin/issues', '/admin/parts'];
   private readonly callRoutes = ['/calls'];
 
   private isProductRouteActive(): boolean {
@@ -1032,6 +1030,7 @@ export class DashboardLayoutComponent implements OnInit {
     if (url.startsWith('/admin/products')) return 'Manage Products';
     if (url.startsWith('/admin/models')) return 'Manage Models';
     if (url.startsWith('/admin/issues')) return 'Manage Issues';
+    if (url.startsWith('/admin/parts')) return 'Manage Parts';
     if (url.startsWith('/create-user')) return 'Create User';
     if (url.startsWith('/calls')) return 'Call Management';
     if (url.startsWith('/customer/products')) return 'Products';

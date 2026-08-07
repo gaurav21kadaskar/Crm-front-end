@@ -335,6 +335,7 @@ export class ProductModelFormComponent implements OnInit {
   submitted = false;
   successMessage = '';
   errorMessage = '';
+  private messageTimer: any = null;
 
   showCreateForm = false;
   editingModelId: number | null = null;
@@ -376,6 +377,16 @@ export class ProductModelFormComponent implements OnInit {
     });
   }
 
+  showMessage(success: string = '', error: string = '') {
+    this.successMessage = success;
+    this.errorMessage = error;
+    if (this.messageTimer) clearTimeout(this.messageTimer);
+    this.messageTimer = setTimeout(() => {
+      this.successMessage = '';
+      this.errorMessage = '';
+    }, 4000);
+  }
+
   getProductName(productId: number): string {
     const product = this.products.find(p => p.id === productId);
     return product ? product.name : `Product #${productId}`;
@@ -392,7 +403,7 @@ export class ProductModelFormComponent implements OnInit {
 
     this.modelService.createProductModel(payload).subscribe({
       next: () => {
-        this.successMessage = 'Product Model created successfully!';
+        this.showMessage('Product Model created successfully!');
         this.modelForm.reset();
         this.modelForm.patchValue({ product: '' });
         this.submitted = false;
@@ -401,7 +412,7 @@ export class ProductModelFormComponent implements OnInit {
         this.loadModels();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to create product model. Please try again.';
+        this.showMessage('', err.error?.message || 'Failed to create product model. Please try again.');
         this.isLoading = false;
       }
     });
@@ -433,14 +444,14 @@ export class ProductModelFormComponent implements OnInit {
 
     this.modelService.updateProductModel(id, payload).subscribe({
       next: () => {
-        this.successMessage = 'Product Model updated successfully!';
+        this.showMessage('Product Model updated successfully!');
         this.editingModelId = null;
         this.editForm.reset();
         this.isUpdating = false;
         this.loadModels();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to update product model.';
+        this.showMessage('', err.error?.message || 'Failed to update product model.');
         this.isUpdating = false;
       }
     });
@@ -452,12 +463,12 @@ export class ProductModelFormComponent implements OnInit {
 
     this.modelService.deleteProductModel(id).subscribe({
       next: () => {
-        this.successMessage = 'Product Model deleted successfully!';
+        this.showMessage('Product Model deleted successfully!');
         this.deletingModelId = null;
         this.loadModels();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to delete product model.';
+        this.showMessage('', err.error?.message || 'Failed to delete product model.');
         this.deletingModelId = null;
       }
     });

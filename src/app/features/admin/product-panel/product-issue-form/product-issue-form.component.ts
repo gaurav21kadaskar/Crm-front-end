@@ -335,6 +335,7 @@ export class ProductIssueFormComponent implements OnInit {
   submitted = false;
   successMessage = '';
   errorMessage = '';
+  private messageTimer: any = null;
 
   showCreateForm = false;
   editingIssueId: number | null = null;
@@ -376,6 +377,16 @@ export class ProductIssueFormComponent implements OnInit {
     });
   }
 
+  showMessage(success: string = '', error: string = '') {
+    this.successMessage = success;
+    this.errorMessage = error;
+    if (this.messageTimer) clearTimeout(this.messageTimer);
+    this.messageTimer = setTimeout(() => {
+      this.successMessage = '';
+      this.errorMessage = '';
+    }, 4000);
+  }
+
   getProductName(productId: number): string {
     const product = this.products.find(p => p.id === productId);
     return product ? product.name : `Product #${productId}`;
@@ -392,7 +403,7 @@ export class ProductIssueFormComponent implements OnInit {
 
     this.issueService.createProductIssue(payload).subscribe({
       next: () => {
-        this.successMessage = 'Product Issue created successfully!';
+        this.showMessage('Product Issue created successfully!');
         this.issueForm.reset();
         this.issueForm.patchValue({ product: '' });
         this.submitted = false;
@@ -401,7 +412,7 @@ export class ProductIssueFormComponent implements OnInit {
         this.loadIssues();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to create product issue. Please try again.';
+        this.showMessage('', err.error?.message || 'Failed to create product issue. Please try again.');
         this.isLoading = false;
       }
     });
@@ -433,14 +444,14 @@ export class ProductIssueFormComponent implements OnInit {
 
     this.issueService.updateProductIssue(id, payload).subscribe({
       next: () => {
-        this.successMessage = 'Product Issue updated successfully!';
+        this.showMessage('Product Issue updated successfully!');
         this.editingIssueId = null;
         this.editForm.reset();
         this.isUpdating = false;
         this.loadIssues();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to update product issue.';
+        this.showMessage('', err.error?.message || 'Failed to update product issue.');
         this.isUpdating = false;
       }
     });
@@ -452,12 +463,12 @@ export class ProductIssueFormComponent implements OnInit {
 
     this.issueService.deleteProductIssue(id).subscribe({
       next: () => {
-        this.successMessage = 'Product Issue deleted successfully!';
+        this.showMessage('Product Issue deleted successfully!');
         this.deletingIssueId = null;
         this.loadIssues();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to delete product issue.';
+        this.showMessage('', err.error?.message || 'Failed to delete product issue.');
         this.deletingIssueId = null;
       }
     });

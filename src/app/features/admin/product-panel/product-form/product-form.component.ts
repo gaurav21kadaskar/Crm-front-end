@@ -1,5 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, SlicePipe } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ProductService } from '../../../../core/services/product.service';
 import { BrandService } from '../../../../core/services/brand.service';
@@ -10,7 +10,7 @@ import { environment } from '../../../../../environments/environment';
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, SlicePipe],
   template: `
     <div class="panel-section animate-fade-in">
       <div class="create-toggle-container">
@@ -228,6 +228,7 @@ import { environment } from '../../../../../environments/environment';
                 <th>Product Name</th>
                 <th>Brand</th>
                 <th>Code</th>
+                <th>Description</th>
                 <th style="width: 180px;">Actions</th>
               </tr>
             </thead>
@@ -235,21 +236,24 @@ import { environment } from '../../../../../environments/environment';
               @for (product of products; track product.id) {
                 <tr>
                   <td class="img-cell">
-                    @if (product.productImage) {
-                      <img [src]="getImageUrl(product.productImage)" alt="Product" class="list-thumbnail" />
+                    @if (product.productImage || product.product_image) {
+                      <img [src]="getImageUrl((product.productImage || product.product_image)!)" alt="Product" class="list-thumbnail" />
                     } @else {
                       <div class="no-image-placeholder">📦</div>
                     }
                   </td>
                   <td class="name-cell">{{ product.name }}</td>
                   <td class="brand-cell">{{ getBrandName(product.brand) }}</td>
-                  <td class="code-cell">{{ product.productCode || '—' }}</td>
+                  <td class="code-cell">{{ product.productCode || product.product_code || '—' }}</td>
+                  <td class="desc-cell" [title]="product.description || ''">
+                    {{ (product.description && product.description.length > 40) ? (product.description | slice:0:40) + '...' : (product.description || '—') }}
+                  </td>
                   <td class="actions-cell">
                     @if (deletingProductId === product.id) {
                       <div class="delete-confirm-box">
                         <span class="confirm-msg">Delete?</span>
                         <button class="btn-yes" (click)="onDelete(product.id!)">Yes</button>
-                        <button class="btn-no" (click)="deletingProductId = null">No</button>
+                        <button class="btn-no" (click)="deletingProductId = product.id || null">No</button>
                       </div>
                     } @else {
                       <div class="action-btns">
@@ -429,6 +433,7 @@ import { environment } from '../../../../../environments/environment';
     .name-cell { font-weight: 500; color: var(--text-primary); }
     .brand-cell { color: #4f46e5; font-size: 0.875rem; }
     .code-cell { color: var(--text-secondary); font-family: monospace; font-size: 0.875rem; }
+    .desc-cell { color: #64748b; font-size: 0.85rem; max-width: 180px; cursor: help; }
 
     /* Image cells */
     .img-cell { width: 60px; }
@@ -497,6 +502,7 @@ export class ProductFormComponent implements OnInit {
   submitted = false;
   successMessage = '';
   errorMessage = '';
+  private messageTimer: any = null;
 
   showCreateForm = false;
   editingProductId: number | null = null;
@@ -544,7 +550,7 @@ export class ProductFormComponent implements OnInit {
   }
 
   getBrandName(brandId: number): string {
-    const brand = this.brands.find(b => b.id === brandId);
+    const brand = this.brands.find(b => b.id == brandId);
     return brand ? brand.name : `Brand #${brandId}`;
   }
 
@@ -570,6 +576,16 @@ export class ProductFormComponent implements OnInit {
     return `${this.apiUrl}${path}`;
   }
 
+  showMessage(success: string = '', error: string = '') {
+    this.successMessage = success;
+    this.errorMessage = error;
+    if (this.messageTimer) clearTimeout(this.messageTimer);
+    this.messageTimer = setTimeout(() => {
+      this.successMessage = '';
+      this.errorMessage = '';
+    }, 4000);
+  }
+
   onSubmit(): void {
     this.submitted = true;
     this.successMessage = '';
@@ -582,7 +598,7 @@ export class ProductFormComponent implements OnInit {
 
     this.productService.createProduct(payload).subscribe({
       next: () => {
-        this.successMessage = 'Product created successfully!';
+        this.showMessage('Product created successfully!');
         this.productForm.reset();
         this.productForm.patchValue({ brand: '' });
         this.imagePreview = null;
@@ -592,7 +608,7 @@ export class ProductFormComponent implements OnInit {
         this.loadProducts();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to create product. Please try again.';
+        this.showMessage('', err.error?.message || 'Failed to create product. Please try again.');
         this.isLoading = false;
       }
     });
@@ -605,11 +621,11 @@ export class ProductFormComponent implements OnInit {
     this.editForm.patchValue({
       brand: product.brand,
       name: product.name,
-      productCode: product.productCode || '',
+      productCode: product.productCode || product.product_code || '',
       description: product.description || '',
       productImage: null
     });
-    this.editImagePreview = this.getImageUrl(product.productImage);
+    this.editImagePreview = this.getImageUrl(product.productImage || product.product_image);
   }
 
   cancelEdit() {
@@ -629,7 +645,7 @@ export class ProductFormComponent implements OnInit {
 
     this.productService.updateProduct(id, payload).subscribe({
       next: () => {
-        this.successMessage = 'Product updated successfully!';
+        this.showMessage('Product updated successfully!');
         this.editingProductId = null;
         this.editForm.reset();
         this.editImagePreview = null;
@@ -637,7 +653,7 @@ export class ProductFormComponent implements OnInit {
         this.loadProducts();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to update product. Backend endpoint might be missing.';
+        this.showMessage('', err.error?.message || 'Failed to update product. Backend endpoint might be missing.');
         this.isUpdating = false;
       }
     });
@@ -649,12 +665,12 @@ export class ProductFormComponent implements OnInit {
 
     this.productService.deleteProduct(id).subscribe({
       next: () => {
-        this.successMessage = 'Product deleted successfully!';
+        this.showMessage('Product deleted successfully!');
         this.deletingProductId = null;
         this.loadProducts();
       },
       error: (err: any) => {
-        this.errorMessage = err.error?.message || 'Failed to delete product. Backend endpoint might be missing.';
+        this.showMessage('', err.error?.message || 'Failed to delete product.');
         this.deletingProductId = null;
       }
     });

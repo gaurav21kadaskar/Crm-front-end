@@ -215,8 +215,8 @@ import { environment } from '../../../../../environments/environment';
                 <tr>
                   <td class="id-cell">{{ part.id }}</td>
                   <td class="img-cell">
-                    @if (part.partImage) {
-                      <img [src]="getImageUrl(part.partImage)" alt="Part Image" class="part-thumbnail" />
+                    @if (part.partImage || part.part_image) {
+                      <img [src]="getImageUrl((part.partImage || part.part_image)!)" alt="Part Image" class="part-thumbnail" />
                     } @else {
                       <div class="no-img-placeholder">No Image</div>
                     }

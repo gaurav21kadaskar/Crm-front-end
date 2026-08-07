@@ -288,7 +288,7 @@ a:hover { color: var(--primary-dark); }
 /* Modern Floating Toast Style */
 .toast-container {
   position: fixed;
-  top: 1.5rem;
+  top: 5rem;
   right: 1.5rem;
   z-index: 10000000;
   display: flex;

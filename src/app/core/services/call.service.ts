@@ -17,6 +17,10 @@ export class CallService {
     return this.http.get<any>(`${this.apiUrl}/api/call/${id}/`);
   }
 
+  getCallByNumber(callNumber: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/api/call/`, { params: { callNumber } });
+  }
+
   createCall(callData: Call): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/api/call/`, callData);
   }

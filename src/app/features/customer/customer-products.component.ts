@@ -691,11 +691,18 @@ export class CustomerProductsComponent implements OnInit {
     this.loadAllData();
   }
 
+  private parseArray(res: any): any[] {
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.results)) return res.results;
+    if (res && Array.isArray(res.data)) return res.data;
+    return [];
+  }
+
   loadAllData(): void {
     this.loading = true;
     this.brandService.getBrands().subscribe({
       next: (res: any) => {
-        this.brands = Array.isArray(res) ? res : (res.data || []);
+        this.brands = this.parseArray(res);
         this.fetchProducts();
       },
       error: () => {
@@ -712,7 +719,7 @@ export class CustomerProductsComponent implements OnInit {
   fetchProducts(): void {
     this.productService.getProducts().subscribe({
       next: (res: any) => {
-        const raw: any[] = Array.isArray(res) ? res : (res.data || []);
+        const raw: any[] = this.parseArray(res);
         this.products = raw.map(p => this.normalize(p));
         this.applyFilters();
         this.loading = false;

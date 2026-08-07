@@ -69,6 +69,8 @@ export interface Call {
   productDetail?: ProductDetail;
   complaintDetail?: ComplaintDetail;
   status?: 'Pending' | 'In Progress' | 'Resolved' | 'Closed' | 'Cancelled' | string;
+  callStatus?: string;
+  call_status?: string;
   technicianAssigned?: string;
   createdAt?: string;
   updatedAt?: string;
