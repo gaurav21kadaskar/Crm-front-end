@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BrandService } from '../../../../core/services/brand.service';
 import { Brand } from '../../../../core/models/brand.model';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-brand-form',
@@ -10,12 +11,14 @@ import { Brand } from '../../../../core/models/brand.model';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="panel-section animate-fade-in">
-      <div class="create-toggle-container">
-        <button class="create-toggle-btn" (click)="showCreateForm = true">
-          <span class="plus-icon">+</span>
-          <span>Create New Brand</span>
-        </button>
-      </div>
+      @if (authService.getRole() !== 'Customer') {
+        <div class="create-toggle-container">
+          <button class="create-toggle-btn" (click)="showCreateForm = true">
+            <span class="plus-icon">+</span>
+            <span>Create New Brand</span>
+          </button>
+        </div>
+      }
 
       <!-- Create Modal -->
       @if (showCreateForm) {
@@ -140,7 +143,9 @@ import { Brand } from '../../../../core/models/brand.model';
                 <th>#</th>
                 <th>Brand Name</th>
                 <th>Description</th>
-                <th style="width: 180px;">Actions</th>
+                @if (authService.getRole() !== 'Customer') {
+                  <th style="width: 180px;">Actions</th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -149,20 +154,22 @@ import { Brand } from '../../../../core/models/brand.model';
                   <td class="id-cell">{{ brand.id }}</td>
                   <td class="name-cell">{{ brand.name }}</td>
                   <td class="desc-cell">{{ brand.description || '—' }}</td>
-                  <td class="actions-cell">
-                    @if (deletingBrandId === brand.id) {
-                      <div class="delete-confirm-box">
-                        <span class="confirm-msg">Delete?</span>
-                        <button class="btn-yes" (click)="onDelete(brand.id!)">Yes</button>
-                        <button class="btn-no" (click)="deletingBrandId = null">No</button>
-                      </div>
-                    } @else {
-                      <div class="action-btns">
-                        <button class="btn-action-edit" (click)="startEdit(brand)">Edit</button>
-                        <button class="btn-action-delete" (click)="deletingBrandId = brand.id || null">Delete</button>
-                      </div>
-                    }
-                  </td>
+                  @if (authService.getRole() !== 'Customer') {
+                    <td class="actions-cell">
+                      @if (deletingBrandId === brand.id) {
+                        <div class="delete-confirm-box">
+                          <span class="confirm-msg">Delete?</span>
+                          <button class="btn-yes" (click)="onDelete(brand.id!)">Yes</button>
+                          <button class="btn-no" (click)="deletingBrandId = null">No</button>
+                        </div>
+                      } @else {
+                        <div class="action-btns">
+                          <button class="btn-action-edit" (click)="startEdit(brand)">Edit</button>
+                          <button class="btn-action-delete" (click)="deletingBrandId = brand.id || null">Delete</button>
+                        </div>
+                      }
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -354,6 +361,7 @@ import { Brand } from '../../../../core/models/brand.model';
 export class BrandFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private brandService = inject(BrandService);
+  public authService = inject(AuthService);
 
   brands: Brand[] = [];
   loadingList = false;

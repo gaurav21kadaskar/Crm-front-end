@@ -13,8 +13,8 @@ export class ProductService {
   constructor(private http: HttpClient) {}
 
   createProduct(productData: any): Observable<any> {
-    const formData = this.toFormData(productData);
-    return this.http.post<any>(`${this.apiUrl}/api/product/`, formData);
+    const payload = this.preparePayload(productData);
+    return this.http.post<any>(`${this.apiUrl}/api/product/`, payload);
   }
 
   getProducts(): Observable<Product[]> {
@@ -22,30 +22,66 @@ export class ProductService {
   }
 
   updateProduct(id: number, productData: any): Observable<any> {
-    const formData = this.toFormData(productData);
-    return this.http.patch<any>(`${this.apiUrl}/api/product/${id}/`, formData);
+    const payload = this.preparePayload(productData);
+    return this.http.patch<any>(`${this.apiUrl}/api/product/${id}/`, payload);
   }
 
-  private toFormData(data: any): FormData {
-    const formData = new FormData();
-    // Map camelCase form keys to snake_case backend keys
+  private preparePayload(data: any): any {
+    let hasFile = false;
+    for (const key of Object.keys(data)) {
+      if (data[key] instanceof File) {
+        hasFile = true;
+        break;
+      }
+    }
+
     const keyMap: { [key: string]: string } = {
       productCode: 'product_code',
       productImage: 'product_image',
       isActive: 'is_active'
     };
-    for (const key of Object.keys(data)) {
-      if (data[key] !== null && data[key] !== undefined) {
-        const apiKey = keyMap[key] || key;
-        // Only append file if it is a File object, else stringify/append other fields
-        if (data[key] instanceof File) {
-          formData.append(apiKey, data[key], data[key].name);
+
+    if (hasFile) {
+      const formData = new FormData();
+      for (const key of Object.keys(data)) {
+        const value = data[key];
+        if (value === null || value === undefined || value === 'null') continue;
+        
+        // Append original camelCase key
+        if (value instanceof File) {
+          formData.append(key, value, value.name);
         } else {
-          formData.append(apiKey, data[key]);
+          formData.append(key, value);
+        }
+
+        // Append mapped snake_case key
+        const apiKey = keyMap[key];
+        if (apiKey && apiKey !== key) {
+          if (value instanceof File) {
+            formData.append(apiKey, value, value.name);
+          } else {
+            formData.append(apiKey, value);
+          }
         }
       }
+      return formData;
+    } else {
+      const mappedData: any = {};
+      for (const key of Object.keys(data)) {
+        const value = data[key];
+        if (value === null || value === undefined || value === 'null') continue;
+        
+        // Set original camelCase key
+        mappedData[key] = value;
+        
+        // Set mapped snake_case key
+        const apiKey = keyMap[key];
+        if (apiKey && apiKey !== key) {
+          mappedData[apiKey] = value;
+        }
+      }
+      return mappedData;
     }
-    return formData;
   }
 
   deleteProduct(id: number): Observable<any> {

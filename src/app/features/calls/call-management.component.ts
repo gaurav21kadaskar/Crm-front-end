@@ -2060,7 +2060,7 @@ export class CallManagementComponent implements OnInit {
     this.callService.getCalls().subscribe({
       next: (res: any) => {
         let raw = this.parseArray(res);
-        if (this.authService.getRole() === 'Customer') {
+        if (this.authService.getRole() === 'Distributor') {
           const uId = this.authService.getUserId();
           const uName = (this.authService.getUsername() || '').toLowerCase();
           raw = raw.filter((c: any) => {
@@ -2073,8 +2073,7 @@ export class CallManagementComponent implements OnInit {
             const cName = (c.customerName || `${cFirstName} ${cLastName}`).toLowerCase();
             const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
 
-            if (uName && uName.length > 0 && uName !== 'customer') {
-              // Split username (e.g., 'sakshi.kant' -> ['sakshi', 'kant'])
+            if (uName && uName.length > 0 && uName !== 'distributor') {
               const parts = uName.split(/[\s._-]+/).filter(p => p.length > 1);
               const matchesName = parts.some(p => cName.includes(p));
               const matchesEmail = cEmail && parts.some(p => cEmail.includes(p));
@@ -2127,7 +2126,7 @@ export class CallManagementComponent implements OnInit {
             complaintDetail: { callType: 'Repair', complaintPriority: 'Medium', complaintDescription: 'Washing Machine Drainage Leak' }
           }
         ];
-        if (this.authService.getRole() === 'Customer') {
+        if (this.authService.getRole() === 'Distributor') {
           const uId = this.authService.getUserId();
           const uName = (this.authService.getUsername() || '').toLowerCase();
           raw = raw.filter((c: any) => {
@@ -2140,7 +2139,7 @@ export class CallManagementComponent implements OnInit {
             const cName = (c.customerName || `${cFirstName} ${cLastName}`).toLowerCase();
             const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
 
-            if (uName && uName.length > 0 && uName !== 'customer') {
+            if (uName && uName.length > 0 && uName !== 'distributor') {
               const parts = uName.split(/[\s._-]+/).filter(p => p.length > 1);
               const matchesName = parts.some(p => cName.includes(p));
               const matchesEmail = cEmail && parts.some(p => cEmail.includes(p));

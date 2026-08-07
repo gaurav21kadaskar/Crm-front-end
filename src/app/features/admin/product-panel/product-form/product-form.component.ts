@@ -6,6 +6,7 @@ import { BrandService } from '../../../../core/services/brand.service';
 import { Brand } from '../../../../core/models/brand.model';
 import { Product } from '../../../../core/models/product.model';
 import { environment } from '../../../../../environments/environment';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-product-form',
@@ -13,12 +14,14 @@ import { environment } from '../../../../../environments/environment';
   imports: [CommonModule, ReactiveFormsModule, SlicePipe],
   template: `
     <div class="panel-section animate-fade-in">
-      <div class="create-toggle-container">
-        <button class="create-toggle-btn" (click)="showCreateForm = true">
-          <span class="plus-icon">+</span>
-          <span>Create New Product</span>
-        </button>
-      </div>
+      @if (authService.getRole() !== 'Customer') {
+        <div class="create-toggle-container">
+          <button class="create-toggle-btn" (click)="showCreateForm = true">
+            <span class="plus-icon">+</span>
+            <span>Create New Product</span>
+          </button>
+        </div>
+      }
 
       <!-- Create Modal -->
       @if (showCreateForm) {
@@ -229,7 +232,9 @@ import { environment } from '../../../../../environments/environment';
                 <th>Brand</th>
                 <th>Code</th>
                 <th>Description</th>
-                <th style="width: 180px;">Actions</th>
+                @if (authService.getRole() !== 'Customer') {
+                  <th style="width: 180px;">Actions</th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -248,20 +253,22 @@ import { environment } from '../../../../../environments/environment';
                   <td class="desc-cell" [title]="product.description || ''">
                     {{ (product.description && product.description.length > 40) ? (product.description | slice:0:40) + '...' : (product.description || '—') }}
                   </td>
-                  <td class="actions-cell">
-                    @if (deletingProductId === product.id) {
-                      <div class="delete-confirm-box">
-                        <span class="confirm-msg">Delete?</span>
-                        <button class="btn-yes" (click)="onDelete(product.id!)">Yes</button>
-                        <button class="btn-no" (click)="deletingProductId = product.id || null">No</button>
-                      </div>
-                    } @else {
-                      <div class="action-btns">
-                        <button class="btn-action-edit" (click)="startEdit(product)">Edit</button>
-                        <button class="btn-action-delete" (click)="deletingProductId = product.id || null">Delete</button>
-                      </div>
-                    }
-                  </td>
+                  @if (authService.getRole() !== 'Customer') {
+                    <td class="actions-cell">
+                      @if (deletingProductId === product.id) {
+                        <div class="delete-confirm-box">
+                          <span class="confirm-msg">Delete?</span>
+                          <button class="btn-yes" (click)="onDelete(product.id!)">Yes</button>
+                          <button class="btn-no" (click)="deletingProductId = product.id || null">No</button>
+                        </div>
+                      } @else {
+                        <div class="action-btns">
+                          <button class="btn-action-edit" (click)="startEdit(product)">Edit</button>
+                          <button class="btn-action-delete" (click)="deletingProductId = product.id || null">Delete</button>
+                        </div>
+                      }
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -473,6 +480,7 @@ export class ProductFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private productService = inject(ProductService);
   private brandService = inject(BrandService);
+  public authService = inject(AuthService);
 
   brands: Brand[] = [];
   products: Product[] = [];
@@ -608,7 +616,19 @@ export class ProductFormComponent implements OnInit {
         this.loadProducts();
       },
       error: (err: any) => {
-        this.showMessage('', err.error?.message || 'Failed to create product. Please try again.');
+        let msg = 'Failed to create product. Please try again.';
+        if (err.error) {
+          if (typeof err.error === 'string') {
+            msg = err.error;
+          } else if (typeof err.error === 'object') {
+            // Flatten field errors: { product_image: ['This field is required.'] }
+            const fieldErrors = Object.entries(err.error)
+              .map(([field, msgs]: [string, any]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+              .join(' | ');
+            msg = fieldErrors || msg;
+          }
+        }
+        this.showMessage('', msg);
         this.isLoading = false;
       }
     });
@@ -653,7 +673,18 @@ export class ProductFormComponent implements OnInit {
         this.loadProducts();
       },
       error: (err: any) => {
-        this.showMessage('', err.error?.message || 'Failed to update product. Backend endpoint might be missing.');
+        let msg = 'Failed to update product. Please try again.';
+        if (err.error) {
+          if (typeof err.error === 'string') {
+            msg = err.error;
+          } else if (typeof err.error === 'object') {
+            const fieldErrors = Object.entries(err.error)
+              .map(([field, msgs]: [string, any]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+              .join(' | ');
+            msg = fieldErrors || msg;
+          }
+        }
+        this.showMessage('', msg);
         this.isUpdating = false;
       }
     });

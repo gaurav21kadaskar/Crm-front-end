@@ -5,6 +5,7 @@ import { ProductModelService } from '../../../../core/services/product-model.ser
 import { ProductService } from '../../../../core/services/product.service';
 import { Product } from '../../../../core/models/product.model';
 import { ProductModel } from '../../../../core/models/product-model.model';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-product-model-form',
@@ -12,12 +13,14 @@ import { ProductModel } from '../../../../core/models/product-model.model';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="panel-section animate-fade-in">
-      <div class="create-toggle-container">
-        <button class="create-toggle-btn" (click)="showCreateForm = true">
-          <span class="plus-icon">+</span>
-          <span>Create New Model</span>
-        </button>
-      </div>
+      @if (authService.getRole() !== 'Customer') {
+        <div class="create-toggle-container">
+          <button class="create-toggle-btn" (click)="showCreateForm = true">
+            <span class="plus-icon">+</span>
+            <span>Create New Model</span>
+          </button>
+        </div>
+      }
 
       <!-- Create Modal -->
       @if (showCreateForm) {
@@ -171,7 +174,9 @@ import { ProductModel } from '../../../../core/models/product-model.model';
                 <th>Model Name</th>
                 <th>Product</th>
                 <th>Description</th>
-                <th style="width: 180px;">Actions</th>
+                @if (authService.getRole() !== 'Customer') {
+                  <th style="width: 180px;">Actions</th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -181,20 +186,22 @@ import { ProductModel } from '../../../../core/models/product-model.model';
                   <td class="name-cell">{{ model.modelName }}</td>
                   <td class="product-cell">{{ getProductName(model.product) }}</td>
                   <td class="desc-cell">{{ model.description || '—' }}</td>
-                  <td class="actions-cell">
-                    @if (deletingModelId === model.id) {
-                      <div class="delete-confirm-box">
-                        <span class="confirm-msg">Delete?</span>
-                        <button class="btn-yes" (click)="onDelete(model.id!)">Yes</button>
-                        <button class="btn-no" (click)="deletingModelId = null">No</button>
-                      </div>
-                    } @else {
-                      <div class="action-btns">
-                        <button class="btn-action-edit" (click)="startEdit(model)">Edit</button>
-                        <button class="btn-action-delete" (click)="deletingModelId = model.id || null">Delete</button>
-                      </div>
-                    }
-                  </td>
+                  @if (authService.getRole() !== 'Customer') {
+                    <td class="actions-cell">
+                      @if (deletingModelId === model.id) {
+                        <div class="delete-confirm-box">
+                          <span class="confirm-msg">Delete?</span>
+                          <button class="btn-yes" (click)="onDelete(model.id!)">Yes</button>
+                          <button class="btn-no" (click)="deletingModelId = null">No</button>
+                        </div>
+                      } @else {
+                        <div class="action-btns">
+                          <button class="btn-action-edit" (click)="startEdit(model)">Edit</button>
+                          <button class="btn-action-delete" (click)="deletingModelId = model.id || null">Delete</button>
+                        </div>
+                      }
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -314,6 +321,7 @@ export class ProductModelFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private modelService = inject(ProductModelService);
   private productService = inject(ProductService);
+  public authService = inject(AuthService);
 
   products: Product[] = [];
   models: ProductModel[] = [];

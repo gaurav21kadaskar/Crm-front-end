@@ -6,6 +6,7 @@ import { ProductService } from '../../../../core/services/product.service';
 import { Product } from '../../../../core/models/product.model';
 import { ProductPart } from '../../../../core/models/product-part.model';
 import { environment } from '../../../../../environments/environment';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-product-part-form',
@@ -13,12 +14,14 @@ import { environment } from '../../../../../environments/environment';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="panel-section animate-fade-in">
-      <div class="create-toggle-container">
-        <button class="create-toggle-btn" (click)="showCreateForm = true">
-          <span class="plus-icon">+</span>
-          <span>Create New Part</span>
-        </button>
-      </div>
+      @if (authService.getRole() !== 'Customer') {
+        <div class="create-toggle-container">
+          <button class="create-toggle-btn" (click)="showCreateForm = true">
+            <span class="plus-icon">+</span>
+            <span>Create New Part</span>
+          </button>
+        </div>
+      }
 
       <!-- Create Modal -->
       @if (showCreateForm) {
@@ -207,7 +210,9 @@ import { environment } from '../../../../../environments/environment';
                 <th>Product</th>
                 <th>Status</th>
                 <th>Description</th>
-                <th style="width: 180px;">Actions</th>
+                @if (authService.getRole() !== 'Customer') {
+                  <th style="width: 180px;">Actions</th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -229,20 +234,22 @@ import { environment } from '../../../../../environments/environment';
                     </span>
                   </td>
                   <td class="desc-cell">{{ part.description || '—' }}</td>
-                  <td class="actions-cell">
-                    @if (deletingPartId === part.id) {
-                      <div class="delete-confirm-box">
-                        <span class="confirm-msg">Delete?</span>
-                        <button class="btn-yes" (click)="onDelete(part.id!)">Yes</button>
-                        <button class="btn-no" (click)="deletingPartId = null">No</button>
-                      </div>
-                    } @else {
-                      <div class="action-btns">
-                        <button class="btn-action-edit" (click)="startEdit(part)">Edit</button>
-                        <button class="btn-action-delete" (click)="deletingPartId = part.id || null">Delete</button>
-                      </div>
-                    }
-                  </td>
+                  @if (authService.getRole() !== 'Customer') {
+                    <td class="actions-cell">
+                      @if (deletingPartId === part.id) {
+                        <div class="delete-confirm-box">
+                          <span class="confirm-msg">Delete?</span>
+                          <button class="btn-yes" (click)="onDelete(part.id!)">Yes</button>
+                          <button class="btn-no" (click)="deletingPartId = null">No</button>
+                        </div>
+                      } @else {
+                        <div class="action-btns">
+                          <button class="btn-action-edit" (click)="startEdit(part)">Edit</button>
+                          <button class="btn-action-delete" (click)="deletingPartId = part.id || null">Delete</button>
+                        </div>
+                      }
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -402,6 +409,7 @@ export class ProductPartFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private partService = inject(ProductPartService);
   private productService = inject(ProductService);
+  public authService = inject(AuthService);
 
   products: Product[] = [];
   parts: ProductPart[] = [];

@@ -45,40 +45,44 @@ import { CallService } from '../../core/services/call.service';
               </li>
             }
 
-            <!-- Call Management Collapsible (placed below Create User) -->
-            <p class="nav-section-label" style="margin-top: 1.25rem;">Calls</p>
-            <li class="nav-item">
-              <button (click)="toggleCallMenu()" class="nav-link-btn" [class.open]="isCallMenuOpen">
-                <div class="nav-link-btn-left">
-                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                  <span>Call Management</span>
-                </div>
-                <svg class="chevron-icon" [class.rotated]="isCallMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              @if (isCallMenuOpen) {
-                <ul class="submenu animate-fade-in">
-                  <li>
-                    <a routerLink="/calls" [queryParams]="{tab: 'list'}" routerLinkActive="active" class="submenu-link">
-                      <span class="submenu-dot"></span> View All Calls
-                    </a>
-                  </li>
-                  <li>
-                    <a routerLink="/calls" [queryParams]="{tab: 'create'}" routerLinkActive="active" class="submenu-link">
-                      <span class="submenu-dot"></span> Create New Call
-                    </a>
-                  </li>
-                  <li>
-                    <a routerLink="/calls" [queryParams]="{tab: 'lookup'}" routerLinkActive="active" class="submenu-link">
-                      <span class="submenu-dot"></span> Update by Call ID
-                    </a>
-                  </li>
-                </ul>
-              }
-            </li>
+            <!-- Call Management: Admin & Distributor only -->
+            @if (authService.getRole() === 'Admin' || authService.getRole() === 'Distributor') {
+              <p class="nav-section-label" style="margin-top: 1.25rem;">Calls</p>
+              <li class="nav-item">
+                <button (click)="toggleCallMenu()" class="nav-link-btn" [class.open]="isCallMenuOpen">
+                  <div class="nav-link-btn-left">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span>Call Management</span>
+                  </div>
+                  <svg class="chevron-icon" [class.rotated]="isCallMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                @if (isCallMenuOpen) {
+                  <ul class="submenu animate-fade-in">
+                    <li>
+                      <a routerLink="/calls" [queryParams]="{tab: 'list'}" routerLinkActive="active" class="submenu-link">
+                        <span class="submenu-dot"></span> View All Calls
+                      </a>
+                    </li>
+                    <li>
+                      <a routerLink="/calls" [queryParams]="{tab: 'create'}" routerLinkActive="active" class="submenu-link">
+                        <span class="submenu-dot"></span> Create New Call
+                      </a>
+                    </li>
+                    @if (authService.getRole() === 'Admin' || authService.getRole() === 'Distributor') {
+                      <li>
+                        <a routerLink="/calls" [queryParams]="{tab: 'lookup'}" routerLinkActive="active" class="submenu-link">
+                          <span class="submenu-dot"></span> Update by Call ID
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                }
+              </li>
+            }
 
 
 
-            <!-- Admin Only Links: Product Management -->
+            <!-- Admin Only Links: Product Management (full CRUD) -->
             @if (authService.getRole() === 'Admin') {
               <p class="nav-section-label" style="margin-top: 1.5rem;">Products</p>
               <li class="nav-item">
@@ -91,31 +95,34 @@ import { CallService } from '../../core/services/call.service';
                 </button>
                 @if (isProductMenuOpen) {
                   <ul class="submenu animate-fade-in">
-                    <li>
-                      <a routerLink="/admin/brands" routerLinkActive="active" class="submenu-link">
-                        <span class="submenu-dot"></span> Manage Brands
-                      </a>
-                    </li>
-                    <li>
-                      <a routerLink="/admin/products" routerLinkActive="active" class="submenu-link">
-                        <span class="submenu-dot"></span> Manage Products
-                      </a>
-                    </li>
-                    <li>
-                      <a routerLink="/admin/models" routerLinkActive="active" class="submenu-link">
-                        <span class="submenu-dot"></span> Manage Models
-                      </a>
-                    </li>
-                    <li>
-                      <a routerLink="/admin/issues" routerLinkActive="active" class="submenu-link">
-                        <span class="submenu-dot"></span> Manage Issues
-                      </a>
-                    </li>
-                    <li>
-                      <a routerLink="/admin/parts" routerLinkActive="active" class="submenu-link">
-                        <span class="submenu-dot"></span> Manage Parts
-                      </a>
-                    </li>
+                    <li><a routerLink="/admin/brands" routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Manage Brands</a></li>
+                    <li><a routerLink="/admin/products" routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Manage Products</a></li>
+                    <li><a routerLink="/admin/models" routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Manage Models</a></li>
+                    <li><a routerLink="/admin/issues" routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Manage Issues</a></li>
+                    <li><a routerLink="/admin/parts" routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Manage Parts</a></li>
+                  </ul>
+                }
+              </li>
+            }
+
+            <!-- Customer Only: Read-only Product Catalog -->
+            @if (authService.getRole() === 'Customer') {
+              <p class="nav-section-label" style="margin-top: 1.5rem;">Product Catalog</p>
+              <li class="nav-item">
+                <button (click)="toggleProductMenu()" class="nav-link-btn" [class.open]="isProductMenuOpen">
+                  <div class="nav-link-btn-left">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    <span>Product Management</span>
+                  </div>
+                  <svg class="chevron-icon" [class.rotated]="isProductMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                @if (isProductMenuOpen) {
+                  <ul class="submenu animate-fade-in">
+                    <li><a routerLink="/admin/brands" routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Brands</a></li>
+                    <li><a routerLink="/admin/products" routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Products</a></li>
+                    <li><a routerLink="/admin/models" routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Models</a></li>
+                    <li><a routerLink="/admin/issues" routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Issues</a></li>
+                    <li><a routerLink="/admin/parts" routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Parts</a></li>
                   </ul>
                 }
               </li>

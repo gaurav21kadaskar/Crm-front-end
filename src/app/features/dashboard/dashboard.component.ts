@@ -4,6 +4,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { CallService } from '../../core/services/call.service';
 import { BrandService } from '../../core/services/brand.service';
 import { ProductService } from '../../core/services/product.service';
+import { ProductModelService } from '../../core/services/product-model.service';
+import { ProductPartService } from '../../core/services/product-part.service';
 import { Call } from '../../core/models/call.model';
 import { Brand } from '../../core/models/brand.model';
 import { Product } from '../../core/models/product.model';
@@ -34,124 +36,222 @@ import { Subscription, interval } from 'rxjs';
         </div>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card stat-card--purple">
-          <div class="stat-icon-wrap calls-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          </div>
-          <div class="stat-details">
-            <span class="stat-label">TOTAL CALLS</span>
-            <span class="stat-value">{{ stats.totalCalls }}</span>
-            <span class="stat-subtext">All registered cases</span>
-          </div>
-        </div>
-
-        <div class="stat-card stat-card--amber">
-          <div class="stat-icon-wrap pending-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-          <div class="stat-details">
-            <span class="stat-label">PENDING CALLS</span>
-            <span class="stat-value">{{ stats.pendingCalls }}</span>
-            <span class="stat-subtext">Awaiting action</span>
-          </div>
-        </div>
-
-        <div class="stat-card stat-card--blue">
-          <div class="stat-icon-wrap progress-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          </div>
-          <div class="stat-details">
-            <span class="stat-label">IN PROGRESS</span>
-            <span class="stat-value">{{ stats.inProgressCalls }}</span>
-            <span class="stat-subtext">Active updates</span>
-          </div>
-        </div>
-
-        <div class="stat-card stat-card--green">
-          <div class="stat-icon-wrap resolved-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div class="stat-details">
-            <span class="stat-label">RESOLVED CALLS</span>
-            <span class="stat-value">{{ stats.resolvedCalls }}</span>
-            <span class="stat-subtext">Closed &amp; resolved</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="dashboard-content-grid" [class.grid-full]="authService.getRole() === 'Customer'">
-        <div class="recent-calls-section card">
-          <div class="section-header">
-            <div>
-              <h3>Recent Service Calls</h3>
-              <p>Latest updates in customer service</p>
+      <!-- Non-Customer Stats Grid -->
+      @if (authService.getRole() !== 'Customer') {
+        <div class="stats-grid">
+          <div class="stat-card stat-card--purple">
+            <div class="stat-icon-wrap calls-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
             </div>
-            <a href="/calls?tab=list" class="view-all">View All →</a>
+            <div class="stat-details">
+              <span class="stat-label">TOTAL CALLS</span>
+              <span class="stat-value">{{ stats.totalCalls }}</span>
+              <span class="stat-subtext">All registered cases</span>
+            </div>
           </div>
-          
-          <div class="table-responsive">
-            <table class="calls-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>CUSTOMER</th>
-                  <th>PRODUCT INFO</th>
-                  <th>STATUS</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let call of recentCalls">
-                  <td class="call-id-cell">{{ call.id }}</td>
-                  <td>{{ call.customer }}</td>
-                  <td>{{ call.productInfo }}</td>
-                  <td><span class="status-badge" [ngClass]="getStatusClass(call.status)">{{ call.status }}</span></td>
-                </tr>
-                <tr *ngIf="recentCalls.length === 0">
-                  <td colspan="4" class="text-center" style="padding: 2rem; color: var(--text-secondary);">No calls registered yet.</td>
-                </tr>
-              </tbody>
-            </table>
+
+          <div class="stat-card stat-card--amber">
+            <div class="stat-icon-wrap pending-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">PENDING CALLS</span>
+              <span class="stat-value">{{ stats.pendingCalls }}</span>
+              <span class="stat-subtext">Awaiting action</span>
+            </div>
+          </div>
+
+          <div class="stat-card stat-card--blue">
+            <div class="stat-icon-wrap progress-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">IN PROGRESS</span>
+              <span class="stat-value">{{ stats.inProgressCalls }}</span>
+              <span class="stat-subtext">Active updates</span>
+            </div>
+          </div>
+
+          <div class="stat-card stat-card--green">
+            <div class="stat-icon-wrap resolved-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">RESOLVED CALLS</span>
+              <span class="stat-value">{{ stats.resolvedCalls }}</span>
+              <span class="stat-subtext">Closed &amp; resolved</span>
+            </div>
           </div>
         </div>
+      }
 
-        @if (authService.getRole() !== 'Customer') {
-          <div class="product-summary-section card">
+      <!-- Customer Stats Grid -->
+      @if (authService.getRole() === 'Customer') {
+        <div class="stats-grid">
+          <div class="stat-card stat-card--purple">
+            <div class="stat-icon-wrap calls-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">TOTAL BRANDS</span>
+              <span class="stat-value">{{ catalogStats.brands }}</span>
+              <span class="stat-subtext">Active partner brands</span>
+            </div>
+          </div>
+
+          <div class="stat-card stat-card--amber">
+            <div class="stat-icon-wrap pending-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">TOTAL PRODUCTS</span>
+              <span class="stat-value">{{ catalogStats.products }}</span>
+              <span class="stat-subtext">Catalogued items</span>
+            </div>
+          </div>
+
+          <div class="stat-card stat-card--blue">
+            <div class="stat-icon-wrap progress-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">PRODUCT MODELS</span>
+              <span class="stat-value">{{ catalogStats.models }}</span>
+              <span class="stat-subtext">Registered model variants</span>
+            </div>
+          </div>
+
+          <div class="stat-card stat-card--green">
+            <div class="stat-icon-wrap resolved-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">PRODUCT PARTS</span>
+              <span class="stat-value">{{ catalogStats.parts }}</span>
+              <span class="stat-subtext">Spare parts mapped</span>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Non-Customer Dashboard Content Grid -->
+      @if (authService.getRole() !== 'Customer') {
+        <div class="dashboard-content-grid" [class.grid-full]="authService.getRole() === 'Distributor'">
+          <div class="recent-calls-section card">
             <div class="section-header">
               <div>
-                <h3>Product Summary</h3>
-                <span class="active-items">Active items in directory</span>
+                <h3>Recent Service Calls</h3>
+                <p>Latest updates in customer service</p>
               </div>
+              <a href="/calls?tab=list" class="view-all">View All →</a>
             </div>
             
-            <div class="summary-item">
-              <div class="summary-item-header">
-                <span>Brands</span>
-                <span class="summary-count">{{ summary.brands }}</span>
-              </div>
-              <div class="progress-bar-container">
-                <div class="progress-bar progress-brand" [style.width.%]="getBrandsPercentage()"></div>
-              </div>
-            </div>
-
-            <div class="summary-item">
-              <div class="summary-item-header">
-                <span>Products</span>
-                <span class="summary-count">{{ summary.products }}</span>
-              </div>
-              <div class="progress-bar-container">
-                <div class="progress-bar progress-product" [style.width.%]="getProductsPercentage()"></div>
-              </div>
-            </div>
-
-            <div class="quick-actions">
-              <p class="qa-label">Quick Actions</p>
-              <a href="/calls?tab=create" class="qa-btn">+ New Service Call</a>
-              <a href="/calls?tab=list" class="qa-btn qa-btn--outline">View My Calls</a>
+            <div class="table-responsive">
+              <table class="calls-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>CUSTOMER</th>
+                    <th>PRODUCT INFO</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let call of recentCalls">
+                    <td class="call-id-cell">{{ call.id }}</td>
+                    <td>{{ call.customer }}</td>
+                    <td>{{ call.productInfo }}</td>
+                    <td><span class="status-badge" [ngClass]="getStatusClass(call.status)">{{ call.status }}</span></td>
+                  </tr>
+                  <tr *ngIf="recentCalls.length === 0">
+                    <td colspan="4" class="text-center" style="padding: 2rem; color: var(--text-secondary);">No calls registered yet.</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
-        }
-      </div>
+
+          @if (authService.getRole() !== 'Distributor') {
+            <div class="product-summary-section card">
+              <div class="section-header">
+                <div>
+                  <h3>Product Summary</h3>
+                  <span class="active-items">Active items in directory</span>
+                </div>
+              </div>
+              
+              <div class="summary-item">
+                <div class="summary-item-header">
+                  <span>Brands</span>
+                  <span class="summary-count">{{ summary.brands }}</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar progress-brand" [style.width.%]="getBrandsPercentage()"></div>
+                </div>
+              </div>
+
+              <div class="summary-item">
+                <div class="summary-item-header">
+                  <span>Products</span>
+                  <span class="summary-count">{{ summary.products }}</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar progress-product" [style.width.%]="getProductsPercentage()"></div>
+                </div>
+              </div>
+
+              <div class="quick-actions">
+                <p class="qa-label">Quick Actions</p>
+                <a href="/calls?tab=create" class="qa-btn">+ New Service Call</a>
+                <a href="/calls?tab=list" class="qa-btn qa-btn--outline">View My Calls</a>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Customer Dashboard Content Grid -->
+      @if (authService.getRole() === 'Customer') {
+        <div class="dashboard-content-grid grid-full">
+          <div class="recent-calls-section card">
+            <div class="section-header">
+              <div>
+                <h3>Latest Products</h3>
+                <p>Newly added models and products in catalog</p>
+              </div>
+              <a href="/admin/products" class="view-all">View All Products →</a>
+            </div>
+            
+            <div class="table-responsive">
+              <table class="calls-table">
+                <thead>
+                  <tr>
+                    <th>PRODUCT NAME</th>
+                    <th>BRAND</th>
+                    <th>PRODUCT CODE</th>
+                    <th>DESCRIPTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (prod of products.slice(0, 5); track prod.id) {
+                    <tr>
+                      <td class="call-id-cell">{{ prod.name }}</td>
+                      <td>{{ getBrandName(prod.brand) }}</td>
+                      <td><span style="font-family: monospace; font-size: 0.85rem; background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px;">{{ prod.productCode || prod.product_code || '—' }}</span></td>
+                      <td style="color: var(--text-secondary);">{{ prod.description || '—' }}</td>
+                    </tr>
+                  }
+                  @if (products.length === 0) {
+                    <tr>
+                      <td colspan="4" class="text-center" style="padding: 2rem; color: var(--text-secondary);">No products registered yet.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -545,6 +645,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private callService = inject(CallService);
   private brandService = inject(BrandService);
   private productService = inject(ProductService);
+  private modelService = inject(ProductModelService);
+  private partService = inject(ProductPartService);
   private refreshSub?: Subscription;
 
   refreshing = false;
@@ -554,6 +656,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     pendingCalls: 0,
     inProgressCalls: 0,
     resolvedCalls: 0
+  };
+
+  catalogStats = {
+    brands: 0,
+    products: 0,
+    models: 0,
+    parts: 0
   };
   
   recentCalls: Array<{ id: string; customer: string; productInfo: string; status: string }> = [];
@@ -593,13 +702,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return [];
   }
 
+  getBrandName(brandId?: any): string {
+    if (brandId === undefined || brandId === null) return 'N/A';
+    const brand = this.brands.find(b => b.id === brandId || b.id === Number(brandId));
+    return brand ? brand.name : `Brand #${brandId}`;
+  }
+
   loadData() {
+    this.refreshing = true;
     // Load brands
     this.brandService.getBrands().subscribe({
       next: (res: any) => {
         this.brands = this.parseArray(res);
         this.summary.brands = this.brands.length;
-        // Reload products next to map correctly
+        this.catalogStats.brands = this.brands.length;
         this.loadProductsAndCalls();
       },
       error: () => {
@@ -608,6 +724,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           { id: 2, name: 'LG', description: 'LG Home Appliances' }
         ];
         this.summary.brands = this.brands.length;
+        this.catalogStats.brands = this.brands.length;
         this.loadProductsAndCalls();
       }
     });
@@ -619,7 +736,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       next: (res: any) => {
         this.products = this.parseArray(res);
         this.summary.products = this.products.length;
-        this.loadCalls();
+        this.catalogStats.products = this.products.length;
+        this.loadModelsAndParts();
       },
       error: () => {
         this.products = [
@@ -627,7 +745,47 @@ export class DashboardComponent implements OnInit, OnDestroy {
           { id: 2, name: 'Washing Machine', brand: 2 }
         ];
         this.summary.products = this.products.length;
-        this.loadCalls();
+        this.catalogStats.products = this.products.length;
+        this.loadModelsAndParts();
+      }
+    });
+  }
+
+  loadModelsAndParts() {
+    // Load models
+    this.modelService.getProductModels().subscribe({
+      next: (res: any) => {
+        const models = this.parseArray(res);
+        this.catalogStats.models = models.length;
+        this.loadPartsData();
+      },
+      error: () => {
+        this.catalogStats.models = 0;
+        this.loadPartsData();
+      }
+    });
+  }
+
+  loadPartsData() {
+    // Load parts
+    this.partService.getProductParts().subscribe({
+      next: (res: any) => {
+        const parts = this.parseArray(res);
+        this.catalogStats.parts = parts.length;
+        
+        if (this.authService.getRole() !== 'Customer') {
+          this.loadCalls();
+        } else {
+          this.refreshing = false;
+        }
+      },
+      error: () => {
+        this.catalogStats.parts = 0;
+        if (this.authService.getRole() !== 'Customer') {
+          this.loadCalls();
+        } else {
+          this.refreshing = false;
+        }
       }
     });
   }
@@ -699,7 +857,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return c;
     });
 
-    if (this.authService.getRole() === 'Customer') {
+    if (this.authService.getRole() === 'Distributor') {
       const uId = this.authService.getUserId();
       const uName = (this.authService.getUsername() || '').toLowerCase();
       filteredCalls = filteredCalls.filter((c: any) => {
@@ -712,7 +870,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         const cName = (c.customerName || `${cFirstName} ${cLastName}`).toLowerCase();
         const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
 
-        if (uName && uName.length > 0 && uName !== 'customer') {
+        if (uName && uName.length > 0 && uName !== 'distributor') {
           const parts = uName.split(/[\s._-]+/).filter(p => p.length > 1);
           const matchesName = parts.some(p => cName.includes(p));
           const matchesEmail = cEmail && parts.some(p => cEmail.includes(p));

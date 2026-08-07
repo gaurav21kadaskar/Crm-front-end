@@ -5,6 +5,7 @@ import { ProductIssueService } from '../../../../core/services/product-issue.ser
 import { ProductService } from '../../../../core/services/product.service';
 import { Product } from '../../../../core/models/product.model';
 import { ProductIssue } from '../../../../core/models/product-issue.model';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-product-issue-form',
@@ -12,12 +13,14 @@ import { ProductIssue } from '../../../../core/models/product-issue.model';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="panel-section animate-fade-in">
-      <div class="create-toggle-container">
-        <button class="create-toggle-btn" (click)="showCreateForm = true">
-          <span class="plus-icon">+</span>
-          <span>Create New Issue</span>
-        </button>
-      </div>
+      @if (authService.getRole() !== 'Customer') {
+        <div class="create-toggle-container">
+          <button class="create-toggle-btn" (click)="showCreateForm = true">
+            <span class="plus-icon">+</span>
+            <span>Create New Issue</span>
+          </button>
+        </div>
+      }
 
       <!-- Create Modal -->
       @if (showCreateForm) {
@@ -171,7 +174,9 @@ import { ProductIssue } from '../../../../core/models/product-issue.model';
                 <th>Issue Name</th>
                 <th>Product</th>
                 <th>Description</th>
-                <th style="width: 180px;">Actions</th>
+                @if (authService.getRole() !== 'Customer') {
+                  <th style="width: 180px;">Actions</th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -181,20 +186,22 @@ import { ProductIssue } from '../../../../core/models/product-issue.model';
                   <td class="name-cell">{{ issue.issueName }}</td>
                   <td class="product-cell">{{ getProductName(issue.product) }}</td>
                   <td class="desc-cell">{{ issue.description || '—' }}</td>
-                  <td class="actions-cell">
-                    @if (deletingIssueId === issue.id) {
-                      <div class="delete-confirm-box">
-                        <span class="confirm-msg">Delete?</span>
-                        <button class="btn-yes" (click)="onDelete(issue.id!)">Yes</button>
-                        <button class="btn-no" (click)="deletingIssueId = null">No</button>
-                      </div>
-                    } @else {
-                      <div class="action-btns">
-                        <button class="btn-action-edit" (click)="startEdit(issue)">Edit</button>
-                        <button class="btn-action-delete" (click)="deletingIssueId = issue.id || null">Delete</button>
-                      </div>
-                    }
-                  </td>
+                  @if (authService.getRole() !== 'Customer') {
+                    <td class="actions-cell">
+                      @if (deletingIssueId === issue.id) {
+                        <div class="delete-confirm-box">
+                          <span class="confirm-msg">Delete?</span>
+                          <button class="btn-yes" (click)="onDelete(issue.id!)">Yes</button>
+                          <button class="btn-no" (click)="deletingIssueId = null">No</button>
+                        </div>
+                      } @else {
+                        <div class="action-btns">
+                          <button class="btn-action-edit" (click)="startEdit(issue)">Edit</button>
+                          <button class="btn-action-delete" (click)="deletingIssueId = issue.id || null">Delete</button>
+                        </div>
+                      }
+                    </td>
+                  }
                 </tr>
               }
             </tbody>
@@ -314,6 +321,7 @@ export class ProductIssueFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private issueService = inject(ProductIssueService);
   private productService = inject(ProductService);
+  public authService = inject(AuthService);
 
   products: Product[] = [];
   issues: ProductIssue[] = [];
