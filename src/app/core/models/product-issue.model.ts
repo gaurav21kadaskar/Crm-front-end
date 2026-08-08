@@ -1,9 +1,8 @@
 export interface ProductIssue {
   id?: number;
-  product: number; // Product ID
+  product: number;
   issueName: string;
+  name?: string;
   description?: string;
-  isActive?: boolean;
   createdAt?: string;
-  updatedAt?: string;
 }

@@ -76,6 +76,11 @@ import { ProductIssue } from '../../core/models/product-issue.model';
               <div class="spinner"></div>
               <span>Fetching calls from backend...</span>
             </div>
+          } @else if (errorMessage && calls.length === 0) {
+            <div class="empty-state" style="color:#dc2626;">
+              <p>⚠️ {{ errorMessage }}</p>
+              <button class="refresh-btn" (click)="loadCalls()" style="margin-top:1rem;">Retry</button>
+            </div>
           } @else if (calls.length === 0) {
             <div class="empty-state">
               <p>No service calls found. Select "Create New Call" from the sidebar to add a call.</p>
@@ -118,9 +123,9 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                         </span>
                       </td>
                       <td>
-                        @if (call.imageUrl || call.image) {
+                        @if (getCallImageUrl(call)) {
                           <div class="table-attachment-chip" (click)="openViewDetails(call); activeViewTab = 'attachments'" title="Click to view photo">
-                            <img [src]="call.imageUrl || call.image" class="chip-thumb" alt="Photo" />
+                            <img [src]="getCallImageUrl(call)" class="chip-thumb" alt="Photo" />
                             <span class="chip-text">View Photo</span>
                           </div>
                         } @else {
@@ -473,10 +478,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                 </div>
               </div>
 
-              <div class="pro-form-group" style="margin-top: 1rem;">
-                <label class="pro-label">Technician Assigned</label>
-                <input type="text" class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="createTechnicianAssigned" placeholder="Name of technician" />
-              </div>
+
 
               <!-- Attach Image -->
               <div class="pro-form-group" style="margin-top: 1rem;">
@@ -499,7 +501,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
 
             <div class="form-card-footer">
               <button type="button" class="btn-cancel" (click)="activeTab = 'list'">Cancel</button>
-              <button type="submit" class="create-toggle-btn" (click)="onCreateCallSubmit()" [disabled]="isSubmitting">
+              <button type="submit" class="create-toggle-btn" [disabled]="isSubmitting">
                 <span class="plus-icon">+</span>
                 <span>{{ isSubmitting ? 'Registering Call...' : 'Register Call' }}</span>
               </button>
@@ -569,10 +571,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                       <option value="Urgent">Urgent</option>
                     </select>
                   </div>
-                  <div class="pro-form-group">
-                    <label class="pro-label">Technician Assigned</label>
-                    <input type="text" class="pro-input" formControlName="technicianAssigned" />
-                  </div>
+
                 </div>
 
                 <div class="pro-form-group">
@@ -1271,10 +1270,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   </div>
                 </div>
 
-                <div class="pro-form-group" style="margin-top: 1rem;">
-                  <label class="pro-label">Technician Assigned</label>
-                  <input type="text" class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="editTechnicianAssigned" placeholder="Technician Name" />
-                </div>
+
 
                 <!-- Attach Image -->
                 <div class="pro-form-group" style="margin-top: 1rem;">
@@ -1527,9 +1523,9 @@ import { ProductIssue } from '../../core/models/product-issue.model';
       box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
     }
     .chip-thumb {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
       object-fit: cover;
       border: 1px solid #94a3b8;
     }
@@ -1994,6 +1990,7 @@ export class CallManagementComponent implements OnInit {
   // ─── Image Upload State ───────────────────────────────────────────────
   createCallImageFile: File | null = null;
   createCallPreviewUrl: string | null = null;
+  imageMemoryCache: { [key: string]: string } = {};
 
   editCallImageFile: File | null = null;
   editCallPreviewUrl: string | null = null;
@@ -2275,7 +2272,49 @@ export class CallManagementComponent implements OnInit {
     remarks: ['']
   });
 
+  private sanitizeLocalStorage() {
+    try {
+      const detailsMap = JSON.parse(localStorage.getItem('crm_call_details_map') || '{}');
+      let cleanedDetails = false;
+      for (const key in detailsMap) {
+        const obj = detailsMap[key];
+        if (obj && typeof obj === 'object') {
+          if (obj.imageUrl && String(obj.imageUrl).length > 50000) { obj.imageUrl = 'indexeddb'; cleanedDetails = true; }
+          if (obj.image && String(obj.image).length > 50000) { obj.image = 'indexeddb'; cleanedDetails = true; }
+          if (obj.callImage && String(obj.callImage).length > 50000) { obj.callImage = 'indexeddb'; cleanedDetails = true; }
+        }
+      }
+      if (cleanedDetails) localStorage.setItem('crm_call_details_map', JSON.stringify(detailsMap));
+
+      const overridesMap = JSON.parse(localStorage.getItem('crm_updated_calls_map') || '{}');
+      let cleanedOverrides = false;
+      for (const key in overridesMap) {
+        const obj = overridesMap[key];
+        if (obj && typeof obj === 'object') {
+          if (obj.imageUrl && String(obj.imageUrl).length > 50000) { obj.imageUrl = 'indexeddb'; cleanedOverrides = true; }
+          if (obj.image && String(obj.image).length > 50000) { obj.image = 'indexeddb'; cleanedOverrides = true; }
+          if (obj.callImage && String(obj.callImage).length > 50000) { obj.callImage = 'indexeddb'; cleanedOverrides = true; }
+        }
+      }
+      if (cleanedOverrides) localStorage.setItem('crm_updated_calls_map', JSON.stringify(overridesMap));
+      
+      const imagesMap = JSON.parse(localStorage.getItem('crm_call_images_map') || '{}');
+      let cleanedImages = false;
+      for (const key in imagesMap) {
+        const val = imagesMap[key];
+        if (val && String(val).length > 50000) {
+          delete imagesMap[key];
+          cleanedImages = true;
+        }
+      }
+      if (cleanedImages) localStorage.setItem('crm_call_images_map', JSON.stringify(imagesMap));
+    } catch (e) {
+      console.warn('Failed to sanitize localStorage', e);
+    }
+  }
+
   ngOnInit() {
+    this.sanitizeLocalStorage();
     this.states = Object.keys(this.statesData).sort();
     this.route.queryParams.subscribe(params => {
       if (params['tab'] && ['list', 'create', 'lookup'].includes(params['tab'])) {
@@ -2310,57 +2349,34 @@ export class CallManagementComponent implements OnInit {
 
   loadCalls() {
     this.loading = true;
+    this.errorMessage = '';
     this.callService.getCalls().subscribe({
       next: (res: any) => {
         const raw = this.parseArray(res);
-        // Show ALL data returned by backend — no client-side filtering
-        this.calls = raw.map((c: any) => this.normalizeCall(c));
+        let mapped = raw.map((c: any) => this.normalizeCall(c));
+        
+        // Sort descending — newest calls at the top
+        mapped.sort((callA, callB) => {
+          const a = callA as any;
+          const b = callB as any;
+          const dateA = new Date(a.createdAt || a.created_at || 0).getTime();
+          const dateB = new Date(b.createdAt || b.created_at || 0).getTime();
+          if (dateA !== dateB) return dateB - dateA;
+          const idA = String(a.id || a.callNumber || '');
+          const idB = String(b.id || b.callNumber || '');
+          return idB.localeCompare(idA);
+        });
+        
+        this.calls = mapped;
         this.loading = false;
+        this.loadAllCachedImages(mapped); // Load images asynchronously into memory cache
       },
-      error: () => {
-        let raw = [
-          {
-            id: 1,
-            callNumber: 'CALL10001',
-            callId: 'CALL10001',
-            customerName: 'Rahul Sharma',
-            customerPhone: '9876543210',
-            address: '102 High Street, Mumbai',
-            brand: 1,
-            product: 1,
-            model: 1,
-            status: 'In Progress',
-            priority: 'High',
-            technicianAssigned: 'Vikram Singh',
-            createdAt: '2026-07-25',
-            customerDetail: { firstName: 'Rahul', lastName: 'Sharma', city: 'Mumbai', address1: '102 High Street' },
-            contactDetail: { mobile: '9876543210', email: 'rahul@example.com' },
-            productDetail: { brand: 1, product: 1, model: 1, client: 'Retail' },
-            complaintDetail: { callType: 'Installation', complaintPriority: 'High', complaintDescription: 'AC Cooling issue' }
-          },
-          {
-            id: 2,
-            callNumber: 'CALL10002',
-            callId: 'CALL10002',
-            customerName: 'Priya Patel',
-            customerPhone: '9812345678',
-            address: '45 Green Park, Ahmedabad',
-            brand: 2,
-            product: 2,
-            model: 2,
-            status: 'Pending',
-            priority: 'Medium',
-            technicianAssigned: 'Unassigned',
-            createdAt: '2026-07-26',
-            customerDetail: { firstName: 'Priya', lastName: 'Patel', city: 'Ahmedabad', address1: '45 Green Park' },
-            contactDetail: { mobile: '9812345678', email: 'priya@example.com' },
-            productDetail: { brand: 2, product: 2, model: 2, client: 'Retail' },
-            complaintDetail: { callType: 'Repair', complaintPriority: 'Medium', complaintDescription: 'Washing Machine Drainage Leak' }
-          }
-        ];
-        // Show ALL fallback data — no client-side filtering
-        this.calls = raw.map((c: any) => this.normalizeCall(c));
+      error: (err: any) => {
+        // Do NOT show fake hardcoded data — show empty list with error
+        console.error('Failed to load calls from backend:', err);
+        this.calls = [];
         this.loading = false;
+        this.errorMessage = 'Could not load calls from server. Please check your connection and try again.';
       }
     });
   }
@@ -2376,6 +2392,18 @@ export class CallManagementComponent implements OnInit {
     return 'Open';
   }
 
+  mapToBackendStatus(status: string): string {
+    const s = this.normalizeStatus(status);
+    const map: { [key: string]: string } = {
+      'Open': 'OPEN',
+      'In Progress': 'IN_PROGRESS',
+      'Completed': 'COMPLETED',
+      'Cancelled': 'CANCELLED',
+      'Closed': 'CLOSED'
+    };
+    return map[s] || 'OPEN';
+  }
+
   private getUpdatedCallMap(): { [callNum: string]: Partial<Call> } {
     try {
       const data = localStorage.getItem('crm_updated_calls_map');
@@ -2385,10 +2413,21 @@ export class CallManagementComponent implements OnInit {
     }
   }
 
+  private cleanCallForLocalStorage(call: any): any {
+    if (!call) return null;
+    const clone = { ...call };
+    // Remove heavy base64 strings to stay under 5MB localStorage limits
+    if (clone.imageUrl && String(clone.imageUrl).startsWith('data:')) clone.imageUrl = 'indexeddb';
+    if (clone.image && String(clone.image).startsWith('data:')) clone.image = 'indexeddb';
+    if (clone.callImage && String(clone.callImage).startsWith('data:')) clone.callImage = 'indexeddb';
+    return clone;
+  }
+
   private saveCallOverride(callNum: string, id: any, data: Partial<Call>) {
     try {
+      const cleaned = this.cleanCallForLocalStorage(data);
       const map = this.getUpdatedCallMap();
-      const updatedData = { ...map[callNum], ...data };
+      const updatedData = { ...map[callNum], ...cleaned };
       const cleanNum = callNum.replace(/^#/, '').trim();
 
       map[callNum] = updatedData;
@@ -2410,6 +2449,148 @@ export class CallManagementComponent implements OnInit {
     }
   }
 
+  /** Save full customer/product/contact details keyed by callNumber so they survive page refresh */
+  private saveCallDetails(callNumber: string, details: any) {
+    try {
+      const cleaned = this.cleanCallForLocalStorage(details);
+      const store = JSON.parse(localStorage.getItem('crm_call_details_map') || '{}');
+      const keys = [callNumber, callNumber.toLowerCase()];
+      keys.forEach(k => { if (k) store[k] = cleaned; });
+      localStorage.setItem('crm_call_details_map', JSON.stringify(store));
+    } catch (e) {}
+  }
+
+  /** Get persisted customer/product/contact details for a callNumber */
+  private getCallDetails(callNumber: string): any | null {
+    try {
+      const store = JSON.parse(localStorage.getItem('crm_call_details_map') || '{}');
+      return store[callNumber] || store[callNumber?.toLowerCase()] || null;
+    } catch (e) { return null; }
+  }
+
+  private getIndexedDBStore(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('CrmImageDB', 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('images')) {
+          db.createObjectStore('images');
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  private async saveImageToIndexedDB(key: string, value: string): Promise<void> {
+    try {
+      const db = await this.getIndexedDBStore();
+      const tx = db.transaction('images', 'readwrite');
+      const store = tx.objectStore('images');
+      store.put(value, key);
+      this.imageMemoryCache[key] = value;
+      this.imageMemoryCache[key.toLowerCase()] = value;
+    } catch (e) {
+      console.warn('Failed to save image to IndexedDB', e);
+    }
+  }
+
+  private async loadImageFromIndexedDB(key: string): Promise<string | null> {
+    try {
+      const db = await this.getIndexedDBStore();
+      return new Promise((resolve) => {
+        const tx = db.transaction('images', 'readonly');
+        const store = tx.objectStore('images');
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async loadAllCachedImages(calls: any[]) {
+    let changed = false;
+    for (const call of calls) {
+      const keys = [call.id, String(call.id), call.callNumber, call.callId, call.call_number].filter(Boolean);
+      for (const k of keys) {
+        const keyStr = String(k);
+        if (!this.imageMemoryCache[keyStr]) {
+          const img = await this.loadImageFromIndexedDB(keyStr);
+          if (img) {
+            this.imageMemoryCache[keyStr] = img;
+            this.imageMemoryCache[keyStr.toLowerCase()] = img;
+            changed = true;
+          }
+        }
+      }
+    }
+    if (changed) {
+      // Force change detection so UI removes broken image placeholders
+      this.calls = [...this.calls];
+    }
+  }
+
+  saveCallImage(key: string | number, dataUrl: string | null, altKey?: string | number) {
+    if (!dataUrl) return;
+    const strKey = String(key);
+    
+    // Synchronously update memory cache for immediate UI rendering
+    this.imageMemoryCache[strKey] = dataUrl;
+    this.imageMemoryCache[strKey.toLowerCase()] = dataUrl;
+    if (altKey) {
+      this.imageMemoryCache[String(altKey)] = dataUrl;
+      this.imageMemoryCache[String(altKey).toLowerCase()] = dataUrl;
+    }
+    
+    this.saveImageToIndexedDB(strKey, dataUrl);
+    if (altKey) {
+      this.saveImageToIndexedDB(String(altKey), dataUrl);
+    }
+    // Minimal fallback for compatibility
+    try {
+      const map = JSON.parse(localStorage.getItem('crm_call_images_map') || '{}');
+      if (dataUrl === 'REMOVED') {
+        map[strKey] = 'REMOVED';
+        if (altKey) map[String(altKey)] = 'REMOVED';
+        localStorage.setItem('crm_call_images_map', JSON.stringify(map));
+      } else if (dataUrl.length < 50000) { // Only save to localStorage if it's very small
+        map[strKey] = dataUrl;
+        if (altKey) map[String(altKey)] = dataUrl;
+        localStorage.setItem('crm_call_images_map', JSON.stringify(map));
+      }
+    } catch(e) {}
+  }
+
+  private getLocalCallImage(key: string | number): string | null | 'REMOVED' {
+    try {
+      const map = JSON.parse(localStorage.getItem('crm_call_images_map') || '{}');
+      if (!key) return null;
+      if (map[key] === 'REMOVED' || map[String(key)] === 'REMOVED') return 'REMOVED';
+      return map[key] || map[String(key)] || null;
+    } catch(e) { return null; }
+  }
+
+  getCallImageUrl(call: any): string {
+    if (!call) return '';
+    const candidateKeys = [call.id, String(call.id), call.callNumber, call.callId, call.call_number].filter(Boolean);
+    for (const k of candidateKeys) {
+      const mem = this.imageMemoryCache[String(k)] || this.imageMemoryCache[String(k).toLowerCase()];
+      if (mem) return mem;
+
+      const local = this.getLocalCallImage(k!);
+      if (local === 'REMOVED') return '';
+      if (local) return local;
+    }
+
+    const path = call.imageUrl || call.image || call.callImage || call.call_image || call.attachment || call.photoUrl;
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
+    const cleanPath = path.startsWith('/') ? path : '/' + path;
+    return `http://localhost:8000${cleanPath}`;
+  }
+
   normalizeCall(c: any): Call {
     if (!c) return {} as Call;
     const cNum = c.callNumber || c.callId || (c.id ? '#' + c.id : 'CALL10001');
@@ -2418,33 +2599,36 @@ export class CallManagementComponent implements OnInit {
     const map = this.getUpdatedCallMap();
     const override = map[cNum] || (rawId ? map[rawId] : null);
 
-    const customerObj = c.customerDetail || c.customer || {};
-    const contactObj = c.contactDetail || c.contact || {};
-    const productObj = c.productDetail || c.product || {};
-    const complaintObj = c.complaintDetail || c.complaint || {};
-    const dealerObj = c.dealerDetail || c.dealer || {};
+    // Merge localStorage-persisted details (set when call was first created)
+    const persisted = this.getCallDetails(cNum) || (rawId ? this.getCallDetails(rawId) : null) || {};
 
-    let rawFn = customerObj.firstName || '';
-    let rawLn = customerObj.lastName || '';
+    const customerObj = c.customerDetail || c.customer || c.customer_detail || persisted.customerDetail || c.user || {};
+    const contactObj = c.contactDetail || c.contact || c.contact_detail || persisted.contactDetail || {};
+    const productObj = c.productDetail || c.product || c.product_detail || persisted.productDetail || {};
+    const complaintObj = c.complaintDetail || c.complaint || c.complaint_detail || persisted.complaintDetail || {};
+    const dealerObj = c.dealerDetail || c.dealer || c.dealer_detail || persisted.dealerDetail || {};
+
+    let rawFn = customerObj.firstName || customerObj.first_name || customerObj.name || '';
+    let rawLn = customerObj.lastName || customerObj.last_name || '';
     if (rawFn === 'Customer') rawFn = '';
     if (rawLn === 'Name' || rawLn === '.') rawLn = '';
     
-    let name = c.customerName || `${rawFn} ${rawLn}`.trim();
+    let name = c.customerName || c.customer_name || persisted.customerName || `${rawFn} ${rawLn}`.trim();
     if (name.endsWith(' Name')) {
       name = name.substring(0, name.length - 5).trim();
     }
     if (name === 'Name') name = '';
 
-    const phone = c.customerPhone || contactObj.mobile || '';
-    const addr = c.address || `${customerObj.address1 || ''} ${customerObj.city || ''}`.trim();
-    const bId = c.brand ?? productObj.brand;
-    const pId = c.product ?? productObj.product;
-    const mId = c.model ?? productObj.model;
+    const phone = c.customerPhone || c.customer_phone || persisted.customerPhone || contactObj.mobile || contactObj.phone || contactObj.mobileNumber || c.mobile || '';
+    const addr = c.address || persisted.address || `${customerObj.address1 || customerObj.address_1 || ''} ${customerObj.city || ''}`.trim();
+    const bId = c.brand ?? c.brand_id ?? productObj.brand ?? productObj.brand_id ?? persisted.brand;
+    const pId = c.product ?? c.product_id ?? productObj.product ?? productObj.product_id ?? persisted.product;
+    const mId = c.model ?? c.model_id ?? productObj.model ?? productObj.model_id ?? persisted.model;
 
     const rawStatus = override?.status || c.status || c.callStatus || c.call_status;
-    const rawPriority = override?.priority || c.priority || complaintObj.complaintPriority || 'Medium';
-    const rawTech = override?.technicianAssigned || c.technicianAssigned;
-    const imgUrl = override?.imageUrl || c.imageUrl || c.image || c.attachment || c.photoUrl;
+    const rawPriority = override?.priority || c.priority || complaintObj.complaintPriority || complaintObj.complaint_priority || 'Medium';
+    const rawTech = override?.technicianAssigned || c.technicianAssigned || c.technician_assigned;
+    const imgUrl = this.getCallImageUrl(c) || override?.imageUrl || c.imageUrl || c.image || c.callImage || c.call_image || persisted.imageUrl || persisted.image || c.attachment || c.photoUrl;
 
     return {
       ...c,
@@ -2655,9 +2839,9 @@ export class CallManagementComponent implements OnInit {
         promiseTime: comp.promiseTime || '10:00',
         amOrPm: comp.amOrPm || 'AM'
       },
-      status: this.normalizeStatus(statusVal),
-      callStatus: this.normalizeStatus(statusVal),
-      call_status: this.normalizeStatus(statusVal),
+      status: this.mapToBackendStatus(statusVal),
+      callStatus: this.mapToBackendStatus(statusVal),
+      call_status: this.mapToBackendStatus(statusVal),
       technicianAssigned: techVal || 'Unassigned',
       createdAt: todayStr,
 
@@ -2700,37 +2884,84 @@ export class CallManagementComponent implements OnInit {
 
     const newCall = this.buildCallPayload(this.callForm.value);
 
-    const saveAndRedirect = () => {
-      const createdCall = this.normalizeCall(newCall);
-      this.calls.unshift(createdCall);
-      const cNum = createdCall.callNumber || createdCall.callId || String(createdCall.id || 'CALL10001');
-      this.saveCallOverride(cNum, createdCall.id, createdCall);
+    const saveAndRedirect = (apiRes?: any, isError: boolean = false, errorObj?: any) => {
+      // Capture image URL NOW before resetCallForm clears it
+      const capturedImageUrl = this.createCallPreviewUrl;
 
-      this.showToast('New service call registered successfully!', true);
+      if (isError) {
+        console.error('Failed to create call in backend:', errorObj);
+        const cNum = newCall.callNumber || 'CALL_ERR';
+        if (capturedImageUrl) {
+          this.saveCallImage(cNum, capturedImageUrl);
+          (newCall as any).imageUrl = capturedImageUrl;
+        }
+        const createdCall = this.normalizeCall(newCall);
+        this.saveCallDetails(cNum, newCall);
+        this.calls.unshift(createdCall);
+        this.saveCallOverride(cNum, createdCall.id, createdCall);
+        this.showToast('Call saved locally (Backend Error)', false);
+      } else {
+        const finalCall = apiRes || newCall;
+
+        // Collect ALL possible call identifiers to save image under every key
+        const backendCallNumber = finalCall.callNumber || finalCall.call_number || '';
+        const backendCallId    = finalCall.callId || finalCall.call_id || finalCall.id || '';
+        const frontendCallNum  = newCall.callNumber || '';
+
+        if (capturedImageUrl) {
+          // Save under every possible key so lookup always succeeds
+          [backendCallNumber, backendCallId, frontendCallNum]
+            .filter(k => k && k !== 'undefined')
+            .forEach(k => this.saveCallImage(String(k), capturedImageUrl));
+        }
+
+        // Embed the image URL directly in the payload before normalization
+        const mergedCall: any = { ...newCall, ...finalCall };
+        if (capturedImageUrl) {
+          mergedCall.imageUrl = capturedImageUrl;
+          mergedCall.image    = capturedImageUrl;
+        }
+
+        // Persist customer/product details under backend key
+        const cKey = backendCallNumber || backendCallId || frontendCallNum;
+        if (capturedImageUrl) mergedCall.imageUrl = capturedImageUrl;
+        this.saveCallDetails(String(cKey), mergedCall);
+        if (frontendCallNum && frontendCallNum !== cKey) {
+          this.saveCallDetails(frontendCallNum, mergedCall);
+        }
+
+        // Show immediately in table
+        const createdCall = this.normalizeCall(mergedCall);
+        this.calls.unshift(createdCall);
+
+        this.showToast('New service call registered successfully!', true);
+        this.loadCalls(); // Background refresh from DB
+      }
+      
       this.isSubmitting = false;
       this.resetCallForm();
       this.activeTab = 'list';
       this.router.navigate(['/calls'], { queryParams: { tab: 'list' } });
     };
 
-    // Timeout safety fallback after 3 seconds
+    // Timeout safety fallback after 10 seconds
     const timer = setTimeout(() => {
       if (this.isSubmitting) {
-        saveAndRedirect();
+        saveAndRedirect(null, true, 'Timeout');
       }
-    }, 3000);
+    }, 10000);
 
     this.callService.createCall(newCall).subscribe({
       next: (res: any) => {
         clearTimeout(timer);
         if (this.isSubmitting) {
-          saveAndRedirect();
+          saveAndRedirect(res, false);
         }
       },
       error: (err: any) => {
         clearTimeout(timer);
         if (this.isSubmitting) {
-          saveAndRedirect();
+          saveAndRedirect(null, true, err);
         }
       }
     });
@@ -2844,6 +3075,9 @@ export class CallManagementComponent implements OnInit {
       technicianAssigned: formValues.technicianAssigned,
       ...(imagePreview ? { imageUrl: imagePreview } : {})
     });
+    if (imagePreview) {
+      this.saveCallImage(callNum, imagePreview, callId);
+    }
 
     // Immediately reflect in UI list (including imageUrl)
     const idx = this.calls.findIndex(c => (c.callNumber || c.callId || c.id) === callNum || String(c.id) === String(callNum));
@@ -2862,9 +3096,9 @@ export class CallManagementComponent implements OnInit {
 
     if (this.quickUpdateImageFile) {
       const fd = new FormData();
-      fd.append('status', statusVal);
-      fd.append('callStatus', statusVal);
-      fd.append('call_status', statusVal);
+      fd.append('status', this.mapToBackendStatus(statusVal));
+      fd.append('callStatus', this.mapToBackendStatus(statusVal));
+      fd.append('call_status', this.mapToBackendStatus(statusVal));
       fd.append('technicianAssigned', formValues.technicianAssigned || '');
       fd.append('image', this.quickUpdateImageFile, this.quickUpdateImageFile.name);
       if (formValues.remarks) fd.append('remarks', formValues.remarks);
@@ -2892,9 +3126,9 @@ export class CallManagementComponent implements OnInit {
       });
     } else {
       const updatedPayload = {
-        status: statusVal,
-        callStatus: statusVal,
-        call_status: statusVal,
+        status: this.mapToBackendStatus(statusVal),
+        callStatus: this.mapToBackendStatus(statusVal),
+        call_status: this.mapToBackendStatus(statusVal),
         technicianAssigned: formValues.technicianAssigned,
         complaintDetail: {
           complaintPriority: formValues.priority,
@@ -2932,6 +3166,8 @@ export class CallManagementComponent implements OnInit {
       return;
     }
     this.editingCall = call;
+    this.editCallPreviewUrl = this.getCallImageUrl(call) || null;
+    this.editCallImageFile = null;
 
     const bId = Number(call.productDetail?.brand || call.brand) || (this.brands.length ? this.brands[0].id : 1);
     const pId = Number(call.productDetail?.product || call.product) || (this.products.length ? this.products[0].id : 1);
@@ -3047,7 +3283,7 @@ export class CallManagementComponent implements OnInit {
     const savedStatus = this.normalizeStatus(this.viewingCallDetails.status);
     this.saveCallOverride(callNum, this.viewingCallDetails.id, { status: savedStatus });
 
-    const updatedPayload = { status: savedStatus, callStatus: savedStatus, call_status: savedStatus };
+    const updatedPayload = { status: this.mapToBackendStatus(savedStatus), callStatus: this.mapToBackendStatus(savedStatus), call_status: this.mapToBackendStatus(savedStatus) };
     this.callService.updateCall(callNum, updatedPayload).subscribe({
       next: () => {
         this.showToast(`Call status updated to ${savedStatus}!`, true);
@@ -3112,6 +3348,14 @@ export class CallManagementComponent implements OnInit {
     const updated = this.buildCallPayload(this.editCallForm.value, callNum);
 
     const savedStatus = this.normalizeStatus(this.editStatus);
+    const capturedEditImage = this.editCallPreviewUrl;
+
+    if (capturedEditImage) {
+      this.saveCallImage(callNum, capturedEditImage, this.editingCall.id);
+    } else {
+      this.saveCallImage(callNum, 'REMOVED', this.editingCall.id);
+    }
+
     const overrideData = {
       ...this.editingCall,
       ...updated,
@@ -3120,8 +3364,16 @@ export class CallManagementComponent implements OnInit {
       technicianAssigned: updated.technicianAssigned,
       customerName: updated.customerName,
       customerPhone: updated.customerPhone,
-      address: updated.address
+      address: updated.address,
+      imageUrl: capturedEditImage || '',
+      image: capturedEditImage || ''
     };
+
+    // Save details to localStorage so they persist across refresh
+    this.saveCallDetails(callNum, updated);
+    if (this.editingCall.id) {
+      this.saveCallDetails(String(this.editingCall.id), updated);
+    }
 
     this.saveCallOverride(callNum, this.editingCall.id, overrideData);
 
@@ -3205,52 +3457,54 @@ export class CallManagementComponent implements OnInit {
 
   getCustomerName(call: Call | null): string {
     if (!call) return 'N/A';
-    let name = call.customerName || '';
-    if (call.customerDetail) {
-      let fn = call.customerDetail.firstName || '';
-      let ln = call.customerDetail.lastName || '';
-      if (fn === 'Customer') fn = '';
-      if (ln === 'Name' || ln === '.') ln = '';
-      const full = `${fn} ${ln}`.trim();
-      if (full && full !== 'N/A') name = full;
-    }
-    if (name.endsWith(' .')) name = name.substring(0, name.length - 2).trim();
-    if (name.endsWith(' Name')) {
-      name = name.substring(0, name.length - 5).trim();
-    }
-    if (name && name !== 'N/A') return name;
+    const c = call as any;
+    const cust = c.customerDetail || c.customer || c.customer_detail || c.user || {};
+    let fn = cust.firstName || cust.first_name || cust.name || c.firstName || c.first_name || c.customerName || c.customer_name || '';
+    let ln = cust.lastName || cust.last_name || c.lastName || c.last_name || '';
+    if (fn === 'Customer') fn = '';
+    if (ln === 'Name' || ln === '.') ln = '';
+    let full = `${fn} ${ln}`.trim();
+    if (full && full !== 'N/A' && full !== 'Customer') return full;
+    if (c.customerName && c.customerName !== 'Customer' && c.customerName !== 'N/A') return c.customerName;
+    if (c.customer_name && c.customer_name !== 'Customer' && c.customer_name !== 'N/A') return c.customer_name;
     return 'N/A';
   }
 
   getCustomerPhone(call: Call | null): string {
     if (!call) return 'N/A';
-    if (call.customerPhone && call.customerPhone !== 'N/A') return call.customerPhone;
-    return call.contactDetail?.mobile || 'N/A';
+    const c = call as any;
+    const cont = c.contactDetail || c.contact || c.contact_detail || c.customerDetail || c.customer || {};
+    const phone = c.customerPhone || c.customer_phone || cont.mobile || cont.phone || cont.mobileNumber || c.mobile || c.phone;
+    if (phone && phone !== 'N/A') return String(phone);
+    return 'N/A';
   }
 
   getCustomerAddress(call: Call | null): string {
     if (!call) return '';
-    if (call.address) return call.address;
-    if (call.customerDetail) {
-      const parts = [call.customerDetail.address1, call.customerDetail.locality, call.customerDetail.city, call.customerDetail.state].filter(Boolean);
-      if (parts.length) return parts.join(', ');
-    }
+    const c = call as any;
+    if (c.address && c.address !== 'N/A') return c.address;
+    const cust = c.customerDetail || c.customer || c.customer_detail || {};
+    const parts = [cust.address1 || cust.address_1, cust.locality, cust.city, cust.state].filter(Boolean);
+    if (parts.length) return parts.join(', ');
     return '';
   }
 
   getCallBrand(call: Call | null): any {
     if (!call) return null;
-    return call.brand ?? call.productDetail?.brand;
+    const c = call as any;
+    return c.brand ?? c.productDetail?.brand ?? c.product_detail?.brand ?? c.brand_id;
   }
 
   getCallProduct(call: Call | null): any {
     if (!call) return null;
-    return call.product ?? call.productDetail?.product;
+    const c = call as any;
+    return c.product ?? c.productDetail?.product ?? c.product_detail?.product ?? c.product_id;
   }
 
   getCallModel(call: Call | null): any {
     if (!call) return null;
-    return call.model ?? call.productDetail?.model;
+    const c = call as any;
+    return c.model ?? c.productDetail?.model ?? c.product_detail?.model ?? c.model_id;
   }
 
   getCallPriority(call: Call | null): string {
@@ -3258,19 +3512,43 @@ export class CallManagementComponent implements OnInit {
     return call.priority || call.complaintDetail?.complaintPriority || 'Medium';
   }
 
-  getBrandName(id?: any): string {
-    if (id === undefined || id === null) return 'N/A';
-    return this.brands.find(b => b.id === id || b.id === Number(id))?.name || `Brand #${id}`;
+  getBrandName(idOrObj?: any): string {
+    if (idOrObj === undefined || idOrObj === null || idOrObj === '') return 'N/A';
+    if (typeof idOrObj === 'object') {
+      return idOrObj.name || idOrObj.brandName || idOrObj.brand_name || 'N/A';
+    }
+    if (typeof idOrObj === 'string' && isNaN(Number(idOrObj))) {
+      return idOrObj;
+    }
+    const idNum = Number(idOrObj);
+    const found = this.brands.find(b => b.id === idNum);
+    return found ? found.name : `Brand #${idNum}`;
   }
 
-  getProductName(id?: any): string {
-    if (id === undefined || id === null) return 'N/A';
-    return this.products.find(p => p.id === id || p.id === Number(id))?.name || `Product #${id}`;
+  getProductName(idOrObj?: any): string {
+    if (idOrObj === undefined || idOrObj === null || idOrObj === '') return 'N/A';
+    if (typeof idOrObj === 'object') {
+      return idOrObj.name || idOrObj.productName || idOrObj.product_name || 'N/A';
+    }
+    if (typeof idOrObj === 'string' && isNaN(Number(idOrObj))) {
+      return idOrObj;
+    }
+    const idNum = Number(idOrObj);
+    const found = this.products.find(p => p.id === idNum);
+    return found ? found.name : `Product #${idNum}`;
   }
 
-  getModelName(id?: any): string {
-    if (id === undefined || id === null) return 'N/A';
-    return this.models.find(m => m.id === id || m.id === Number(id))?.modelName || `Model #${id}`;
+  getModelName(idOrObj?: any): string {
+    if (idOrObj === undefined || idOrObj === null || idOrObj === '') return 'N/A';
+    if (typeof idOrObj === 'object') {
+      return idOrObj.modelName || idOrObj.model_name || idOrObj.name || 'N/A';
+    }
+    if (typeof idOrObj === 'string' && isNaN(Number(idOrObj))) {
+      return idOrObj;
+    }
+    const idNum = Number(idOrObj);
+    const found = this.models.find(m => m.id === idNum);
+    return found ? found.modelName : `Model #${idNum}`;
   }
 
   getStatusClass(status?: string): string {

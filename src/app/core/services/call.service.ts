@@ -46,22 +46,32 @@ export class CallService {
   }
 
   exportCalls(filters: CallExportFilter, calls: Call[]): void {
-    const params: any = {};
+    const statusFilter = filters.status && filters.status !== 'All' ? filters.status : null;
 
-    // Send status in UPPER_SNAKE_CASE as the backend requires
-    if (filters.status && filters.status !== 'All') {
-      const backendStatus = this.toBackendStatus(filters.status);
-      params.status      = backendStatus;
-      params.call_status = backendStatus;
-      params.callStatus  = backendStatus;
+    // Try UPPER_SNAKE_CASE first (Django STATUS_CHOICES db value)
+    const upperStatus = statusFilter ? this.toBackendStatus(statusFilter) : null;
+    this.tryBackendExport(filters, upperStatus, (success) => {
+      if (success) return;
+      // Try Title Case (in case db stores display value)
+      this.tryBackendExport(filters, statusFilter, (success2) => {
+        if (success2) return;
+        // Both failed — use client-side CSV from loaded calls
+        console.warn('Backend export returned no data — using client-side CSV');
+        this.clientSideExport(filters, calls);
+      });
+    });
+  }
+
+  private tryBackendExport(filters: CallExportFilter, callStatus: string | null, callback: (success: boolean) => void): void {
+    const params: any = {};
+    if (callStatus) {
+      params.callStatus = callStatus;
     }
     if (filters.startDate) {
-      params.startDate  = filters.startDate;
-      params.start_date = filters.startDate;
+      params.startDate = filters.startDate;
     }
     if (filters.endDate) {
-      params.endDate  = filters.endDate;
-      params.end_date = filters.endDate;
+      params.endDate = filters.endDate;
     }
 
     this.http.get(`${this.apiUrl}/api/ExportCallReport/`, {
@@ -69,23 +79,23 @@ export class CallService {
       responseType: 'blob'
     }).subscribe({
       next: (blob: Blob) => {
-        if (blob.size < 100) {
-          console.warn('Backend export returned empty blob — falling back to client-side CSV');
-          this.clientSideExport(filters, calls);
-        } else {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.setAttribute('href', url);
-          a.setAttribute('download', `CallReport_${new Date().toISOString().slice(0, 10)}.xlsx`);
-          a.style.display = 'none';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+        // If blob is small (< 500 bytes), it likely has only headers and no data rows
+        if (blob.size < 500) {
+          callback(false);
+          return;
         }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.setAttribute('href', url);
+        a.setAttribute('download', `CallReport_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+        callback(true);
       },
-      error: (err) => {
-        console.warn('Backend export failed — falling back to client-side CSV', err);
-        this.clientSideExport(filters, calls);
+      error: () => {
+        callback(false);
       }
     });
   }

@@ -1,9 +1,8 @@
 export interface ProductModel {
   id?: number;
-  product: number; // Product ID
+  product: number;
   modelName: string;
+  name?: string;
   description?: string;
-  isActive?: boolean;
   createdAt?: string;
-  updatedAt?: string;
 }
