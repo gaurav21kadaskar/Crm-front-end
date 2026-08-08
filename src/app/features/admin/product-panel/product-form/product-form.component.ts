@@ -242,7 +242,7 @@ import { AuthService } from '../../../../core/services/auth.service';
                 <tr>
                   <td class="img-cell">
                     @if (product.productImage || product.product_image) {
-                      <img [src]="getImageUrl((product.productImage || product.product_image)!)" alt="Product" class="list-thumbnail" />
+                      <img [src]="getImageUrl((product.productImage || product.product_image)!)" alt="Product" class="list-thumbnail" (error)="handleImgError($event)" />
                     } @else {
                       <div class="no-image-placeholder">📦</div>
                     }
@@ -593,6 +593,13 @@ export class ProductFormComponent implements OnInit {
     if (!path || path instanceof File) return '';
     if (path.startsWith('http')) return path;
     return `${this.apiUrl}${path}`;
+  }
+
+  handleImgError(event: Event) {
+    const target = event.target as HTMLElement;
+    if (target && target.parentElement) {
+      target.parentElement.innerHTML = '<div class="no-image-placeholder">📦</div>';
+    }
   }
 
   showMessage(success: string = '', error: string = '') {

@@ -85,6 +85,8 @@ export interface Call {
   issue?: any;
   priority?: string;
   remarks?: string;
+  imageUrl?: string;
+  image?: string;
 }
 
 export interface CallExportFilter {

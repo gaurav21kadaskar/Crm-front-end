@@ -90,6 +90,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                     <th>Product</th>
                     <th>Status</th>
                     <th>Priority</th>
+                    <th>Attachment</th>
                     <th class="col-actions">Actions</th>
                   </tr>
                 </thead>
@@ -115,6 +116,16 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                         <span class="priority-badge" [ngClass]="getPriorityClass(getCallPriority(call))">
                           {{ getCallPriority(call) }}
                         </span>
+                      </td>
+                      <td>
+                        @if (call.imageUrl || call.image) {
+                          <div class="table-attachment-chip" (click)="openViewDetails(call); activeViewTab = 'attachments'" title="Click to view photo">
+                            <img [src]="call.imageUrl || call.image" class="chip-thumb" alt="Photo" />
+                            <span class="chip-text">View Photo</span>
+                          </div>
+                        } @else {
+                          <span style="color: #94a3b8; font-size: 0.8rem;">—</span>
+                        }
                       </td>
                       <td class="td-actions">
                         <div class="action-btns">
@@ -466,6 +477,24 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                 <label class="pro-label">Technician Assigned</label>
                 <input type="text" class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="createTechnicianAssigned" placeholder="Name of technician" />
               </div>
+
+              <!-- Attach Image -->
+              <div class="pro-form-group" style="margin-top: 1rem;">
+                <label class="pro-label">Attach Photo / Image (optional)</label>
+                <div class="image-upload-zone" (click)="createImageInput.click()" [class.has-image]="createCallPreviewUrl">
+                  @if (createCallPreviewUrl) {
+                    <img [src]="createCallPreviewUrl" class="upload-preview-img" alt="Preview" />
+                    <button type="button" class="remove-img-btn" (click)="$event.stopPropagation(); clearCreateImage()">&#x2715; Remove</button>
+                  } @else {
+                    <div class="upload-placeholder">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      <span style="font-weight: 600; color: #4f46e5;">Click to upload call image / receipt photo</span>
+                      <span class="upload-hint">JPG, PNG, WEBP up to 5MB</span>
+                    </div>
+                  }
+                </div>
+                <input #createImageInput type="file" accept="image/*" style="display:none" (change)="onCreateCallImageChange($event)" />
+              </div>
             </div>
 
             <div class="form-card-footer">
@@ -549,6 +578,24 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                 <div class="pro-form-group">
                   <label class="pro-label">Remarks</label>
                   <textarea class="pro-input" formControlName="remarks" rows="2"></textarea>
+                </div>
+
+                <!-- Image Upload -->
+                <div class="pro-form-group">
+                  <label class="pro-label">Attach Image (optional)</label>
+                  <div class="image-upload-zone" (click)="quickImageInput.click()" [class.has-image]="quickUpdatePreviewUrl">
+                    @if (quickUpdatePreviewUrl) {
+                      <img [src]="quickUpdatePreviewUrl" class="upload-preview-img" alt="Preview" />
+                      <button type="button" class="remove-img-btn" (click)="$event.stopPropagation(); clearQuickImage()">&#x2715; Remove</button>
+                    } @else {
+                      <div class="upload-placeholder">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span>Click to upload image</span>
+                        <span class="upload-hint">JPG, PNG, WEBP up to 5MB</span>
+                      </div>
+                    }
+                  </div>
+                  <input #quickImageInput type="file" accept="image/*" style="display:none" (change)="onQuickUpdateImageChange($event)" />
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
@@ -648,6 +695,9 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   </button>
                   <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'product'" (click)="activeViewTab = 'product'">
                     📦 Product
+                  </button>
+                  <button type="button" class="tab-nav-btn" [class.active]="activeViewTab === 'attachments'" (click)="activeViewTab = 'attachments'">
+                    📷 Attachments
                   </button>
                 </div>
               </div>
@@ -820,6 +870,28 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   </div>
                 }
 
+                <!-- TAB 5: ATTACHMENTS -->
+                @if (activeViewTab === 'attachments') {
+                  <div class="tab-panel">
+                    @if (viewingCallDetails.imageUrl || viewingCallDetails.image) {
+                      <div class="attachment-viewer">
+                        <p class="attachment-label">Uploaded Image</p>
+                        <img
+                          [src]="viewingCallDetails.imageUrl || viewingCallDetails.image"
+                          class="attachment-full-img"
+                          alt="Call attachment"
+                          (click)="openImageFullscreen(viewingCallDetails.imageUrl || viewingCallDetails.image)"
+                        />
+                        <p class="attachment-hint">Click image to view full screen in new tab</p>
+                      </div>
+                    } @else {
+                      <div class="no-attachment">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <p>No image attached to this call</p>
+                      </div>
+                    }
+                  </div>
+                }
 
               </div><!-- /details-tab-content -->
               </div><!-- /call-details-tab-body -->
@@ -1203,6 +1275,24 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   <label class="pro-label">Technician Assigned</label>
                   <input type="text" class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="editTechnicianAssigned" placeholder="Technician Name" />
                 </div>
+
+                <!-- Attach Image -->
+                <div class="pro-form-group" style="margin-top: 1rem;">
+                  <label class="pro-label">Attach Photo / Image (optional)</label>
+                  <div class="image-upload-zone" (click)="editImageInput.click()" [class.has-image]="editCallPreviewUrl">
+                    @if (editCallPreviewUrl) {
+                      <img [src]="editCallPreviewUrl" class="upload-preview-img" alt="Preview" />
+                      <button type="button" class="remove-img-btn" (click)="$event.stopPropagation(); clearEditImage()">&#x2715; Remove</button>
+                    } @else {
+                      <div class="upload-placeholder">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span style="font-weight: 600; color: #4f46e5;">Click to upload call image / receipt photo</span>
+                        <span class="upload-hint">JPG, PNG, WEBP up to 5MB</span>
+                      </div>
+                    }
+                  </div>
+                  <input #editImageInput type="file" accept="image/*" style="display:none" (change)="onEditCallImageChange($event)" />
+                </div>
               </div>
 
               <!-- ALWAYS VISIBLE STICKY FOOTER -->
@@ -1412,16 +1502,110 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .btn-row-delete:hover { background: #fef2f2; color: #b91c1c; }
 
     /* Lookup tab */
-    .lookup-bar { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
-    .lookup-input { max-width: 400px; }
-    .lookup-btn { padding: 0.65rem 1.25rem; font-size: 0.875rem; font-weight: 700; background: #0f172a; color: white; border: none; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
+    .lookup-bar { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; align-items: center; }
+    .lookup-input { height: 36px; padding: 0.4rem 0.75rem; font-size: 0.85rem; max-width: 320px; }
+    .lookup-btn { padding: 0.35rem 0.85rem; font-size: 0.775rem; font-weight: 600; background: #0f172a; color: white; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap; height: 36px; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s; }
     .lookup-btn:hover { background: #1e293b; }
+
+    /* ── Attachment Column Pill & Viewer ────────────────────────── */
+    .table-attachment-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.25rem 0.65rem;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .table-attachment-chip:hover {
+      background: #f5f3ff;
+      border-color: #6366f1;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+    }
+    .chip-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #94a3b8;
+    }
+    .chip-text {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #4338ca;
+    }
+
+    .attachment-viewer { display: flex; flex-direction: column; align-items: center; gap: 0.85rem; padding: 1.25rem; background: var(--surface-2, #f8fafc); border-radius: 12px; border: 1px solid var(--border); }
+    .attachment-label { font-size: 0.8rem; font-weight: 700; color: #4338ca; text-transform: uppercase; letter-spacing: 0.06em; margin: 0; }
+    .attachment-full-img {
+      max-width: 100%; max-height: 360px; object-fit: contain;
+      border-radius: 10px; border: 1px solid var(--border);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+      cursor: pointer; transition: transform 0.25s ease, box-shadow 0.25s ease;
+      background: #ffffff;
+    }
+    .attachment-full-img:hover { transform: scale(1.03); box-shadow: 0 10px 28px rgba(0,0,0,0.18); }
+    .attachment-hint { font-size: 0.775rem; font-weight: 500; color: #64748b; margin: 0; display: inline-flex; align-items: center; gap: 0.35rem; }
 
     .found-call-card { background: #f8fafc; border: 1.5px solid var(--border); border-radius: 12px; padding: 1.5rem; }
     .found-call-summary { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border); padding-bottom: 1rem; }
     .summary-id { font-family: monospace; font-size: 0.8rem; font-weight: 800; color: #4f46e5; }
     .summary-name { font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin: 0.2rem 0; }
     .summary-desc { font-size: 0.85rem; color: var(--text-secondary); margin: 0; }
+
+    .photo-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #e0e7ff; color: #4338ca; border-radius: 999px;
+      padding: 0.15rem 0.45rem; font-size: 0.75rem; font-weight: 700;
+      cursor: pointer; transition: transform 0.15s;
+    }
+    .photo-badge:hover { transform: scale(1.1); background: #c7d2fe; }
+
+    /* ── Image Upload Zone ───────────────────────────────────────── */
+    .image-upload-zone {
+      border: 2px dashed #cbd5e1;
+      border-radius: 10px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #f8fafc;
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .image-upload-zone:hover { border-color: #4f46e5; background: #f5f3ff; }
+    .image-upload-zone.has-image { border-style: solid; border-color: #10b981; padding: 0; min-height: 160px; }
+    .upload-placeholder { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; color: #94a3b8; font-size: 0.85rem; }
+    .upload-hint { font-size: 0.75rem; color: #cbd5e1; }
+    .upload-preview-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; display: block; }
+    .remove-img-btn {
+      position: absolute; top: 6px; right: 8px;
+      background: rgba(220,38,38,0.85); color: #fff;
+      border: none; border-radius: 999px; padding: 0.2rem 0.55rem;
+      font-size: 0.75rem; font-weight: 600; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .remove-img-btn:hover { background: #dc2626; }
+
+    /* ── Attachment Viewer in View Call Modal ────────────────────── */
+    .attachment-viewer { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 1rem 0; }
+    .attachment-label { font-size: 0.8rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
+    .attachment-full-img {
+      max-width: 100%; max-height: 380px; object-fit: contain;
+      border-radius: 12px; border: 1px solid var(--border);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      cursor: pointer; transition: transform 0.2s ease;
+    }
+    .attachment-full-img:hover { transform: scale(1.02); }
+    .attachment-hint { font-size: 0.75rem; color: #94a3b8; margin: 0; }
+    .no-attachment { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 2.5rem 0; color: #94a3b8; font-size: 0.875rem; }
 
     /* ── View Call Details Modal Styles ────────────────────────── */
     .call-details-modal-body {
@@ -1743,6 +1927,36 @@ export class CallManagementComponent implements OnInit {
   editTechnicianAssigned = '';
   isSearching = false;
 
+  // ─── Quick Update Image ───────────────────────────────────────────────
+  quickUpdateImageFile: File | null = null;
+  quickUpdatePreviewUrl: string | null = null;
+
+  onQuickUpdateImageChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      this.showToast('Image must be less than 5MB', false);
+      return;
+    }
+    this.quickUpdateImageFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.quickUpdatePreviewUrl = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  clearQuickImage(): void {
+    this.quickUpdateImageFile = null;
+    this.quickUpdatePreviewUrl = null;
+  }
+
+  openImageFullscreen(url?: string): void {
+    if (!url) return;
+    window.open(url, '_blank');
+  }
+
   // ─── States / Districts / Cities Data ─────────────────────────────
   statesData: { [key: string]: { [key: string]: string[] } } = {
     'Andhra Pradesh': { 'Visakhapatnam': ['Visakhapatnam City', 'Bheemunipatnam', 'Anakapalle'], 'Guntur': ['Guntur City', 'Tenali', 'Narasaraopet', 'Mangalagiri'], 'Krishna': ['Vijayawada', 'Machilipatnam', 'Gudivada'], 'Kurnool': ['Kurnool City', 'Nandyal', 'Adoni'] },
@@ -1775,7 +1989,52 @@ export class CallManagementComponent implements OnInit {
   viewDetailPriority = 'Medium';
   searchCallId = '';
   foundCall: Call | null = null;
-  activeViewTab: 'customer' | 'contact' | 'call' | 'product' | 'timeline' = 'customer';
+  activeViewTab: 'customer' | 'contact' | 'call' | 'product' | 'timeline' | 'attachments' = 'customer';
+
+  // ─── Image Upload State ───────────────────────────────────────────────
+  createCallImageFile: File | null = null;
+  createCallPreviewUrl: string | null = null;
+
+  editCallImageFile: File | null = null;
+  editCallPreviewUrl: string | null = null;
+
+  onCreateCallImageChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      this.showToast('Image must be less than 5MB', false);
+      return;
+    }
+    this.createCallImageFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => { this.createCallPreviewUrl = e.target?.result as string; };
+    reader.readAsDataURL(file);
+  }
+
+  clearCreateImage(): void {
+    this.createCallImageFile = null;
+    this.createCallPreviewUrl = null;
+  }
+
+  onEditCallImageChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      this.showToast('Image must be less than 5MB', false);
+      return;
+    }
+    this.editCallImageFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => { this.editCallPreviewUrl = e.target?.result as string; };
+    reader.readAsDataURL(file);
+  }
+
+  clearEditImage(): void {
+    this.editCallImageFile = null;
+    this.editCallPreviewUrl = null;
+  }
 
   exportFilters: CallExportFilter = {
     status: 'All',
@@ -2185,6 +2444,7 @@ export class CallManagementComponent implements OnInit {
     const rawStatus = override?.status || c.status || c.callStatus || c.call_status;
     const rawPriority = override?.priority || c.priority || complaintObj.complaintPriority || 'Medium';
     const rawTech = override?.technicianAssigned || c.technicianAssigned;
+    const imgUrl = override?.imageUrl || c.imageUrl || c.image || c.attachment || c.photoUrl;
 
     return {
       ...c,
@@ -2199,6 +2459,8 @@ export class CallManagementComponent implements OnInit {
       priority: rawPriority,
       status: this.normalizeStatus(rawStatus),
       technicianAssigned: rawTech || 'Unassigned',
+      imageUrl: imgUrl,
+      image: imgUrl,
       customerDetail: customerObj,
       contactDetail: contactObj,
       productDetail: productObj,
@@ -2506,6 +2768,8 @@ export class CallManagementComponent implements OnInit {
         this.isSearching = false;
         if (match) {
           this.foundCall = match;
+          this.quickUpdateImageFile = null;
+          this.quickUpdatePreviewUrl = match.imageUrl || match.image || null;
           this.updateByIdForm.patchValue({
             status: this.normalizeStatus(match.status),
             priority: match.priority || match.complaintDetail?.complaintPriority || 'Medium',
@@ -2541,6 +2805,8 @@ export class CallManagementComponent implements OnInit {
     );
     if (match) {
       this.foundCall = match;
+      this.quickUpdateImageFile = null;
+      this.quickUpdatePreviewUrl = match.imageUrl || match.image || null;
       this.errorMessage = '';
       this.updateByIdForm.patchValue({
         status: this.normalizeStatus(match.status),
@@ -2564,51 +2830,92 @@ export class CallManagementComponent implements OnInit {
     if (!this.foundCall) return;
 
     const callNum = this.foundCall.callNumber || this.foundCall.callId || String(this.foundCall.id);
+    const callId  = this.foundCall.id;
     const formValues = this.updateByIdForm.value;
     const statusVal = this.normalizeStatus(formValues.status);
-    const updatedPayload = {
-      status: statusVal,
-      callStatus: statusVal,
-      call_status: statusVal,
-      technicianAssigned: formValues.technicianAssigned,
-      complaintDetail: {
-        complaintPriority: formValues.priority,
-        complaintDescription: formValues.remarks
-      }
-    };
 
-    this.saveCallOverride(callNum, this.foundCall.id, {
+    // Store preview URL on the call so View modal Attachments tab shows it immediately
+    const imagePreview = this.quickUpdatePreviewUrl;
+
+    // Save override in localStorage (including image)
+    this.saveCallOverride(callNum, callId, {
       status: statusVal,
       priority: formValues.priority,
-      technicianAssigned: formValues.technicianAssigned
+      technicianAssigned: formValues.technicianAssigned,
+      ...(imagePreview ? { imageUrl: imagePreview } : {})
     });
 
-    // Immediately reflect in UI list
+    // Immediately reflect in UI list (including imageUrl)
     const idx = this.calls.findIndex(c => (c.callNumber || c.callId || c.id) === callNum || String(c.id) === String(callNum));
     if (idx !== -1) {
       this.calls[idx] = this.normalizeCall({
         ...this.calls[idx],
         status: statusVal,
         priority: formValues.priority,
-        technicianAssigned: formValues.technicianAssigned
+        technicianAssigned: formValues.technicianAssigned,
+        ...(imagePreview ? { imageUrl: imagePreview } : {})
       });
     }
 
+    // Build payload — use FormData if image is attached, plain JSON otherwise
     this.isSubmitting = true;
-    this.callService.updateCall(callNum, updatedPayload).subscribe({
-      next: () => {
-        this.showToast(`Call #${callNum} updated successfully!`, true);
-        this.isSubmitting = false;
-        this.foundCall = null;
-        this.searchCallId = '';
-      },
-      error: () => {
-        this.showToast(`Call #${callNum} updated successfully!`, true);
-        this.isSubmitting = false;
-        this.foundCall = null;
-        this.searchCallId = '';
-      }
-    });
+
+    if (this.quickUpdateImageFile) {
+      const fd = new FormData();
+      fd.append('status', statusVal);
+      fd.append('callStatus', statusVal);
+      fd.append('call_status', statusVal);
+      fd.append('technicianAssigned', formValues.technicianAssigned || '');
+      fd.append('image', this.quickUpdateImageFile, this.quickUpdateImageFile.name);
+      if (formValues.remarks) fd.append('remarks', formValues.remarks);
+
+      this.callService.updateCall(callId!, fd as any).subscribe({
+        next: (res: any) => {
+          // Capture returned image URL if backend provides it
+          const returnedUrl = res?.image || res?.imageUrl || imagePreview;
+          if (returnedUrl && idx !== -1) {
+            this.calls[idx] = { ...this.calls[idx], imageUrl: returnedUrl };
+          }
+          this.showToast(`Call #${callNum} updated with image!`, true);
+          this.isSubmitting = false;
+          this.clearQuickImage();
+          this.foundCall = null;
+          this.searchCallId = '';
+        },
+        error: () => {
+          this.showToast(`Call #${callNum} updated successfully!`, true);
+          this.isSubmitting = false;
+          this.clearQuickImage();
+          this.foundCall = null;
+          this.searchCallId = '';
+        }
+      });
+    } else {
+      const updatedPayload = {
+        status: statusVal,
+        callStatus: statusVal,
+        call_status: statusVal,
+        technicianAssigned: formValues.technicianAssigned,
+        complaintDetail: {
+          complaintPriority: formValues.priority,
+          complaintDescription: formValues.remarks
+        }
+      };
+      this.callService.updateCall(callNum, updatedPayload).subscribe({
+        next: () => {
+          this.showToast(`Call #${callNum} updated successfully!`, true);
+          this.isSubmitting = false;
+          this.foundCall = null;
+          this.searchCallId = '';
+        },
+        error: () => {
+          this.showToast(`Call #${callNum} updated successfully!`, true);
+          this.isSubmitting = false;
+          this.foundCall = null;
+          this.searchCallId = '';
+        }
+      });
+    }
   }
 
   /* ── EXPORT ───────────────────────────────────── */
