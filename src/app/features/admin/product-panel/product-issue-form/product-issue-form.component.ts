@@ -13,7 +13,7 @@ import { AuthService } from '../../../../core/services/auth.service';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="panel-section animate-fade-in">
-      @if (authService.getRole() !== 'Customer') {
+      @if (authService.getRole() === 'Admin') {
         <div class="create-toggle-container">
           <button class="create-toggle-btn" (click)="showCreateForm = true">
             <span class="plus-icon">+</span>
@@ -174,7 +174,7 @@ import { AuthService } from '../../../../core/services/auth.service';
                 <th>Issue Name</th>
                 <th>Product</th>
                 <th>Description</th>
-                @if (authService.getRole() !== 'Customer') {
+                @if (authService.getRole() === 'Admin') {
                   <th style="width: 180px;">Actions</th>
                 }
               </tr>
@@ -186,7 +186,7 @@ import { AuthService } from '../../../../core/services/auth.service';
                   <td class="name-cell">{{ issue.issueName }}</td>
                   <td class="product-cell">{{ getProductName(issue.product) }}</td>
                   <td class="desc-cell">{{ issue.description || '—' }}</td>
-                  @if (authService.getRole() !== 'Customer') {
+                  @if (authService.getRole() === 'Admin') {
                     <td class="actions-cell">
                       @if (deletingIssueId === issue.id) {
                         <div class="delete-confirm-box">
@@ -219,6 +219,17 @@ import { AuthService } from '../../../../core/services/auth.service';
     .pro-form-group { margin-bottom: 1.25rem; }
     .pro-label { display: block; font-size: 0.875rem; font-weight: 500; color: #334155; margin-bottom: 0.5rem; }
     .pro-input { width: 100%; padding: 0.625rem 0.875rem; font-size: 0.95rem; color: var(--text-primary); background-color: var(--surface); border: 1px solid #cbd5e1; border-radius: 6px; transition: border-color 0.15s, box-shadow 0.15s; box-sizing: border-box; font-family: inherit; }
+    select.pro-input {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.85rem center;
+      background-size: 14px;
+      padding-right: 2.25rem;
+      cursor: pointer;
+    }
     .pro-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.15); }
     .pro-input.pro-invalid { border-color: #ef4444; }
     .pro-error { color: #ef4444; font-size: 0.825rem; margin-top: 0.375rem; }

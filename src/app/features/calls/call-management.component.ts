@@ -425,7 +425,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                     <select class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="createStatus">
                       <option value="Open">Open</option>
                       <option value="In Progress">In Progress</option>
-                      <option value="Resolved">Resolved</option>
+                      <option value="Completed">Completed</option>
                       <option value="Closed">Closed</option>
                       <option value="Cancelled">Cancelled</option>
                     </select>
@@ -526,7 +526,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                     <select class="pro-input" formControlName="status">
                       <option value="Open">Open</option>
                       <option value="In Progress">In Progress</option>
-                      <option value="Resolved">Resolved</option>
+                      <option value="Completed">Completed</option>
                       <option value="Closed">Closed</option>
                       <option value="Cancelled">Cancelled</option>
                     </select>
@@ -843,7 +843,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
               <h3 class="modal-title">Export Calls Data</h3>
               <button class="modal-close" (click)="showExportModal = false">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body modal-body-padded">
               <p class="export-intro">Configure filter options to export your customer calls CSV report.</p>
 
               <div class="export-date-row">
@@ -861,31 +861,11 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                 <label class="pro-label">Filter by Status</label>
                 <select class="pro-input" [(ngModel)]="exportFilters.status">
                   <option value="All">All Statuses</option>
-                  <option value="Pending">Pending</option>
+                  <option value="Open">Open</option>
                   <option value="In Progress">In Progress</option>
-                  <option value="Resolved">Resolved</option>
+                  <option value="Completed">Completed</option>
                   <option value="Closed">Closed</option>
-                </select>
-              </div>
-
-              <div class="pro-form-group">
-                <label class="pro-label">Filter by Priority</label>
-                <select class="pro-input" [(ngModel)]="exportFilters.priority">
-                  <option value="All">All Priorities</option>
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                  <option value="Urgent">Urgent</option>
-                </select>
-              </div>
-
-              <div class="pro-form-group">
-                <label class="pro-label">Filter by Brand</label>
-                <select class="pro-input" [(ngModel)]="exportFilters.brandId">
-                  <option value="All">All Brands</option>
-                  @for (b of brands; track b.id) {
-                    <option [value]="b.id">{{ b.name }}</option>
-                  }
+                  <option value="Cancelled">Cancelled</option>
                 </select>
               </div>
             </div>
@@ -912,7 +892,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
             </div>
             
             <form [formGroup]="editCallForm" (ngSubmit)="onSaveEditCall()" class="modal-form-container">
-              <div class="modal-body">
+              <div class="modal-body modal-body-padded">
                 
                 <!-- 1. CUSTOMER DETAIL -->
                 <div class="section-divider">👤 1. Customer Details</div>
@@ -1182,7 +1162,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                       <select class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="editStatus">
                         <option value="Open">Open</option>
                         <option value="In Progress">In Progress</option>
-                        <option value="Resolved">Resolved</option>
+                        <option value="Completed">Completed</option>
                         <option value="Closed">Closed</option>
                         <option value="Cancelled">Cancelled</option>
                       </select>
@@ -1669,6 +1649,20 @@ import { ProductIssue } from '../../core/models/product-issue.model';
       width: 100%; 
       box-sizing: border-box; 
     }
+    .modal-body-padded {
+      padding: 1.25rem 1.75rem !important;
+    }
+    select.pro-input {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.85rem center;
+      background-size: 14px;
+      padding-right: 2.25rem;
+      cursor: pointer;
+    }
     .modal-footer { 
       flex-shrink: 0;
       padding: 1rem 1.75rem; 
@@ -1869,10 +1863,10 @@ export class CallManagementComponent implements OnInit {
         icon: '⚡',
         completed: true
       });
-    } else if (call.status === 'Resolved') {
+    } else if (call.status === 'Resolved' || call.status === 'Completed') {
       steps.push({
-        title: 'Resolved',
-        description: 'The reported issue was successfully resolved.',
+        title: 'Completed',
+        description: 'The reported issue was successfully completed.',
         date: dateStr,
         time: '04:00 PM',
         icon: '✅',
@@ -1880,8 +1874,8 @@ export class CallManagementComponent implements OnInit {
       });
     } else if (call.status === 'Closed') {
       steps.push({
-        title: 'Resolved',
-        description: 'The reported issue was resolved.',
+        title: 'Completed',
+        description: 'The reported issue was completed.',
         date: dateStr,
         time: '04:00 PM',
         icon: '✅',
@@ -2059,29 +2053,8 @@ export class CallManagementComponent implements OnInit {
     this.loading = true;
     this.callService.getCalls().subscribe({
       next: (res: any) => {
-        let raw = this.parseArray(res);
-        if (this.authService.getRole() === 'Distributor') {
-          const uId = this.authService.getUserId();
-          const uName = (this.authService.getUsername() || '').toLowerCase();
-          raw = raw.filter((c: any) => {
-            const callUserId = c.user_id || c.user || c.customer_id || c.created_by || c.customer_user_id;
-            if (uId && callUserId && String(callUserId) === String(uId)) {
-              return true;
-            }
-            const cFirstName = (c.customerDetail?.firstName || '').toLowerCase();
-            const cLastName = (c.customerDetail?.lastName || '').toLowerCase();
-            const cName = (c.customerName || `${cFirstName} ${cLastName}`).toLowerCase();
-            const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
-
-            if (uName && uName.length > 0 && uName !== 'distributor') {
-              const parts = uName.split(/[\s._-]+/).filter(p => p.length > 1);
-              const matchesName = parts.some(p => cName.includes(p));
-              const matchesEmail = cEmail && parts.some(p => cEmail.includes(p));
-              return matchesName || matchesEmail;
-            }
-            return false;
-          });
-        }
+        const raw = this.parseArray(res);
+        // Show ALL data returned by backend — no client-side filtering
         this.calls = raw.map((c: any) => this.normalizeCall(c));
         this.loading = false;
       },
@@ -2126,41 +2099,19 @@ export class CallManagementComponent implements OnInit {
             complaintDetail: { callType: 'Repair', complaintPriority: 'Medium', complaintDescription: 'Washing Machine Drainage Leak' }
           }
         ];
-        if (this.authService.getRole() === 'Distributor') {
-          const uId = this.authService.getUserId();
-          const uName = (this.authService.getUsername() || '').toLowerCase();
-          raw = raw.filter((c: any) => {
-            const callUserId = c.user_id || c.user || c.customer_id || c.created_by || c.customer_user_id;
-            if (uId && callUserId && String(callUserId) === String(uId)) {
-              return true;
-            }
-            const cFirstName = (c.customerDetail?.firstName || '').toLowerCase();
-            const cLastName = (c.customerDetail?.lastName || '').toLowerCase();
-            const cName = (c.customerName || `${cFirstName} ${cLastName}`).toLowerCase();
-            const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
-
-            if (uName && uName.length > 0 && uName !== 'distributor') {
-              const parts = uName.split(/[\s._-]+/).filter(p => p.length > 1);
-              const matchesName = parts.some(p => cName.includes(p));
-              const matchesEmail = cEmail && parts.some(p => cEmail.includes(p));
-              return matchesName || matchesEmail;
-            }
-            return false;
-          });
-        }
-        this.calls = raw.map(c => this.normalizeCall(c));
+        // Show ALL fallback data — no client-side filtering
+        this.calls = raw.map((c: any) => this.normalizeCall(c));
         this.loading = false;
       }
     });
   }
 
-  /** Maps any backend status string to the exact Title Case choice value expected by Django API */
   normalizeStatus(status?: string): string {
     if (!status) return 'Open';
     const s = String(status).trim().toUpperCase().replace(/[\s_-]+/g, '');
     if (s === 'OPEN' || s === 'PENDING') return 'Open';
     if (s === 'INPROGRESS') return 'In Progress';
-    if (s === 'RESOLVED' || s === 'COMPLETED') return 'Resolved';
+    if (s === 'RESOLVED' || s === 'COMPLETED') return 'Completed';
     if (s === 'CLOSED') return 'Closed';
     if (s === 'CANCELLED' || s === 'CANCELED') return 'Cancelled';
     return 'Open';
@@ -3017,9 +2968,9 @@ export class CallManagementComponent implements OnInit {
 
   getStatusClass(status?: string): string {
     if (!status) return 'status-pending';
-    const s = status.toUpperCase();
+    const s = status.toUpperCase().trim().replace(/[\s_-]+/g, '');
     if (s === 'OPEN' || s === 'PENDING') return 'status-pending';
-    if (s === 'IN_PROGRESS' || s === 'IN PROGRESS') return 'status-progress';
+    if (s === 'INPROGRESS') return 'status-progress';
     if (s === 'COMPLETED' || s === 'RESOLVED') return 'status-resolved';
     if (s === 'CLOSED' || s === 'CANCELLED' || s === 'CANCELED') return 'status-closed';
     return 'status-pending';

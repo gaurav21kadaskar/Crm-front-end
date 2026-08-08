@@ -11,7 +11,7 @@ import { AuthService } from '../../../../core/services/auth.service';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="panel-section animate-fade-in">
-      @if (authService.getRole() !== 'Customer') {
+      @if (authService.getRole() === 'Admin') {
         <div class="create-toggle-container">
           <button class="create-toggle-btn" (click)="showCreateForm = true">
             <span class="plus-icon">+</span>
@@ -143,7 +143,7 @@ import { AuthService } from '../../../../core/services/auth.service';
                 <th>#</th>
                 <th>Brand Name</th>
                 <th>Description</th>
-                @if (authService.getRole() !== 'Customer') {
+                @if (authService.getRole() === 'Admin') {
                   <th style="width: 180px;">Actions</th>
                 }
               </tr>
@@ -154,7 +154,7 @@ import { AuthService } from '../../../../core/services/auth.service';
                   <td class="id-cell">{{ brand.id }}</td>
                   <td class="name-cell">{{ brand.name }}</td>
                   <td class="desc-cell">{{ brand.description || '—' }}</td>
-                  @if (authService.getRole() !== 'Customer') {
+                  @if (authService.getRole() === 'Admin') {
                     <td class="actions-cell">
                       @if (deletingBrandId === brand.id) {
                         <div class="delete-confirm-box">

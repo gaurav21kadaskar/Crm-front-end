@@ -127,6 +127,29 @@ import { CallService } from '../../core/services/call.service';
                 }
               </li>
             }
+
+            <!-- Distributor: Read-only Product Catalog -->
+            @if (authService.getRole() === 'Distributor') {
+              <p class="nav-section-label" style="margin-top: 1.5rem;">Product Catalog</p>
+              <li class="nav-item">
+                <button (click)="toggleProductMenu()" class="nav-link-btn" [class.open]="isProductMenuOpen">
+                  <div class="nav-link-btn-left">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                    <span>Product Management</span>
+                  </div>
+                  <svg class="chevron-icon" [class.rotated]="isProductMenuOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                @if (isProductMenuOpen) {
+                  <ul class="submenu animate-fade-in">
+                    <li><a routerLink="/admin/brands"   routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Brands</a></li>
+                    <li><a routerLink="/admin/products" routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Products</a></li>
+                    <li><a routerLink="/admin/models"   routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Models</a></li>
+                    <li><a routerLink="/admin/issues"   routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Issues</a></li>
+                    <li><a routerLink="/admin/parts"    routerLinkActive="active" class="submenu-link"><span class="submenu-dot"></span> Parts</a></li>
+                  </ul>
+                }
+              </li>
+            }
           </ul>
         </nav>
       </aside>

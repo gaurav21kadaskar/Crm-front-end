@@ -38,6 +38,7 @@ import { Subscription, interval } from 'rxjs';
 
       <!-- Non-Customer Stats Grid -->
       @if (authService.getRole() !== 'Customer') {
+
         <div class="stats-grid">
           <div class="stat-card stat-card--purple">
             <div class="stat-icon-wrap calls-icon">
@@ -77,9 +78,9 @@ import { Subscription, interval } from 'rxjs';
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
             <div class="stat-details">
-              <span class="stat-label">RESOLVED CALLS</span>
+              <span class="stat-label">COMPLETED CALLS</span>
               <span class="stat-value">{{ stats.resolvedCalls }}</span>
-              <span class="stat-subtext">Closed &amp; resolved</span>
+              <span class="stat-subtext">Completed calls</span>
             </div>
           </div>
         </div>
@@ -257,6 +258,48 @@ import { Subscription, interval } from 'rxjs';
   styles: [`
     .dashboard-container {
       color: var(--text-primary);
+    }
+
+    /* ── Real-time Live Indicator ─────────────────── */
+    .realtime-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+      padding: 0.4rem 0.85rem;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 999px;
+      width: fit-content;
+      font-size: 0.72rem;
+      font-weight: 500;
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+      animation: livePulse 1.4s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes livePulse {
+      0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.6); }
+      70%  { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+    }
+    .live-label {
+      color: #10b981;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      font-size: 0.7rem;
+    }
+    .live-separator { color: #94a3b8; }
+    .live-updated { color: #64748b; }
+    .live-info {
+      color: #94a3b8;
+      font-size: 0.68rem;
+      margin-left: 0.25rem;
     }
 
     /* ── Welcome Banner ─────────────────────────── */
@@ -648,6 +691,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private modelService = inject(ProductModelService);
   private partService = inject(ProductPartService);
   private refreshSub?: Subscription;
+  private callPollSub?: Subscription;
+  lastUpdated: Date = new Date();
 
   refreshing = false;
 
@@ -681,13 +726,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Load full data (brands, products, models, parts, calls) on init
     this.loadData();
-    // Auto-refresh every 30 seconds
-    this.refreshSub = interval(30000).subscribe(() => this.loadData());
+    // Poll ONLY calls every 10 seconds — lightweight real-time stats
+    this.callPollSub = interval(10000).subscribe(() => {
+      if (this.authService.getRole() !== 'Customer') {
+        this.loadCalls();
+      }
+    });
   }
 
   ngOnDestroy() {
     this.refreshSub?.unsubscribe();
+    this.callPollSub?.unsubscribe();
   }
 
   manualRefresh() {
@@ -831,6 +882,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   processCalls(rawCalls: any[]) {
+    this.lastUpdated = new Date();
     const map = this.getUpdatedCallMap();
     let filteredCalls = rawCalls.map(c => {
       const cNum = c.callNumber || c.callId || (c.id ? '#' + c.id : '');
@@ -857,28 +909,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return c;
     });
 
-    if (this.authService.getRole() === 'Distributor') {
-      const uId = this.authService.getUserId();
-      const uName = (this.authService.getUsername() || '').toLowerCase();
-      filteredCalls = filteredCalls.filter((c: any) => {
-        const callUserId = c.user_id || c.user || c.customer_id || c.created_by || c.customer_user_id;
-        if (uId && callUserId && String(callUserId) === String(uId)) {
-          return true;
-        }
-        const cFirstName = (c.customerDetail?.firstName || '').toLowerCase();
-        const cLastName = (c.customerDetail?.lastName || '').toLowerCase();
-        const cName = (c.customerName || `${cFirstName} ${cLastName}`).toLowerCase();
-        const cEmail = (c.contactDetail?.email || c.email || '').toLowerCase();
-
-        if (uName && uName.length > 0 && uName !== 'distributor') {
-          const parts = uName.split(/[\s._-]+/).filter(p => p.length > 1);
-          const matchesName = parts.some(p => cName.includes(p));
-          const matchesEmail = cEmail && parts.some(p => cEmail.includes(p));
-          return matchesName || matchesEmail;
-        }
-        return false;
-      });
-    }
+    // No client-side filtering — show ALL calls the backend returns
 
     // Sort calls by ID / creation desc
     filteredCalls.sort((a, b) => {
@@ -912,11 +943,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.recentCalls = filteredCalls.slice(0, 5).map(c => {
       const pId = c.productDetail?.product || c.product;
       let rawStatus = c.status || 'Open';
-      // Normalize 'OPEN' -> 'Open', 'IN_PROGRESS' -> 'In Progress', 'RESOLVED' -> 'Resolved'
+      // Normalize status strings
       const up = rawStatus.toUpperCase().replace(/[\s_-]+/g, '');
       if (up === 'OPEN' || up === 'PENDING') rawStatus = 'Open';
       else if (up === 'INPROGRESS') rawStatus = 'In Progress';
-      else if (up === 'RESOLVED') rawStatus = 'Resolved';
+      else if (up === 'RESOLVED' || up === 'COMPLETED') rawStatus = 'Completed';
       else if (up === 'CLOSED') rawStatus = 'Closed';
       else if (up === 'CANCELLED' || up === 'CANCELED') rawStatus = 'Cancelled';
 
@@ -966,8 +997,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const s = status.toUpperCase().replace(/[\s_-]+/g, '');
     if (s === 'PENDING' || s === 'OPEN') return 'status-pending';
     if (s === 'INPROGRESS') return 'status-progress';
-    if (s === 'RESOLVED' || s === 'CLOSED' || s === 'COMPLETED') return 'status-resolved';
-    if (s === 'CANCELLED' || s === 'CANCELED') return 'status-closed';
+    if (s === 'RESOLVED' || s === 'COMPLETED') return 'status-resolved';
+    if (s === 'CLOSED' || s === 'CANCELLED' || s === 'CANCELED') return 'status-closed';
     return 'status-pending';
   }
 }
