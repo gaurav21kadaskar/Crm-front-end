@@ -3080,6 +3080,11 @@ export class CallManagementComponent implements OnInit {
     } catch (e) {}
     this.callService.getCalls().subscribe({
       next: (res: any) => {
+        // Clear stale local status overrides so backend is always 100% in sync
+        try {
+          localStorage.removeItem('crm_updated_calls_map');
+        } catch (e) {}
+
         const raw = this.parseArray(res);
         // Show ALL calls from backend — backend already filters by user/brand
         let mapped = raw.map((c: any) => this.normalizeCall(c));
@@ -3414,10 +3419,10 @@ export class CallManagementComponent implements OnInit {
     const pId = c.product ?? c.product_id ?? productObj.product ?? productObj.product_id ?? persisted.product;
     const mId = c.model ?? c.model_id ?? productObj.model ?? productObj.model_id ?? persisted.model;
 
-    const rawStatus = override?.status || c.status || c.callStatus || c.call_status;
-    const rawPriority = override?.priority || c.priority || complaintObj.complaintPriority || complaintObj.complaint_priority || 'Medium';
-    const rawTech = override?.technicianAssigned || c.technicianAssigned || c.technician_assigned;
-    const imgUrl = this.getCallImageUrl(c) || override?.imageUrl || c.imageUrl || c.image || c.callImage || c.call_image || persisted.imageUrl || persisted.image || c.attachment || c.photoUrl;
+    const rawStatus = c.status || c.callStatus || c.call_status || override?.status;
+    const rawPriority = c.priority || complaintObj.complaintPriority || complaintObj.complaint_priority || override?.priority || 'Medium';
+    const rawTech = c.technicianAssigned || c.technician_assigned || override?.technicianAssigned;
+    const imgUrl = this.getCallImageUrl(c) || c.imageUrl || c.image || c.callImage || c.call_image || override?.imageUrl || persisted.imageUrl || persisted.image || c.attachment || c.photoUrl;
 
     return {
       ...c,
