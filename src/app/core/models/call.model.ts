@@ -85,6 +85,10 @@ export interface Call {
   issue?: any;
   priority?: string;
   remarks?: string;
+  remark?: string;
+  cancellationDescription?: string;
+  pendingPart?: any;
+  requiredProduct?: any;
   imageUrl?: string;
   image?: string;
 }

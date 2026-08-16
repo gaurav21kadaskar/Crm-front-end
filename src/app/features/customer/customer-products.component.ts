@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../core/services/product.service';
 import { BrandService } from '../../core/services/brand.service';
+import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
 
 interface ProductDisplay {
@@ -676,6 +677,7 @@ interface ProductDisplay {
 export class CustomerProductsComponent implements OnInit {
   private productService = inject(ProductService);
   private brandService = inject(BrandService);
+  public authService = inject(AuthService);
 
   readonly apiUrl = environment.apiUrl;
 
@@ -692,9 +694,14 @@ export class CustomerProductsComponent implements OnInit {
   }
 
   private parseArray(res: any): any[] {
+    if (!res) return [];
     if (Array.isArray(res)) return res;
-    if (res && Array.isArray(res.results)) return res.results;
-    if (res && Array.isArray(res.data)) return res.data;
+    if (Array.isArray(res.results)) return res.results;
+    if (Array.isArray(res.data)) return res.data;
+    if (res.data && typeof res.data === 'object') {
+      if (Array.isArray(res.data.results)) return res.data.results;
+      if (Array.isArray(res.data.data)) return res.data.data;
+    }
     return [];
   }
 
@@ -702,15 +709,17 @@ export class CustomerProductsComponent implements OnInit {
     this.loading = true;
     this.brandService.getBrands().subscribe({
       next: (res: any) => {
-        this.brands = this.parseArray(res);
+        let loaded = this.parseArray(res);
+        if (this.authService.getRole() === 'Customer') {
+          const brandId = this.authService.getBrandId();
+          if (brandId) {
+            loaded = loaded.filter(b => Number(b.id) === Number(brandId));
+          }
+        }
+        this.brands = loaded;
         this.fetchProducts();
       },
       error: () => {
-        this.brands = [
-          { id: 1, name: 'Samsung' },
-          { id: 2, name: 'LG' },
-          { id: 3, name: 'Whirlpool' }
-        ];
         this.fetchProducts();
       }
     });
@@ -719,18 +728,19 @@ export class CustomerProductsComponent implements OnInit {
   fetchProducts(): void {
     this.productService.getProducts().subscribe({
       next: (res: any) => {
-        const raw: any[] = this.parseArray(res);
+        let raw: any[] = this.parseArray(res);
+        if (this.authService.getRole() === 'Customer') {
+          const brandId = this.authService.getBrandId();
+          if (brandId) {
+            raw = raw.filter(p => Number(p.brand) === Number(brandId));
+          }
+        }
         this.products = raw.map(p => this.normalize(p));
         this.applyFilters();
         this.loading = false;
       },
       error: () => {
-        this.products = [
-          { id: 1, name: 'Air Conditioner', brandId: 1, brandName: 'Samsung', productCode: 'AC-SAM-101', description: 'Split AC with WindFree cooling technology, silent operation, and inverter energy efficiency.' },
-          { id: 2, name: 'Washing Machine', brandId: 2, brandName: 'LG', productCode: 'WM-LG-204', description: 'Front load 8kg washing machine with AI Direct Drive and Steam Wash system.' },
-          { id: 3, name: 'Refrigerator 340L', brandId: 1, brandName: 'Samsung', productCode: 'RF-SAM-302', description: 'Double door frost-free refrigerator with Convertible 5in1 modes.' },
-          { id: 4, name: 'Convection Oven 30L', brandId: 3, brandName: 'Whirlpool', productCode: 'MW-WHP-401', description: 'Countertop convection microwave with 25 auto cook menus.' }
-        ];
+        this.products = [];
         this.applyFilters();
         this.loading = false;
       }

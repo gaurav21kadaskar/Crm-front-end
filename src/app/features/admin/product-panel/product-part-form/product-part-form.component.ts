@@ -750,7 +750,6 @@ export class ProductPartFormComponent implements OnInit {
 
   ngOnInit() {
     this.loadProducts();
-    this.loadParts();
   }
 
   private parseArray(res: any): any[] {
@@ -774,17 +773,37 @@ export class ProductPartFormComponent implements OnInit {
   }
 
   loadProducts() {
+    this.loadingList = true;
     this.productService.getProducts().subscribe({
-      next: (response: any) => { this.products = this.parseArray(response); },
-      error: (err) => console.error(err)
+      next: (response: any) => {
+        let loaded = this.parseArray(response);
+        if (this.authService.getRole() === 'Customer') {
+          const brandId = this.authService.getBrandId();
+          if (brandId) {
+            loaded = loaded.filter((p: any) => Number(p.brand) === Number(brandId));
+          }
+        }
+        this.products = loaded;
+        this.loadParts();
+      },
+      error: (err) => {
+        console.error(err);
+        this.loadParts();
+      }
     });
   }
 
   loadParts() {
-    this.loadingList = true;
     this.partService.getProductParts().subscribe({
       next: (response: any) => {
-        const loaded = this.parseArray(response);
+        let loaded = this.parseArray(response);
+        if (this.authService.getRole() === 'Customer') {
+          const brandId = this.authService.getBrandId();
+          if (brandId) {
+            const productIds = new Set(this.products.map((p: any) => p.id));
+            loaded = loaded.filter((partItem: any) => productIds.has(partItem.product));
+          }
+        }
         this.parts = loaded.map(p => {
           if (p.id) {
             const localSt = this.getLocalStatus(p.id);

@@ -14,10 +14,13 @@ export interface RegisterRequest {
   isDistributor?: boolean;
   fromPin?: number;
   toPin?: number;
+  brand?: number;
 }
 
 export interface AuthResponse {
   status: number;
   message: string;
   token?: string;
+  role?: string;
+  brandId?: number;
 }

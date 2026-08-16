@@ -16,8 +16,10 @@ export class ProductPartService {
     return this.http.post<any>(`${this.apiUrl}/api/productpart/`, partData);
   }
 
-  getProductParts(): Observable<ProductPart[]> {
-    return this.http.get<ProductPart[]>(`${this.apiUrl}/api/productpart/`);
+  getProductParts(productId?: number | string): Observable<any> {
+    const params: any = {};
+    if (productId) params.productId = productId;
+    return this.http.get<any>(`${this.apiUrl}/api/productpart/`, { params });
   }
 
   updateProductPart(id: number, partData: FormData): Observable<any> {

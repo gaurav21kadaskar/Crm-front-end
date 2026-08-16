@@ -6,6 +6,7 @@ import { BrandService } from '../../../../core/services/brand.service';
 import { Product } from '../../../../core/models/product.model';
 import { Brand } from '../../../../core/models/brand.model';
 import { AuthService } from '../../../../core/services/auth.service';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-product-form',
@@ -630,9 +631,17 @@ export class ProductFormComponent implements OnInit {
   get f() { return this.productForm.controls; }
 
   get filteredProducts(): Product[] {
-    if (!this.searchQuery.trim()) return this.products;
+    let list = this.products;
+    const role = this.authService.getRole();
+    if (role && role.toLowerCase() === 'customer') {
+      const brandVal = this.authService.getBrandId();
+      if (brandVal !== null && brandVal !== undefined) {
+        list = list.filter(p => Number(p.brand) === brandVal);
+      }
+    }
+    if (!this.searchQuery.trim()) return list;
     const q = this.searchQuery.toLowerCase();
-    return this.products.filter(p => 
+    return list.filter(p => 
       (p.name && p.name.toLowerCase().includes(q)) || 
       (p.productCode && p.productCode.toLowerCase().includes(q)) ||
       (p.product_code && p.product_code.toLowerCase().includes(q)) ||
@@ -668,7 +677,17 @@ export class ProductFormComponent implements OnInit {
 
   loadBrands() {
     this.brandService.getBrands().subscribe({
-      next: (response: any) => { this.brands = this.parseArray(response); },
+      next: (response: any) => {
+        let loaded = this.parseArray(response);
+        const role = this.authService.getRole();
+        if (role && role.toLowerCase() === 'customer') {
+          const brandVal = this.authService.getBrandId();
+          if (brandVal !== null && brandVal !== undefined) {
+            loaded = loaded.filter(b => Number(b.id) === brandVal);
+          }
+        }
+        this.brands = loaded;
+      },
       error: (err) => console.error(err)
     });
   }
@@ -677,7 +696,14 @@ export class ProductFormComponent implements OnInit {
     this.loadingList = true;
     this.productService.getProducts().subscribe({
       next: (response: any) => {
-        const loaded = this.parseArray(response);
+        let loaded = this.parseArray(response);
+        const role = this.authService.getRole();
+        if (role && role.toLowerCase() === 'customer') {
+          const brandVal = this.authService.getBrandId();
+          if (brandVal !== null && brandVal !== undefined) {
+            loaded = loaded.filter(p => Number(p.brand) === brandVal);
+          }
+        }
         this.products = loaded.map(p => {
           if (p.id) {
             const localSt = this.getLocalStatus(p.id);
@@ -769,7 +795,7 @@ export class ProductFormComponent implements OnInit {
     if (!path) return '';
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
     const cleanPath = path.startsWith('/') ? path : '/' + path;
-    return `http://localhost:8000${cleanPath}`;
+    return `${environment.apiUrl}${cleanPath}`;
   }
 
   removeEditImage() {

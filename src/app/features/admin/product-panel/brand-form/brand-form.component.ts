@@ -465,9 +465,17 @@ export class BrandFormComponent implements OnInit {
   get f() { return this.brandForm.controls; }
 
   get filteredBrands(): Brand[] {
-    if (!this.searchQuery.trim()) return this.brands;
+    let list = this.brands;
+    const role = this.authService.getRole();
+    if (role && role.toLowerCase() === 'customer') {
+      const brandVal = this.authService.getBrandId();
+      if (brandVal !== null && brandVal !== undefined) {
+        list = list.filter(b => Number(b.id) === brandVal);
+      }
+    }
+    if (!this.searchQuery.trim()) return list;
     const q = this.searchQuery.toLowerCase();
-    return this.brands.filter(b => 
+    return list.filter(b => 
       (b.name && b.name.toLowerCase().includes(q)) || 
       (b.clientId && b.clientId.toLowerCase().includes(q)) ||
       (b.description && b.description.toLowerCase().includes(q))
@@ -547,7 +555,14 @@ export class BrandFormComponent implements OnInit {
     this.loadingList = true;
     this.brandService.getBrands().subscribe({
       next: (response: any) => {
-        const loaded = this.parseArray(response);
+        let loaded = this.parseArray(response);
+        const role = this.authService.getRole();
+        if (role && role.toLowerCase() === 'customer') {
+          const brandVal = this.authService.getBrandId();
+          if (brandVal !== null && brandVal !== undefined) {
+            loaded = loaded.filter(b => Number(b.id) === brandVal);
+          }
+        }
         this.brands = loaded.map(b => {
           if (b.id) {
             const localSt = this.getLocalStatus(b.id);

@@ -1,14 +1,16 @@
 import { Component, inject, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { filter } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { CallService } from '../../core/services/call.service';
+import { ToastService } from '../../shared/services/toast.service';
 
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, FormsModule, ReactiveFormsModule],
   template: `
     <div class="layout-wrapper">
       <!-- Sidebar -->
@@ -35,18 +37,18 @@ import { CallService } from '../../core/services/call.service';
               </a>
             </li>
 
-            <!-- Admin Only Links: Create User -->
+            <!-- Admin Only Links: User Management -->
             @if (authService.getRole() === 'Admin') {
               <li class="nav-item">
                 <a routerLink="/create-user" routerLinkActive="active" class="nav-link">
-                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                  <span>Create User</span>
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <span>User Management</span>
                 </a>
               </li>
             }
 
-            <!-- Call Management: Admin & Distributor only -->
-            @if (authService.getRole() === 'Admin' || authService.getRole() === 'Distributor') {
+            <!-- Call Management: Admin, Distributor & Customer -->
+            @if (authService.getRole() === 'Admin' || authService.getRole() === 'Distributor' || authService.getRole() === 'Customer') {
               <p class="nav-section-label" style="margin-top: 1.25rem;">Calls</p>
               <li class="nav-item">
                 <button (click)="toggleCallMenu()" class="nav-link-btn" [class.open]="isCallMenuOpen">
@@ -63,11 +65,13 @@ import { CallService } from '../../core/services/call.service';
                         <span class="submenu-dot"></span> View All Calls
                       </a>
                     </li>
-                    <li>
-                      <a routerLink="/calls" [queryParams]="{tab: 'create'}" routerLinkActive="active" class="submenu-link">
-                        <span class="submenu-dot"></span> Create New Call
-                      </a>
-                    </li>
+                    @if (authService.getRole() !== 'Distributor') {
+                      <li>
+                        <a routerLink="/calls" [queryParams]="{tab: 'create'}" routerLinkActive="active" class="submenu-link">
+                          <span class="submenu-dot"></span> Create New Call
+                        </a>
+                      </li>
+                    }
                     @if (authService.getRole() === 'Admin' || authService.getRole() === 'Distributor') {
                       <li>
                         <a routerLink="/calls" [queryParams]="{tab: 'lookup'}" routerLinkActive="active" class="submenu-link">
@@ -219,17 +223,28 @@ import { CallService } from '../../core/services/call.service';
               }
             </div>
             <div class="topbar-divider"></div>
-            <div class="topbar-user">
+
+            <!-- Clean User Profile Section -->
+            <div class="topbar-user-section">
               <div class="topbar-avatar">{{ getInitial() }}</div>
               <div class="topbar-user-info">
                 <span class="topbar-user-name">{{ authService.getUsername() }}</span>
                 <span class="topbar-user-role">{{ authService.getRole() }}</span>
               </div>
             </div>
-            <button class="logout-btn" (click)="logout()" title="Logout">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              Logout
-            </button>
+
+            <!-- Direct Action Buttons -->
+            <div class="topbar-actions-group">
+              <button class="btn-topbar-action btn-reset-pass" (click)="openChangePasswordModal()" title="Reset Password">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>Reset Password</span>
+              </button>
+
+              <button class="btn-topbar-action btn-logout" (click)="logout()" title="Sign Out">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </header>
 
@@ -238,6 +253,85 @@ import { CallService } from '../../core/services/call.service';
           <router-outlet></router-outlet>
         </main>
       </div>
+
+      <!-- CHANGE PASSWORD MODAL -->
+      @if (showPasswordModal) {
+        <div class="modal-backdrop animate-fade-in" (click)="closeChangePasswordModal()">
+          <div class="modal-card animate-slide-up" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <div class="modal-header-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <div>
+                <h3 class="modal-title">Change Password</h3>
+                <p class="modal-subtitle">Update password for account: <strong>{{ authService.getUsername() }}</strong></p>
+              </div>
+              <button class="modal-close-btn" (click)="closeChangePasswordModal()">&times;</button>
+            </div>
+
+            <form [formGroup]="passwordForm" (ngSubmit)="onSubmitChangePassword()" class="modal-body">
+              <div class="form-group">
+                <label class="form-label">New Password *</label>
+                <div class="input-password-wrapper">
+                  <input 
+                    [type]="showNewPass ? 'text' : 'password'" 
+                    class="form-input" 
+                    [class.invalid]="submittedPass && pf['newPassword'].errors"
+                    formControlName="newPassword" 
+                    placeholder="Enter new password"
+                  />
+                  <button type="button" class="eye-toggle" (click)="showNewPass = !showNewPass">
+                    @if (showNewPass) {
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    } @else {
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    }
+                  </button>
+                </div>
+                @if (submittedPass && pf['newPassword'].errors?.['required']) {
+                  <span class="field-error">New password is required.</span>
+                }
+                @if (submittedPass && pf['newPassword'].errors?.['minlength']) {
+                  <span class="field-error">Password must be at least 6 characters.</span>
+                }
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Confirm New Password *</label>
+                <div class="input-password-wrapper">
+                  <input 
+                    [type]="showConfirmPass ? 'text' : 'password'" 
+                    class="form-input" 
+                    [class.invalid]="submittedPass && (pf['confirmPassword'].errors || passwordMismatch)"
+                    formControlName="confirmPassword" 
+                    placeholder="Re-enter new password"
+                  />
+                  <button type="button" class="eye-toggle" (click)="showConfirmPass = !showConfirmPass">
+                    @if (showConfirmPass) {
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    } @else {
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    }
+                  </button>
+                </div>
+                @if (submittedPass && pf['confirmPassword'].errors?.['required']) {
+                  <span class="field-error">Please confirm your password.</span>
+                }
+                @if (submittedPass && !pf['confirmPassword'].errors && passwordMismatch) {
+                  <span class="field-error">Passwords do not match.</span>
+                }
+              </div>
+
+              <div class="modal-footer">
+                <button type="button" class="btn-secondary" (click)="closeChangePasswordModal()" [disabled]="isSubmittingPass">Cancel</button>
+                <button type="submit" class="btn-primary" [disabled]="isSubmittingPass">
+                  {{ isSubmittingPass ? 'Updating...' : 'Update Password' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -584,24 +678,27 @@ import { CallService } from '../../core/services/call.service';
       background: var(--border);
     }
 
-    .topbar-user {
+    /* ── Clean Topbar User Section & Direct Buttons ── */
+    .topbar-user-section {
       display: flex;
       align-items: center;
-      gap: 0.625rem;
+      gap: 0.65rem;
+      padding-right: 0.25rem;
     }
 
     .topbar-avatar {
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       background: linear-gradient(135deg, #4f46e5, #7c3aed);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       font-weight: 700;
       color: #fff;
       flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
     }
 
     .topbar-user-info {
@@ -610,41 +707,252 @@ import { CallService } from '../../core/services/call.service';
     }
 
     .topbar-user-name {
-      font-size: 0.825rem;
+      font-size: 0.86rem;
       font-weight: 700;
-      color: var(--text-primary);
+      color: #0f172a;
       line-height: 1.2;
     }
 
     .topbar-user-role {
       font-size: 0.68rem;
-      color: var(--text-muted);
-      font-weight: 500;
+      color: #64748b;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       line-height: 1.2;
     }
 
-    .logout-btn {
+    .topbar-actions-group {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
-      padding: 0.45rem 0.875rem;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: all 0.15s ease;
-      font-family: inherit;
+      gap: 0.6rem;
+      margin-left: 0.25rem;
     }
 
-    .logout-btn:hover {
-      background: #fee2e2;
-      border-color: #fca5a5;
-      color: #dc2626;
+    .btn-topbar-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.5rem 0.9rem;
+      border-radius: 9px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+
+    .btn-reset-pass {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      color: #334155;
+    }
+
+    .btn-reset-pass:hover {
+      background: #ede9fe;
+      border-color: #c4b5fd;
+      color: #6d28d9;
+      transform: translateY(-1px);
+    }
+
+    .btn-logout {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      color: #475569;
+    }
+
+    .btn-logout:hover {
+      background: #fff1f2;
+      border-color: #fecdd3;
+      color: #e11d48;
+      transform: translateY(-1px);
+    }
+
+    /* ── Change Password Modal ────────────────── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 1rem;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #f1f5f9;
+      position: relative;
+    }
+
+    .modal-header-icon {
+      width: 38px;
+      height: 38px;
+      background: #ede9fe;
+      color: #7c3aed;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .modal-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .modal-subtitle {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin: 0.15rem 0 0;
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      right: 1.25rem;
+      top: 1.25rem;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      color: #94a3b8;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0.2rem;
+    }
+
+    .modal-close-btn:hover { color: #0f172a; }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.15rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 0.35rem;
+    }
+
+    .input-password-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 0.65rem 2.4rem 0.65rem 0.85rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #0f172a;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .form-input::-ms-reveal,
+    .form-input::-ms-clear {
+      display: none;
+    }
+
+    .form-input:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .form-input.invalid {
+      border-color: #ef4444;
+    }
+
+    .eye-toggle {
+      position: absolute;
+      right: 10px;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+    }
+
+    .eye-toggle:hover { color: #475569; }
+
+    .field-error {
+      display: block;
+      color: #ef4444;
+      font-size: 0.75rem;
+      margin-top: 0.3rem;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .btn-secondary {
+      padding: 0.6rem 1.1rem;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    .btn-primary {
+      padding: 0.6rem 1.25rem;
+      background: #4f46e5;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+      transition: all 0.15s;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #4338ca;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     /* ── Notification Dropdown ────────────────── */
@@ -1006,14 +1314,24 @@ export class DashboardLayoutComponent implements OnInit {
     return 'Customer';
   }
 
+  showUserDropdown = false;
+
+  toggleUserDropdown(event: MouseEvent) {
+    event.stopPropagation();
+    this.showUserDropdown = !this.showUserDropdown;
+    this.showNotifications = false;
+  }
+
   toggleNotifications(event: MouseEvent) {
     event.stopPropagation();
     this.showNotifications = !this.showNotifications;
+    this.showUserDropdown = false;
   }
 
   @HostListener('document:click')
   onDocumentClick() {
     this.showNotifications = false;
+    this.showUserDropdown = false;
   }
 
   markAsRead(n: any) {
@@ -1067,6 +1385,72 @@ export class DashboardLayoutComponent implements OnInit {
     return 'Dashboard';
   }
 
+
+  // ── Change Password Modal State ──
+  private fb = inject(FormBuilder);
+  private toast = inject(ToastService);
+  showPasswordModal = false;
+  showNewPass = false;
+  showConfirmPass = false;
+  isSubmittingPass = false;
+  submittedPass = false;
+  passwordMismatch = false;
+
+  passwordForm: FormGroup = this.fb.group({
+    newPassword: ['', [Validators.required, Validators.minLength(6)]],
+    confirmPassword: ['', [Validators.required]]
+  });
+
+  get pf() {
+    return this.passwordForm.controls;
+  }
+
+  openChangePasswordModal() {
+    this.showPasswordModal = true;
+    this.submittedPass = false;
+    this.passwordMismatch = false;
+    this.showNewPass = false;
+    this.showConfirmPass = false;
+    this.passwordForm.reset();
+  }
+
+  closeChangePasswordModal() {
+    if (this.isSubmittingPass) return;
+    this.showPasswordModal = false;
+  }
+
+  onSubmitChangePassword() {
+    this.submittedPass = true;
+    this.passwordMismatch = false;
+
+    if (this.passwordForm.invalid) {
+      return;
+    }
+
+    const { newPassword, confirmPassword } = this.passwordForm.value;
+
+    if (newPassword !== confirmPassword) {
+      this.passwordMismatch = true;
+      return;
+    }
+
+    this.isSubmittingPass = true;
+    this.authService.resetPassword(newPassword).subscribe({
+      next: (res: any) => {
+        this.isSubmittingPass = false;
+        if (res?.status === 200 || res?.message === 'success') {
+          this.toast.success('Success', 'Password updated successfully!');
+          this.closeChangePasswordModal();
+        } else {
+          this.toast.error('Failed', res?.message || 'Could not reset password.');
+        }
+      },
+      error: (err: any) => {
+        this.isSubmittingPass = false;
+        this.toast.error('Error', err?.error?.message || err?.message || 'Password update failed.');
+      }
+    });
+  }
 
   logout() {
     this.authService.logout();

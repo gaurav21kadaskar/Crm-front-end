@@ -1,4 +1,5 @@
 export const environment = {
-  production: false,
+  production: true,
   apiUrl: 'https://crm-rest-api-akp5.onrender.com'
 };
+

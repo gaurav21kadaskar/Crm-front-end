@@ -7,12 +7,14 @@ import { BrandService } from '../../core/services/brand.service';
 import { ProductService } from '../../core/services/product.service';
 import { ProductModelService } from '../../core/services/product-model.service';
 import { ProductIssueService } from '../../core/services/product-issue.service';
+import { ProductPartService } from '../../core/services/product-part.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Call, CallExportFilter } from '../../core/models/call.model';
 import { Brand } from '../../core/models/brand.model';
 import { Product } from '../../core/models/product.model';
 import { ProductModel } from '../../core/models/product-model.model';
 import { ProductIssue } from '../../core/models/product-issue.model';
+import { ProductPart } from '../../core/models/product-part.model';
 
 @Component({
   selector: 'app-call-management',
@@ -101,6 +103,7 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                 </thead>
                 <tbody>
                   @for (call of calls; track call.id || call.callNumber) {
+                    @if (call.callNumber || call.callId || call.id || call.customerName) {
                     <tr>
                       <td class="td-id">{{ call.callNumber || call.callId || '#' + call.id }}</td>
                       <td>
@@ -138,11 +141,24 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             View
                           </button>
-                          <button class="btn-row-edit" [disabled]="isCallClosed(call)" (click)="startEditCall(call)" title="Edit Call">Edit</button>
-                          <button class="btn-row-delete" (click)="deletingCallObj = call" title="Delete Call">Delete</button>
+                          @if (isCustomer && isPendingApproval(call)) {
+                            <button class="btn-row-approve" (click)="approveCallClosure(call)" title="Approve Call Closure">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                              Approve
+                            </button>
+                          }
+                          @if (!isCustomer) {
+                            <button class="btn-row-edit" [disabled]="isCallClosed(call)" (click)="startEditCall(call)" title="Update Call">
+                              {{ isDistributor ? 'Update' : 'Edit' }}
+                            </button>
+                          }
+                          @if (isAdmin) {
+                            <button class="btn-row-delete" (click)="deletingCallObj = call" title="Delete Call">Delete</button>
+                          }
                         </div>
                       </td>
                     </tr>
+                    }
                   }
                 </tbody>
               </table>
@@ -187,8 +203,9 @@ import { ProductIssue } from '../../core/models/product-issue.model';
 
                 <div class="form-grid-2">
                   <div class="pro-form-group">
-                    <label class="pro-label">Address 1</label>
-                    <input type="text" class="pro-input" formControlName="address1" placeholder="House / Flat / Street" />
+                    <label class="pro-label">Address 1 *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('customerDetail', 'address1')" formControlName="address1" placeholder="House / Flat / Street" />
+                    @if (isFieldInvalid('customerDetail', 'address1')) { <span class="error-message">Address is required.</span> }
                   </div>
                   <div class="pro-form-group">
                     <label class="pro-label">Landmark</label>
@@ -198,36 +215,41 @@ import { ProductIssue } from '../../core/models/product-issue.model';
 
                 <div class="form-grid-2">
                   <div class="pro-form-group">
-                    <label class="pro-label">Locality</label>
-                    <input type="text" class="pro-input" formControlName="locality" placeholder="Locality" />
+                    <label class="pro-label">Locality *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('customerDetail', 'locality')" formControlName="locality" placeholder="Locality" />
+                    @if (isFieldInvalid('customerDetail', 'locality')) { <span class="error-message">Locality is required.</span> }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">State</label>
-                    <select class="pro-input" formControlName="state" (change)="onCreateStateChange($event)">
+                    <label class="pro-label">State *</label>
+                    <select class="pro-input" [class.is-invalid]="isFieldInvalid('customerDetail', 'state')" formControlName="state" (change)="onCreateStateChange($event)">
                       <option value="">-- Select State --</option>
                       @for (s of states; track s) { <option [value]="s">{{ s }}</option> }
                     </select>
+                    @if (isFieldInvalid('customerDetail', 'state')) { <span class="error-message">State is required.</span> }
                   </div>
                 </div>
 
                 <div class="form-grid-3">
                   <div class="pro-form-group">
-                    <label class="pro-label">District</label>
-                    <select class="pro-input" formControlName="district" (change)="onCreateDistrictChange($event)" [attr.disabled]="!createDistricts.length ? true : null">
+                    <label class="pro-label">District *</label>
+                    <select class="pro-input" [class.is-invalid]="isFieldInvalid('customerDetail', 'district')" formControlName="district" (change)="onCreateDistrictChange($event)" [attr.disabled]="!createDistricts.length ? true : null">
                       <option value="">-- Select District --</option>
                       @for (d of createDistricts; track d) { <option [value]="d">{{ d }}</option> }
                     </select>
+                    @if (isFieldInvalid('customerDetail', 'district')) { <span class="error-message">District is required.</span> }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">City</label>
-                    <select class="pro-input" formControlName="city" [attr.disabled]="!createCities.length ? true : null">
+                    <label class="pro-label">City *</label>
+                    <select class="pro-input" [class.is-invalid]="isFieldInvalid('customerDetail', 'city')" formControlName="city" [attr.disabled]="!createCities.length ? true : null">
                       <option value="">-- Select City --</option>
                       @for (c of createCities; track c) { <option [value]="c">{{ c }}</option> }
                     </select>
+                    @if (isFieldInvalid('customerDetail', 'city')) { <span class="error-message">City is required.</span> }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Pincode</label>
-                    <input type="number" class="pro-input" formControlName="pincode" placeholder="452001" />
+                    <label class="pro-label">Pincode *</label>
+                    <input type="number" class="pro-input" [class.is-invalid]="isFieldInvalid('customerDetail', 'pincode')" formControlName="pincode" placeholder="452001" />
+                    @if (isFieldInvalid('customerDetail', 'pincode')) { <span class="error-message">Pincode is required.</span> }
                   </div>
                 </div>
               </div>
@@ -510,12 +532,12 @@ import { ProductIssue } from '../../core/models/product-issue.model';
         </div>
       }
 
-      <!-- TAB 3: UPDATE CALL BY CALL NUMBER -->
+      <!-- TAB 3: UPDATE CALL BY CALL NUMBER (DISTRIBUTOR & ADMIN) -->
       @if (activeTab === 'lookup') {
         <div class="card-form-wrapper animate-fade-in">
           <div class="form-card-header">
-            <h3 class="form-card-title">Quick Update by Call Number</h3>
-            <p class="form-card-subtitle">Search any Call Number to quickly view and update status or technician</p>
+            <h3 class="form-card-title">{{ isDistributor ? 'Distributor Call Management & Update' : 'Quick Update by Call Number' }}</h3>
+            <p class="form-card-subtitle">Search any Call Number to view details, update status, select pending parts, or submit closure requests</p>
           </div>
           
           <div class="lookup-bar">
@@ -537,31 +559,47 @@ import { ProductIssue } from '../../core/models/product-issue.model';
 
           @if (foundCall) {
             <div class="found-call-card animate-slide-up">
+              <!-- Summary Card Header -->
               <div class="found-call-summary">
                 <div>
                   <span class="summary-id">{{ foundCall.callNumber || foundCall.callId || '#' + foundCall.id }}</span>
                   <h4 class="summary-name">{{ getCustomerName(foundCall) }} ({{ getCustomerPhone(foundCall) }})</h4>
                   <p class="summary-desc">
-                    {{ getProductName(getCallProduct(foundCall)) }}
+                    📦 {{ getProductName(getCallProduct(foundCall)) }} &bull; Model: {{ getModelName(getCallModel(foundCall)) }} &bull; {{ getCustomerAddress(foundCall) }}
                   </p>
                 </div>
                 <span class="status-badge" [ngClass]="getStatusClass(foundCall.status)">
-                  {{ foundCall.status }}
+                  {{ formatStatusDisplay(foundCall.status) }}
                 </span>
               </div>
 
+              <!-- Pending Approval Alert Box -->
+              @if (isPendingApproval(foundCall)) {
+                <div class="approval-alert-box animate-fade-in">
+                  <div class="alert-icon">⏳</div>
+                  <div class="alert-content">
+                    <strong>Pending Customer Approval</strong>
+                    <p>This call closure request has been submitted and is currently awaiting approval from the Customer.</p>
+                  </div>
+                </div>
+              }
+
               <form [formGroup]="updateByIdForm" (ngSubmit)="onSaveQuickUpdate()">
-                <div class="form-grid-3" style="margin-top: 1.25rem;">
+                <div class="form-grid-2" style="margin-top: 1.25rem;">
                   <div class="pro-form-group">
-                    <label class="pro-label">Status</label>
-                    <select class="pro-input" formControlName="status">
-                      <option value="Open">Open</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Closed">Closed</option>
-                      <option value="Cancelled">Cancelled</option>
+                    <label class="pro-label">Call Status *</label>
+                    <select class="pro-input" formControlName="status" (change)="onUpdateStatusChange()">
+                      <option value="OPEN">Open</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="CANCELLED">Cancelled</option>
+                      <option value="CLOSED">{{ isDistributor ? 'Closed (Request Customer Approval)' : 'Closed' }}</option>
+                      <option value="PENDING_FOR_APPROVAL">Pending Approval</option>
+                      <option value="PARTS_PENDING">Pending Parts</option>
+                      <option value="REPLACEMENT">Replacement</option>
                     </select>
                   </div>
+
                   <div class="pro-form-group">
                     <label class="pro-label">Priority</label>
                     <select class="pro-input" formControlName="priority">
@@ -571,25 +609,151 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                       <option value="Urgent">Urgent</option>
                     </select>
                   </div>
-
                 </div>
 
-                <div class="pro-form-group">
-                  <label class="pro-label">Remarks</label>
-                  <textarea class="pro-input" formControlName="remarks" rows="2"></textarea>
+                <!-- 1. DYNAMIC SECTION: CANCELLED -->
+                @if (updateByIdForm.get('status')?.value === 'CANCELLED') {
+                  <div class="dynamic-status-section cancel-section animate-fade-in">
+                    <div class="section-badge-header">
+                      <span class="sec-badge sec-badge-danger">Cancellation Details</span>
+                    </div>
+                    <div class="form-grid-2">
+                      <div class="pro-form-group">
+                        <label class="pro-label">Cancellation Reason *</label>
+                        <select class="pro-input" formControlName="cancellationReason">
+                          <option value="">-- Select Cancellation Reason --</option>
+                          @for (reason of cancellationReasons; track reason) {
+                            <option [value]="reason">{{ reason }}</option>
+                          }
+                        </select>
+                      </div>
+                    </div>
+                    @if (updateByIdForm.get('cancellationReason')?.value === 'Others' || updateByIdForm.get('cancellationReason')?.value === 'Other') {
+                      <div class="pro-form-group animate-fade-in" style="margin-top: 0.75rem;">
+                        <label class="pro-label">Cancellation Description (Required when Others is selected) *</label>
+                        <textarea class="pro-input" formControlName="cancellationDescription" rows="2" placeholder="Please enter specific reason for cancellation..."></textarea>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- 2. DYNAMIC SECTION: CLOSED / PENDING APPROVAL -->
+                @if (updateByIdForm.get('status')?.value === 'CLOSED' || updateByIdForm.get('status')?.value === 'PENDING_FOR_APPROVAL') {
+                  <div class="closure-notice-card animate-fade-in">
+                    <div class="closure-notice-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                      </svg>
+                    </div>
+                    <div class="closure-notice-body">
+                      <div class="closure-notice-title">Customer Approval Required</div>
+                      <div class="closure-notice-desc">
+                        Marking as <strong>Closed</strong> will send an approval request (<em>Pending Approval</em>) to the customer before the call is finalized.
+                      </div>
+                    </div>
+                  </div>
+                }
+
+                <!-- 3. DYNAMIC SECTION: PENDING PARTS -->
+                @if (updateByIdForm.get('status')?.value === 'Parts_Pending' || updateByIdForm.get('status')?.value === 'PARTS_PENDING' || updateByIdForm.get('status')?.value === 'REPLACEMENT') {
+                  <div class="dynamic-status-section parts-section animate-fade-in">
+                    <div class="section-badge-header">
+                      <span class="sec-badge sec-badge-primary">📦 Parts & Replacement Details</span>
+                    </div>
+                    
+                    <div class="form-grid-2" style="margin-bottom: 1rem;">
+                      <div class="pro-form-group">
+                        <label class="pro-label">Required Product</label>
+                        <select class="pro-input" formControlName="requiredProduct" (change)="onRequiredProductChange($event)">
+                          <option value="">-- Select Product --</option>
+                          @for (p of products; track p.id) {
+                            <option [value]="p.id">{{ p.name }} ({{ p.productCode || 'ID:' + p.id }})</option>
+                          }
+                        </select>
+                      </div>
+                      <div class="pro-form-group">
+                        <label class="pro-label">Select Pending Part *</label>
+                        <select class="pro-input" formControlName="pendingPart">
+                          <option value="">-- Select Pending Part --</option>
+                          @for (part of relevantProductParts; track part.id) {
+                            <option [value]="part.id">{{ part.name }}</option>
+                          }
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Available Parts for Product List -->
+                    <div class="parts-list-container">
+                      <label class="pro-label" style="margin-bottom: 0.5rem; display: block;">All Parts for this Product ({{ relevantProductParts.length }} available):</label>
+                      @if (relevantProductParts.length === 0) {
+                        <p class="empty-parts-hint">No specific parts configured for this product yet.</p>
+                      } @else {
+                        <div class="parts-chip-grid">
+                          @for (part of relevantProductParts; track part.id) {
+                            <div 
+                              class="part-chip-card" 
+                              [class.selected]="updateByIdForm.get('pendingPart')?.value == part.id"
+                              (click)="updateByIdForm.patchValue({ pendingPart: part.id })"
+                            >
+                              <div class="chip-name">{{ part.name }}</div>
+                              @if (part.description) {
+                                <div class="chip-desc">{{ part.description }}</div>
+                              }
+                              <span class="chip-action">{{ updateByIdForm.get('pendingPart')?.value == part.id ? '✓ Selected' : '+ Select' }}</span>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Replacement Parts List -->
+                    <div class="parts-list-container" style="margin-top: 1rem;">
+                      <label class="pro-label" style="margin-bottom: 0.5rem; display: block;">Relevant Replacement Options for this Product:</label>
+                      @if (relevantReplacementParts.length === 0) {
+                        <p class="empty-parts-hint">No replacement parts configured for this product.</p>
+                      } @else {
+                        <div class="replacement-chip-grid">
+                          @for (rep of relevantReplacementParts; track rep.id) {
+                            <div class="replacement-card">
+                              <span class="rep-icon">🔄</span>
+                              <div class="rep-details">
+                                <span class="rep-name">{{ rep.name }}</span>
+                                <span class="rep-sub">{{ rep.description || 'Compatible replacement component' }}</span>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+
+                  </div>
+                }
+
+                <!-- Technician & Remarks Row -->
+                <div class="form-grid-2" style="margin-top: 1rem;">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Assigned Technician</label>
+                    <input type="text" class="pro-input" formControlName="technicianAssigned" placeholder="Enter technician name" />
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Remarks / Update Notes</label>
+                    <input type="text" class="pro-input" formControlName="remarks" placeholder="Enter update notes or remarks" />
+                  </div>
                 </div>
 
-                <!-- Image Upload -->
-                <div class="pro-form-group">
-                  <label class="pro-label">Attach Image (optional)</label>
+                <!-- Image Upload (Optional) -->
+                <div class="pro-form-group" style="margin-top: 1rem;">
+                  <label class="pro-label">Attach Update Photo (optional)</label>
                   <div class="image-upload-zone" (click)="quickImageInput.click()" [class.has-image]="quickUpdatePreviewUrl">
                     @if (quickUpdatePreviewUrl) {
                       <img [src]="quickUpdatePreviewUrl" class="upload-preview-img" alt="Preview" />
                       <button type="button" class="remove-img-btn" (click)="$event.stopPropagation(); clearQuickImage()">&#x2715; Remove</button>
                     } @else {
                       <div class="upload-placeholder">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                        <span>Click to upload image</span>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span>Click to attach photo</span>
                         <span class="upload-hint">JPG, PNG, WEBP up to 5MB</span>
                       </div>
                     }
@@ -597,9 +761,9 @@ import { ProductIssue } from '../../core/models/product-issue.model';
                   <input #quickImageInput type="file" accept="image/*" style="display:none" (change)="onQuickUpdateImageChange($event)" />
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem;">
                   <button type="submit" class="btn-save" [disabled]="isSubmitting">
-                    {{ isSubmitting ? 'Saving...' : 'Save Quick Update' }}
+                    {{ isSubmitting ? 'Saving...' : 'Save Call Update' }}
                   </button>
                 </div>
               </form>
@@ -651,6 +815,31 @@ import { ProductIssue } from '../../core/models/product-issue.model';
               
               <!-- Top section: customer banner + badges -->
               <div class="call-details-top-section">
+                
+                <!-- Customer Closure Approval Banner -->
+                @if (isCustomer && isPendingApproval(viewingCallDetails)) {
+                  <div class="customer-approval-card animate-fade-in">
+                    <div class="customer-approval-content">
+                      <div class="customer-approval-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                      </div>
+                      <div class="customer-approval-text">
+                        <div class="customer-approval-title">Closure Approval Requested</div>
+                        <div class="customer-approval-desc">
+                          The distributor has completed work on this service call. Please review and confirm closure.
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn-customer-approve" (click)="approveCallClosure(viewingCallDetails)" [disabled]="isSubmitting">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      Approve & Close Call
+                    </button>
+                  </div>
+                }
+
                 <!-- Customer Full Name Banner -->
                 <div class="details-name-banner" style="margin-bottom: 1rem;">
                   <span class="name-banner-label">Customer</span>
@@ -898,8 +1087,16 @@ import { ProductIssue } from '../../core/models/product-issue.model';
             </div><!-- /modal-body -->
             <div class="modal-footer">
               <button type="button" class="btn-cancel" (click)="viewingCallDetails = null">Close</button>
-              @if (!isCallClosed(viewingCallDetails)) {
-                <button type="button" class="btn-save" (click)="startEditFromDetails(viewingCallDetails)">Edit Call</button>
+              @if (isCustomer && isPendingApproval(viewingCallDetails)) {
+                <button type="button" class="btn-approve" (click)="approveCallClosure(viewingCallDetails)" [disabled]="isSubmitting">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Approve Closure
+                </button>
+              }
+              @if (!isCustomer && !isCallClosed(viewingCallDetails)) {
+                <button type="button" class="btn-save" (click)="startEditFromDetails(viewingCallDetails)">
+                  {{ isDistributor ? 'Update Call' : 'Edit Call' }}
+                </button>
               }
             </div>
           </div>
@@ -992,8 +1189,9 @@ import { ProductIssue } from '../../core/models/product-issue.model';
 
                   <div class="form-grid-2">
                     <div class="pro-form-group">
-                      <label class="pro-label">Address Line 1</label>
-                      <input type="text" class="pro-input" formControlName="address1" placeholder="Address line 1" />
+                      <label class="pro-label">Address Line 1 *</label>
+                      <input type="text" class="pro-input" [class.is-invalid]="isEditFieldInvalid('customerDetail', 'address1')" formControlName="address1" placeholder="Address line 1" />
+                      @if (isEditFieldInvalid('customerDetail', 'address1')) { <span class="error-message">Address is required.</span> }
                     </div>
                     <div class="pro-form-group">
                       <label class="pro-label">Landmark</label>
@@ -1003,27 +1201,32 @@ import { ProductIssue } from '../../core/models/product-issue.model';
 
                   <div class="form-grid-2">
                     <div class="pro-form-group">
-                      <label class="pro-label">Locality</label>
-                      <input type="text" class="pro-input" formControlName="locality" placeholder="Locality" />
+                      <label class="pro-label">Locality *</label>
+                      <input type="text" class="pro-input" [class.is-invalid]="isEditFieldInvalid('customerDetail', 'locality')" formControlName="locality" placeholder="Locality" />
+                      @if (isEditFieldInvalid('customerDetail', 'locality')) { <span class="error-message">Locality is required.</span> }
                     </div>
                     <div class="pro-form-group">
-                      <label class="pro-label">City</label>
-                      <input type="text" class="pro-input" formControlName="city" placeholder="City" />
+                      <label class="pro-label">City *</label>
+                      <input type="text" class="pro-input" [class.is-invalid]="isEditFieldInvalid('customerDetail', 'city')" formControlName="city" placeholder="City" />
+                      @if (isEditFieldInvalid('customerDetail', 'city')) { <span class="error-message">City is required.</span> }
                     </div>
                   </div>
 
                   <div class="form-grid-3">
                     <div class="pro-form-group">
-                      <label class="pro-label">District</label>
-                      <input type="text" class="pro-input" formControlName="district" placeholder="District" />
+                      <label class="pro-label">District *</label>
+                      <input type="text" class="pro-input" [class.is-invalid]="isEditFieldInvalid('customerDetail', 'district')" formControlName="district" placeholder="District" />
+                      @if (isEditFieldInvalid('customerDetail', 'district')) { <span class="error-message">District is required.</span> }
                     </div>
                     <div class="pro-form-group">
-                      <label class="pro-label">State</label>
-                      <input type="text" class="pro-input" formControlName="state" placeholder="State" />
+                      <label class="pro-label">State *</label>
+                      <input type="text" class="pro-input" [class.is-invalid]="isEditFieldInvalid('customerDetail', 'state')" formControlName="state" placeholder="State" />
+                      @if (isEditFieldInvalid('customerDetail', 'state')) { <span class="error-message">State is required.</span> }
                     </div>
                     <div class="pro-form-group">
-                      <label class="pro-label">Pincode</label>
-                      <input type="number" class="pro-input" formControlName="pincode" placeholder="452001" />
+                      <label class="pro-label">Pincode *</label>
+                      <input type="number" class="pro-input" [class.is-invalid]="isEditFieldInvalid('customerDetail', 'pincode')" formControlName="pincode" placeholder="452001" />
+                      @if (isEditFieldInvalid('customerDetail', 'pincode')) { <span class="error-message">Pincode is required.</span> }
                     </div>
                   </div>
                 </div>
@@ -1869,6 +2072,209 @@ import { ProductIssue } from '../../core/models/product-issue.model';
     .btn-cancel { padding: 0.65rem 1.1rem; font-size: 0.875rem; font-weight: 600; background: var(--surface); color: var(--text-secondary); border: 1.5px solid #cbd5e1; border-radius: 8px; cursor: pointer; }
     .btn-cancel:hover { background: #f8fafc; color: var(--text-primary); }
 
+    .btn-row-approve {
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+    }
+    .btn-row-approve:hover {
+      background: #15803d;
+      transform: translateY(-1px);
+    }
+    .btn-approve {
+      padding: 0.6rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s;
+    }
+    .btn-approve:hover { background: #15803d; }
+    .btn-approve:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .status-approval { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .status-cancelled { background: #ffe4e6; color: #e11d48; border: 1px solid #fecdd3; }
+    .status-parts { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .status-replacement { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
+
+    .approval-alert-box {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      background: #fffbeb;
+      border: 1.5px solid #fde68a;
+      border-radius: 10px;
+      padding: 0.85rem 1.1rem;
+      margin-top: 1rem;
+    }
+    .approval-alert-box .alert-icon { font-size: 1.4rem; }
+    .approval-alert-box strong { color: #92400e; font-size: 0.9rem; display: block; }
+    .approval-alert-box p { color: #b45309; font-size: 0.8rem; margin: 0.15rem 0 0; }
+
+    .dynamic-status-section {
+      background: #f8fafc;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 1.1rem;
+      margin-top: 1rem;
+    }
+    .cancel-section { border-color: #fecdd3; background: #fff1f2; }
+    .info-section { border-color: #e0e7ff; background: #eef2ff; }
+    .parts-section { border-color: #bae6fd; background: #f0f9ff; }
+
+    .section-badge-header { margin-bottom: 0.75rem; }
+    .sec-badge { font-size: 0.725rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.2rem 0.55rem; border-radius: 6px; }
+    .sec-badge-danger { background: #fee2e2; color: #dc2626; }
+    .sec-badge-primary { background: #e0f2fe; color: #0284c7; }
+
+    .customer-approval-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.25rem;
+      padding: 1rem 1.25rem;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-left: 4px solid #16a34a;
+      border-radius: 10px;
+      margin-bottom: 1.25rem;
+    }
+    .customer-approval-content {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      flex: 1;
+    }
+    .customer-approval-icon {
+      color: #16a34a;
+      background: #dcfce7;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .customer-approval-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #14532d;
+      margin-bottom: 0.15rem;
+    }
+    .customer-approval-desc {
+      font-size: 0.8rem;
+      color: #166534;
+      line-height: 1.4;
+    }
+    .btn-customer-approve {
+      padding: 0.65rem 1.25rem;
+      font-size: 0.86rem;
+      font-weight: 600;
+      background: #16a34a;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 3px rgba(22, 163, 74, 0.25);
+    }
+    .btn-customer-approve:hover {
+      background: #15803d;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(22, 163, 74, 0.3);
+    }
+    .btn-customer-approve:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .closure-notice-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      padding: 0.9rem 1.1rem;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-left: 4px solid #16a34a;
+      border-radius: 8px;
+      margin-top: 1rem;
+    }
+    .closure-notice-icon {
+      color: #16a34a;
+      flex-shrink: 0;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .closure-notice-body {
+      flex: 1;
+    }
+    .closure-notice-title {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #15803d;
+      margin-bottom: 0.2rem;
+      letter-spacing: -0.01em;
+    }
+    .closure-notice-desc {
+      font-size: 0.8rem;
+      color: #166534;
+      line-height: 1.45;
+    }
+    .closure-notice-desc strong {
+      font-weight: 600;
+      color: #14532d;
+    }
+
+    .parts-list-container { margin-top: 0.5rem; }
+    .empty-parts-hint { font-size: 0.8rem; color: #94a3b8; font-style: italic; margin: 0; }
+    .parts-chip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.65rem; margin-top: 0.4rem; }
+    .part-chip-card {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .part-chip-card:hover { border-color: #0284c7; background: #f0f9ff; transform: translateY(-1px); }
+    .part-chip-card.selected { border-color: #0284c7; background: #e0f2fe; box-shadow: 0 0 0 2px rgba(2,132,199,0.2); }
+    .chip-name { font-size: 0.825rem; font-weight: 700; color: var(--text-primary); }
+    .chip-desc { font-size: 0.725rem; color: #64748b; margin-top: 0.15rem; }
+    .chip-action { font-size: 0.7rem; font-weight: 800; color: #0284c7; margin-top: 0.35rem; }
+
+    .replacement-chip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.65rem; margin-top: 0.4rem; }
+    .replacement-card { display: flex; align-items: center; gap: 0.5rem; background: #ffffff; border: 1.5px dashed #cbd5e1; border-radius: 8px; padding: 0.55rem 0.75rem; }
+    .rep-icon { font-size: 1.1rem; }
+    .rep-details { display: flex; flex-direction: column; }
+    .rep-name { font-size: 0.8rem; font-weight: 700; color: var(--text-primary); }
+    .rep-sub { font-size: 0.7rem; color: #64748b; }
+
     .loading-state, .empty-state { padding: 3rem; text-align: center; color: #94a3b8; }
     .spinner { width: 22px; height: 22px; border: 2.5px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 0.5rem; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -1888,6 +2294,7 @@ export class CallManagementComponent implements OnInit {
   private productService = inject(ProductService);
   private modelService = inject(ProductModelService);
   private issueService = inject(ProductIssueService);
+  private productPartService = inject(ProductPartService);
   authService = inject(AuthService);
 
   private parseArray(res: any): any[] {
@@ -1908,6 +2315,31 @@ export class CallManagementComponent implements OnInit {
   products: Product[] = [];
   models: ProductModel[] = [];
   issues: ProductIssue[] = [];
+  productParts: ProductPart[] = [];
+  relevantProductParts: ProductPart[] = [];
+  relevantReplacementParts: any[] = [];
+
+  cancellationReasons: string[] = [
+    'Not required service / complaint cancel by customer',
+    'Customer not responding / number not reachable or switched off',
+    'Customer does not have bill or document',
+    'Customer out of station',
+    'Duplicate complaints',
+    'Damage / Defective product',
+    'Not repairable at home, so visit at shop',
+    'Customer went to dealer shop for service',
+    'Not ready to pay for spare/service',
+    'Product is not repairable',
+    'Customer did not register the complaint',
+    'Wrong address',
+    'Wrong contact number',
+    'Old product, Spare not available',
+    'Replacement / unavailability of product',
+    'Sales Enquiry',
+    'Call resolved over phone.',
+    'Unit working fine, no visit required.',
+    'Others'
+  ];
 
   filteredProducts: Product[] = [];
   filteredModels: ProductModel[] = [];
@@ -1922,6 +2354,10 @@ export class CallManagementComponent implements OnInit {
   editStatus = 'OPEN';
   editTechnicianAssigned = '';
   isSearching = false;
+  isAdmin = false;
+  isCustomer = false;
+  isDistributor = false;
+  customerBrandId: number | null = null;
 
   // ─── Quick Update Image ───────────────────────────────────────────────
   quickUpdateImageFile: File | null = null;
@@ -2164,13 +2600,13 @@ export class CallManagementComponent implements OnInit {
       title: ['Mr'],
       firstName: ['', Validators.required],
       lastName: [''],
-      address1: [''],
+      address1: ['', Validators.required],
       landmark: [''],
-      state: [''],
-      district: [''],
-      city: [''],
-      locality: [''],
-      pincode: ['']
+      state: ['', Validators.required],
+      district: ['', Validators.required],
+      city: ['', Validators.required],
+      locality: ['', Validators.required],
+      pincode: ['', Validators.required]
     }),
     contactDetail: this.fb.group({
       mobile: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
@@ -2217,13 +2653,13 @@ export class CallManagementComponent implements OnInit {
       title: ['Mr'],
       firstName: ['', Validators.required],
       lastName: [''],
-      address1: [''],
+      address1: ['', Validators.required],
       landmark: [''],
-      state: [''],
-      district: [''],
-      city: [''],
-      locality: [''],
-      pincode: ['']
+      state: ['', Validators.required],
+      district: ['', Validators.required],
+      city: ['', Validators.required],
+      locality: ['', Validators.required],
+      pincode: ['', Validators.required]
     }),
     contactDetail: this.fb.group({
       mobile: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
@@ -2266,10 +2702,14 @@ export class CallManagementComponent implements OnInit {
   });
 
   updateByIdForm: FormGroup = this.fb.group({
-    status: ['Pending'],
+    status: ['OPEN'],
     priority: ['Medium'],
     technicianAssigned: [''],
-    remarks: ['']
+    remarks: [''],
+    cancellationReason: [''],
+    cancellationDescription: [''],
+    requiredProduct: [''],
+    pendingPart: ['']
   });
 
   private sanitizeLocalStorage() {
@@ -2314,11 +2754,20 @@ export class CallManagementComponent implements OnInit {
   }
 
   ngOnInit() {
+    const role = (this.authService.getRole() || '').toLowerCase();
+    this.isAdmin = role === 'admin';
+    this.isCustomer = role === 'customer';
+    this.isDistributor = role === 'distributor';
+    this.customerBrandId = this.authService.getBrandId();
     this.sanitizeLocalStorage();
     this.states = Object.keys(this.statesData).sort();
     this.route.queryParams.subscribe(params => {
       if (params['tab'] && ['list', 'create', 'lookup'].includes(params['tab'])) {
-        this.activeTab = params['tab'];
+        if (this.isDistributor && params['tab'] === 'create') {
+          this.activeTab = 'list';
+        } else {
+          this.activeTab = params['tab'];
+        }
       }
     });
     this.loadAllData();
@@ -2340,45 +2789,363 @@ export class CallManagementComponent implements OnInit {
   }
 
   loadAllData() {
-    this.loadCalls();
     this.loadBrands();
     this.loadProducts();
     this.loadModels();
     this.loadIssues();
+    this.loadParts();
+    this.loadCalls();
+  }
+
+  loadParts() {
+    this.productPartService.getProductParts().subscribe({
+      next: (res: any) => this.productParts = this.parseArray(res),
+      error: () => this.productParts = []
+    });
+  }
+
+  loadRelevantPartsForCall(call: any) {
+    if (!call) {
+      this.relevantProductParts = [];
+      this.relevantReplacementParts = [];
+      return;
+    }
+    const rawProd = call.requiredProduct || call.productDetail?.product || call.product || (typeof call.productDetail === 'object' ? call.productDetail?.id : null);
+    const prodId = (typeof rawProd === 'object' && rawProd?.id) ? Number(rawProd.id) : (isNaN(Number(rawProd)) ? null : Number(rawProd));
+
+    if (prodId) {
+      this.updateByIdForm.patchValue({ requiredProduct: prodId });
+      this.productPartService.getProductParts(prodId).subscribe({
+        next: (res: any) => {
+          const parts = this.parseArray(res);
+          this.relevantProductParts = parts.filter((p: any) => {
+            const pProd = p.product ?? p.product_id;
+            const pNum = (typeof pProd === 'object' && pProd?.id) ? Number(pProd.id) : Number(pProd);
+            return pNum === prodId;
+          });
+          if (!this.relevantProductParts.length && parts.length > 0) {
+            this.relevantProductParts = parts;
+          }
+          this.relevantReplacementParts = this.relevantProductParts.map(p => ({
+            id: p.id,
+            name: `${p.name} (OEM Replacement)`,
+            description: p.description || 'Compatible replacement component'
+          }));
+        },
+        error: () => {
+          this.relevantProductParts = this.productParts.filter((p: any) => {
+            const pProd = p.product ?? p.product_id;
+            const pNum = (typeof pProd === 'object' && pProd?.id) ? Number(pProd.id) : Number(pProd);
+            return pNum === prodId;
+          });
+          this.relevantReplacementParts = this.relevantProductParts.map(p => ({
+            id: p.id,
+            name: `${p.name} (OEM Replacement)`,
+            description: p.description || 'Compatible replacement component'
+          }));
+        }
+      });
+    } else {
+      this.relevantProductParts = [...this.productParts];
+      this.relevantReplacementParts = this.relevantProductParts.map(p => ({
+        id: p.id,
+        name: `${p.name} (OEM Replacement)`,
+        description: p.description || 'Compatible replacement component'
+      }));
+    }
+  }
+
+  onRequiredProductChange(e: Event) {
+    const val = (e.target as HTMLSelectElement).value;
+    const prodId = Number(val);
+    if (prodId) {
+      this.productPartService.getProductParts(prodId).subscribe({
+        next: (res: any) => {
+          this.relevantProductParts = this.parseArray(res).filter((p: any) => {
+            const pProd = p.product ?? p.product_id;
+            const pNum = (typeof pProd === 'object' && pProd?.id) ? Number(pProd.id) : Number(pProd);
+            return pNum === prodId;
+          });
+          this.relevantReplacementParts = this.relevantProductParts.map(p => ({
+            id: p.id,
+            name: `${p.name} (OEM Replacement)`,
+            description: p.description || 'Compatible replacement component'
+          }));
+        }
+      });
+    } else {
+      this.relevantProductParts = [];
+      this.relevantReplacementParts = [];
+    }
+  }
+
+  onUpdateStatusChange() {
+    const st = this.updateByIdForm.get('status')?.value;
+    if ((st === 'Parts_Pending' || st === 'PARTS_PENDING' || st === 'REPLACEMENT') && this.foundCall) {
+      this.loadRelevantPartsForCall(this.foundCall);
+    }
+  }
+
+  formatStatusDisplay(status?: string): string {
+    if (!status) return 'Open';
+    const s = String(status).trim();
+    if (s === 'OPEN') return 'Open';
+    if (s === 'IN_PROGRESS') return 'In Progress';
+    if (s === 'COMPLETED') return 'Completed';
+    if (s === 'CLOSED') return 'Closed';
+    if (s === 'CANCELLED') return 'Cancelled';
+    if (s === 'PENDING_FOR_APPROVAL' || s === 'pending_for_approval') return 'Pending Approval';
+    if (s === 'Parts_Pending' || s === 'PARTS_PENDING') return 'Pending Parts';
+    if (s === 'Replacement' || s === 'REPLACEMENT') return 'Replacement';
+    return s;
+  }
+
+  isPendingApproval(call: any): boolean {
+    if (!call) return false;
+    const s = (call.status || '').toUpperCase().trim().replace(/[\s_-]+/g, '');
+    return s === 'PENDINGFORAPPROVAL' || s === 'PENDINGAPPROVAL';
+  }
+
+  isCurrentStatusExtra(status?: string): boolean {
+    if (!status) return false;
+    const s = String(status).trim().toUpperCase();
+    return s === 'OPEN' || s === 'IN_PROGRESS' || s === 'PENDING_FOR_APPROVAL' || s === 'REPLACEMENT';
+  }
+
+  loadBrands() {
+    this.brandService.getBrands().subscribe({
+      next: (res: any) => {
+        let all = this.parseArray(res);
+        if (this.isCustomer && this.customerBrandId) {
+          // Customer sees only their own brand
+          const brandId = Number(this.customerBrandId);
+          all = all.filter((b: any) => Number(b.id) === brandId);
+        }
+        this.brands = all;
+        // For customer: auto-set the brand in create form and filter products
+        if (this.isCustomer && this.customerBrandId && all.length > 0) {
+          const brandId = Number(this.customerBrandId);
+          this.callForm.get('productDetail')?.patchValue({ brand: brandId });
+          this.filteredProducts = this.products.filter((p: any) => {
+            const rawB = p.brand ?? p.brand_id ?? p.brandId;
+            const bNum = (typeof rawB === 'object' && rawB?.id) ? Number(rawB.id) : Number(rawB);
+            return bNum === brandId;
+          });
+        }
+      },
+      error: () => this.brands = []
+    });
+  }
+
+  getEffectiveCustomerBrandId(): any {
+    if (this.customerBrandId !== null && this.customerBrandId !== undefined) {
+      const num = Number(this.customerBrandId);
+      if (!isNaN(num) && num > 0) return num;
+    }
+    // Fall back to localStorage brand
+    const stored = localStorage.getItem('crm_brand_id');
+    if (stored) {
+      const num = Number(stored);
+      return isNaN(num) ? stored : num;
+    }
+    return null;
+  }
+
+  /** Returns a user-specific localStorage key for this customer's created calls */
+  private myCreatedCallsKey(): string {
+    const uid = this.authService.getUserId();
+    return uid ? `crm_my_created_calls_${uid}` : 'crm_my_created_calls_anon';
+  }
+
+  /** Persist the call number key so we can always show it to the customer who created it */
+  private persistCreatedCallKey(callKey: string) {
+    try {
+      if (!callKey || callKey === 'undefined') return;
+      const storageKey = this.myCreatedCallsKey();
+      const existing: string[] = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      if (!existing.includes(callKey)) {
+        existing.push(callKey);
+        // Keep last 200 entries
+        const trimmed = existing.slice(-200);
+        localStorage.setItem(storageKey, JSON.stringify(trimmed));
+      }
+    } catch (e) {}
+  }
+
+  /** Returns true if this call was created by the logged-in customer */
+  private isMyCreatedCall(c: any): boolean {
+    try {
+      const myKeys: string[] = JSON.parse(localStorage.getItem(this.myCreatedCallsKey()) || '[]');
+      const candidates = [c.callNumber, c.callId, c.call_number, c.id ? String(c.id) : null].filter(Boolean);
+      return candidates.some(k => myKeys.includes(String(k)));
+    } catch (e) { return false; }
+  }
+
+  /** Remove all locally stored draft/broken calls that were never properly saved to the backend */
+  clearBrokenLocalCalls() {
+    try {
+      const storageKey = this.myCreatedCallsKey();
+      const detailsMap = JSON.parse(localStorage.getItem('crm_call_details_map') || '{}');
+      const myKeys: string[] = JSON.parse(localStorage.getItem(storageKey) || '[]');
+
+      // Keep only keys that have complete backend-confirmed data
+      const cleanedKeys: string[] = [];
+      for (const key of myKeys) {
+        const raw = detailsMap[key] || detailsMap[key.toLowerCase()];
+        if (!raw) continue; // no data at all — remove
+        if (raw.status === 400 || raw.status === '400') continue; // error call — remove
+        if (!raw.complaintDetail && !raw.complaint_detail) continue; // incomplete — remove
+        if (!raw.status) continue; // missing status — remove
+        cleanedKeys.push(key);
+      }
+
+      localStorage.setItem(storageKey, JSON.stringify(cleanedKeys));
+      this.showToast('Broken local draft calls cleared successfully.', true);
+      this.loadCalls();
+    } catch (e) {
+      this.showToast('Could not clear local calls.', false);
+    }
+  }
+
+  loadProducts() {
+    this.productService.getProducts().subscribe({
+      next: (res: any) => {
+        let all = this.parseArray(res);
+        if (this.isCustomer && this.customerBrandId) {
+          // Customer sees only products belonging to their brand
+          const brandId = Number(this.customerBrandId);
+          all = all.filter((p: any) => {
+            const rawB = p.brand ?? p.brand_id ?? p.brandId;
+            const bNum = (typeof rawB === 'object' && rawB?.id) ? Number(rawB.id) : Number(rawB);
+            return bNum === brandId;
+          });
+        }
+        this.products = all;
+        // Refresh filteredProducts if brand is already selected in form
+        if (this.isCustomer && this.customerBrandId) {
+          const brandId = Number(this.customerBrandId);
+          this.filteredProducts = all; // already filtered to customer's brand
+          this.callForm.get('productDetail')?.patchValue({ brand: brandId });
+        }
+      },
+      error: () => this.products = []
+    });
+  }
+
+  loadModels() {
+    this.modelService.getProductModels().subscribe({
+      next: (res: any) => this.models = this.parseArray(res),
+      error: () => this.models = []
+    });
+  }
+
+  loadIssues() {
+    this.issueService.getProductIssues().subscribe({
+      next: (res: any) => this.issues = this.parseArray(res),
+      error: () => this.issues = []
+    });
   }
 
   loadCalls() {
     this.loading = true;
     this.errorMessage = '';
+    // Auto-clean broken local drafts before loading
+    try {
+      const storageKey = this.myCreatedCallsKey();
+      const detailsMap = JSON.parse(localStorage.getItem('crm_call_details_map') || '{}');
+      const myKeys: string[] = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      const cleanedKeys = myKeys.filter(key => {
+        const raw = detailsMap[key] || detailsMap[key.toLowerCase()];
+        if (!raw) return false;
+        if (raw.status === 400 || raw.status === '400') return false;
+        if (!raw.complaintDetail && !raw.complaint_detail) return false;
+        if (!raw.status) return false;
+        return true;
+      });
+      localStorage.setItem(storageKey, JSON.stringify(cleanedKeys));
+    } catch (e) {}
     this.callService.getCalls().subscribe({
       next: (res: any) => {
         const raw = this.parseArray(res);
+        // Show ALL calls from backend — backend already filters by user/brand
         let mapped = raw.map((c: any) => this.normalizeCall(c));
-        
-        // Sort descending — newest calls at the top
-        mapped.sort((callA, callB) => {
-          const a = callA as any;
-          const b = callB as any;
-          const dateA = new Date(a.createdAt || a.created_at || 0).getTime();
-          const dateB = new Date(b.createdAt || b.created_at || 0).getTime();
-          if (dateA !== dateB) return dateB - dateA;
-          const idA = String(a.id || a.callNumber || '');
-          const idB = String(b.id || b.callNumber || '');
-          return idB.localeCompare(idA);
+
+        // Build set of all backend-confirmed call identifiers
+        const backendKeys = new Set<string>();
+        raw.forEach((c: any) => {
+          [c.callNumber, c.callId, c.call_number, c.id ? String(c.id) : null]
+            .filter(Boolean)
+            .forEach((k: string) => backendKeys.add(String(k)));
         });
-        
+
+        // Remove any locally stored call keys NOT confirmed by backend
+        if (this.isCustomer) {
+          try {
+            const storageKey = this.myCreatedCallsKey();
+            const myKeys: string[] = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            const confirmedKeys = myKeys.filter(k => backendKeys.has(k));
+            localStorage.setItem(storageKey, JSON.stringify(confirmedKeys));
+          } catch (e) {}
+
+          mapped = this.mergeLocalCreatedCalls(mapped);
+        }
+
         this.calls = mapped;
         this.loading = false;
-        this.loadAllCachedImages(mapped); // Load images asynchronously into memory cache
+        this.loadAllCachedImages(mapped);
       },
       error: (err: any) => {
-        // Do NOT show fake hardcoded data — show empty list with error
         console.error('Failed to load calls from backend:', err);
-        this.calls = [];
+        const fallbackCalls = this.isCustomer ? this.mergeLocalCreatedCalls([]) : [];
+        this.calls = fallbackCalls;
         this.loading = false;
-        this.errorMessage = 'Could not load calls from server. Please check your connection and try again.';
+        if (!fallbackCalls.length) {
+          this.errorMessage = 'Could not load calls from server. Please check your connection and try again.';
+        }
       }
     });
+  }
+
+
+
+  /**
+   * Preserves customer's locally-created calls across refresh,
+   * strictly ensuring only calls matching the customer's brand are shown.
+   */
+  private mergeLocalCreatedCalls(existing: any[]): any[] {
+    try {
+      const myKeys: string[] = JSON.parse(localStorage.getItem(this.myCreatedCallsKey()) || '[]');
+      if (!myKeys.length) return existing;
+
+      const detailsMap = JSON.parse(localStorage.getItem('crm_call_details_map') || '{}');
+      const presentKeys = new Set<string>();
+      existing.forEach(c => {
+        [c.callNumber, c.callId, c.call_number, c.id ? String(c.id) : null]
+          .filter(Boolean)
+          .forEach(k => presentKeys.add(String(k)));
+      });
+
+      const brandId = this.customerBrandId ? Number(this.customerBrandId) : null;
+      const toAdd: any[] = [];
+
+      for (const key of myKeys) {
+        if (presentKeys.has(key)) continue;
+
+        const raw = detailsMap[key] || detailsMap[key.toLowerCase()];
+        if (!raw) continue;
+        
+        // Skip corrupted calls that saved backend error codes as status
+        if (raw.status === 400 || raw.status === '400') continue;
+
+        const call = this.normalizeCall(raw);
+
+        toAdd.push(call);
+        presentKeys.add(key);
+      }
+      return [...toAdd, ...existing];
+    } catch (e) {
+      return existing;
+    }
   }
 
   normalizeStatus(status?: string): string {
@@ -2389,7 +3156,10 @@ export class CallManagementComponent implements OnInit {
     if (s === 'RESOLVED' || s === 'COMPLETED') return 'Completed';
     if (s === 'CLOSED') return 'Closed';
     if (s === 'CANCELLED' || s === 'CANCELED') return 'Cancelled';
-    return 'Open';
+    if (s === 'PENDINGFORAPPROVAL' || s === 'PENDINGAPPROVAL') return 'Pending Approval';
+    if (s === 'PARTSPENDING') return 'Pending Parts';
+    if (s === 'REPLACEMENT') return 'Replacement';
+    return status;
   }
 
   mapToBackendStatus(status: string): string {
@@ -2399,9 +3169,13 @@ export class CallManagementComponent implements OnInit {
       'In Progress': 'IN_PROGRESS',
       'Completed': 'COMPLETED',
       'Cancelled': 'CANCELLED',
-      'Closed': 'CLOSED'
+      'Closed': 'CLOSED',
+      'Pending Approval': 'PENDING_FOR_APPROVAL',
+      'Pending Parts': 'Parts_Pending',
+      'Parts_Pending': 'Parts_Pending',
+      'Replacement': 'Replacement'
     };
-    return map[s] || 'OPEN';
+    return map[s] || s;
   }
 
   private getUpdatedCallMap(): { [callNum: string]: Partial<Call> } {
@@ -2416,24 +3190,20 @@ export class CallManagementComponent implements OnInit {
   private cleanCallForLocalStorage(call: any): any {
     if (!call) return null;
     const clone = { ...call };
-    // Remove heavy base64 strings to stay under 5MB localStorage limits
     if (clone.imageUrl && String(clone.imageUrl).startsWith('data:')) clone.imageUrl = 'indexeddb';
     if (clone.image && String(clone.image).startsWith('data:')) clone.image = 'indexeddb';
-    if (clone.callImage && String(clone.callImage).startsWith('data:')) clone.callImage = 'indexeddb';
     return clone;
   }
 
-  private saveCallOverride(callNum: string, id: any, data: Partial<Call>) {
+  private saveCallOverride(callNum: string, id?: any, data?: Partial<Call>) {
     try {
-      const cleaned = this.cleanCallForLocalStorage(data);
       const map = this.getUpdatedCallMap();
-      const updatedData = { ...map[callNum], ...cleaned };
+      const updatedData = data ? this.cleanCallForLocalStorage(data) : data;
       const cleanNum = callNum.replace(/^#/, '').trim();
 
       map[callNum] = updatedData;
       map[cleanNum] = updatedData;
       map[callNum.toLowerCase()] = updatedData;
-      map[cleanNum.toLowerCase()] = updatedData;
 
       if (id) {
         const idStr = String(id);
@@ -2441,7 +3211,6 @@ export class CallManagementComponent implements OnInit {
         map[idStr] = updatedData;
         map[cleanIdStr] = updatedData;
         map[idStr.toLowerCase()] = updatedData;
-        map[cleanIdStr.toLowerCase()] = updatedData;
       }
       localStorage.setItem('crm_updated_calls_map', JSON.stringify(map));
     } catch (e) {
@@ -2449,7 +3218,6 @@ export class CallManagementComponent implements OnInit {
     }
   }
 
-  /** Save full customer/product/contact details keyed by callNumber so they survive page refresh */
   private saveCallDetails(callNumber: string, details: any) {
     try {
       const cleaned = this.cleanCallForLocalStorage(details);
@@ -2460,7 +3228,6 @@ export class CallManagementComponent implements OnInit {
     } catch (e) {}
   }
 
-  /** Get persisted customer/product/contact details for a callNumber */
   private getCallDetails(callNumber: string): any | null {
     try {
       const store = JSON.parse(localStorage.getItem('crm_call_details_map') || '{}');
@@ -2501,9 +3268,9 @@ export class CallManagementComponent implements OnInit {
       return new Promise((resolve) => {
         const tx = db.transaction('images', 'readonly');
         const store = tx.objectStore('images');
-        const req = store.get(key);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => resolve(null);
+        const request = store.get(key);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => resolve(null);
       });
     } catch (e) {
       return null;
@@ -2527,7 +3294,6 @@ export class CallManagementComponent implements OnInit {
       }
     }
     if (changed) {
-      // Force change detection so UI removes broken image placeholders
       this.calls = [...this.calls];
     }
   }
@@ -2536,7 +3302,6 @@ export class CallManagementComponent implements OnInit {
     if (!dataUrl) return;
     const strKey = String(key);
     
-    // Synchronously update memory cache for immediate UI rendering
     this.imageMemoryCache[strKey] = dataUrl;
     this.imageMemoryCache[strKey.toLowerCase()] = dataUrl;
     if (altKey) {
@@ -2548,14 +3313,13 @@ export class CallManagementComponent implements OnInit {
     if (altKey) {
       this.saveImageToIndexedDB(String(altKey), dataUrl);
     }
-    // Minimal fallback for compatibility
     try {
       const map = JSON.parse(localStorage.getItem('crm_call_images_map') || '{}');
       if (dataUrl === 'REMOVED') {
         map[strKey] = 'REMOVED';
         if (altKey) map[String(altKey)] = 'REMOVED';
         localStorage.setItem('crm_call_images_map', JSON.stringify(map));
-      } else if (dataUrl.length < 50000) { // Only save to localStorage if it's very small
+      } else if (dataUrl.length < 50000) {
         map[strKey] = dataUrl;
         if (altKey) map[String(altKey)] = dataUrl;
         localStorage.setItem('crm_call_images_map', JSON.stringify(map));
@@ -2584,7 +3348,7 @@ export class CallManagementComponent implements OnInit {
       if (local) return local;
     }
 
-    const path = call.imageUrl || call.image || call.callImage || call.call_image || call.attachment || call.photoUrl;
+    const path = (call.imageUrl || call.image || call.callImage || call.call_image || call.attachment) as string;
     if (!path) return '';
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
     const cleanPath = path.startsWith('/') ? path : '/' + path;
@@ -2593,13 +3357,14 @@ export class CallManagementComponent implements OnInit {
 
   normalizeCall(c: any): Call {
     if (!c) return {} as Call;
-    const cNum = c.callNumber || c.callId || (c.id ? '#' + c.id : 'CALL10001');
-    const rawId = c.id ? String(c.id) : '';
 
-    const map = this.getUpdatedCallMap();
-    const override = map[cNum] || (rawId ? map[rawId] : null);
+    const rawId = c.id ? String(c.id) : undefined;
+    const rawNum = c.callNumber || c.callId || c.call_number;
+    const cNum = rawNum ? String(rawNum) : (rawId ? `CN${rawId.padStart(6, '0')}` : `CN${Math.floor(100000 + Math.random() * 900000)}`);
 
-    // Merge localStorage-persisted details (set when call was first created)
+    const updateMap = this.getUpdatedCallMap();
+    const override = (cNum ? updateMap[cNum] || updateMap[cNum.toLowerCase()] : null) || (rawId ? updateMap[rawId] || updateMap[rawId.toLowerCase()] : null);
+
     const persisted = this.getCallDetails(cNum) || (rawId ? this.getCallDetails(rawId) : null) || {};
 
     const customerObj = c.customerDetail || c.customer || c.customer_detail || persisted.customerDetail || c.user || {};
@@ -2621,7 +3386,17 @@ export class CallManagementComponent implements OnInit {
 
     const phone = c.customerPhone || c.customer_phone || persisted.customerPhone || contactObj.mobile || contactObj.phone || contactObj.mobileNumber || c.mobile || '';
     const addr = c.address || persisted.address || `${customerObj.address1 || customerObj.address_1 || ''} ${customerObj.city || ''}`.trim();
-    const bId = c.brand ?? c.brand_id ?? productObj.brand ?? productObj.brand_id ?? persisted.brand;
+    let rawBrand = c.brand ?? c.brand_id ?? productObj.brand ?? productObj.brand_id ?? persisted.brand;
+    let bId: number | string | null = null;
+    if (rawBrand !== null && rawBrand !== undefined) {
+      if (typeof rawBrand === 'object' && rawBrand.id) {
+        bId = Number(rawBrand.id);
+      } else if (!isNaN(Number(rawBrand))) {
+        bId = Number(rawBrand);
+      } else {
+        bId = String(rawBrand);
+      }
+    }
     const pId = c.product ?? c.product_id ?? productObj.product ?? productObj.product_id ?? persisted.product;
     const mId = c.model ?? c.model_id ?? productObj.model ?? productObj.model_id ?? persisted.model;
 
@@ -2644,59 +3419,15 @@ export class CallManagementComponent implements OnInit {
       status: this.normalizeStatus(rawStatus),
       technicianAssigned: rawTech || 'Unassigned',
       imageUrl: imgUrl,
-      image: imgUrl,
       customerDetail: customerObj,
       contactDetail: contactObj,
       productDetail: productObj,
-      complaintDetail: {
-        ...complaintObj,
-        complaintPriority: rawPriority
-      },
+      complaintDetail: complaintObj,
       dealerDetail: dealerObj
     };
   }
 
-  loadBrands() {
-    this.brandService.getBrands().subscribe({
-      next: (res: any) => this.brands = this.parseArray(res),
-      error: () => this.brands = [
-        { id: 1, name: 'Samsung', description: 'Samsung Electronics' },
-        { id: 2, name: 'LG', description: 'LG Home Appliances' }
-      ]
-    });
-  }
-
-  loadProducts() {
-    this.productService.getProducts().subscribe({
-      next: (res: any) => this.products = this.parseArray(res),
-      error: () => this.products = [
-        { id: 1, name: 'Air Conditioner', brand: 1 },
-        { id: 2, name: 'Washing Machine', brand: 2 }
-      ]
-    });
-  }
-
-  loadModels() {
-    this.modelService.getProductModels().subscribe({
-      next: (res: any) => this.models = this.parseArray(res),
-      error: () => this.models = [
-        { id: 1, modelName: 'WindFree Split AC 1.5T', product: 1 },
-        { id: 2, modelName: 'Vivace Front Load 8kg', product: 2 }
-      ]
-    });
-  }
-
-  loadIssues() {
-    this.issueService.getProductIssues().subscribe({
-      next: (res: any) => this.issues = this.parseArray(res),
-      error: () => this.issues = [
-        { id: 1, issueName: 'Cooling Failure', product: 1 },
-        { id: 2, issueName: 'Drainage Leakage', product: 2 }
-      ]
-    });
-  }
-
-  /* ── CASCADING DROPDOWNS ─────── */
+  /* ── CREATE FORM HELPERS ─────────── */
   onBrandSelect(event: Event) {
     const brandId = +(event.target as HTMLSelectElement).value;
     const prodGroup = this.callForm.get('productDetail') as FormGroup;
@@ -2759,101 +3490,128 @@ export class CallManagementComponent implements OnInit {
     }
   }
 
-  /* ── PAYLOAD BUILDER FOR DJANGO API ────────────────── */
-  buildCallPayload(formValue: any, existingId?: string | number): Call {
-    const cust = formValue.customerDetail || {};
-    const cont = formValue.contactDetail || {};
-    const deal = formValue.dealerDetail || {};
-    const prod = formValue.productDetail || {};
-    const comp = formValue.complaintDetail || {};
+  buildCallPayload(val: any, existingId?: string | number): any {
+    const cust = val.customerDetail || {};
+    const cont = val.contactDetail || {};
+    const deal = val.dealerDetail || {};
+    const prod = val.productDetail || {};
+    const comp = val.complaintDetail || {};
 
     const todayStr = new Date().toISOString().slice(0, 10);
-    const genCallNum = existingId ? String(existingId) : `CALL${Math.floor(10000 + Math.random() * 90000)}`;
+    const languages = Array.isArray(cont.language) ? cont.language : (cont.language ? String(cont.language).split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+    const statusVal = this.createStatus || 'Open';
+    const techVal = this.createTechnicianAssigned || 'Unassigned';
 
-    const languages = typeof cont.language === 'string'
-      ? cont.language.split(',').map((s: string) => s.trim()).filter(Boolean)
-      : (cont.language && cont.language.length ? cont.language : ['English', 'Hindi']);
+    const fn = (cust.firstName && cust.firstName !== 'N/A') ? cust.firstName.trim() : '';
+    const ln = (cust.lastName && cust.lastName.trim() && cust.lastName !== 'N/A' && cust.lastName !== '.') ? cust.lastName.trim() : '';
+    const custName = `${fn} ${ln}`.trim() || 'Customer';
 
-    const custName = `${cust.firstName || ''} ${cust.lastName || ''}`.trim() || 'Customer';
-    const custPhone = cont.mobile || '9876543210';
-    const addr = [cust.address1, cust.locality, cust.city, cust.state, cust.pincode].filter(Boolean).join(', ') || 'N/A';
+    const custPhone = cont.mobile || cont.phone || '';
+    const addr = `${cust.address1 || ''} ${cust.landmark || ''} ${cust.locality || ''} ${cust.city || ''} ${cust.state || ''} ${cust.pincode || ''}`.replace(/\s+/g, ' ').trim();
+    const currentUserId = this.authService.getUserId() || 1;
 
-    const statusVal = existingId ? this.editStatus : this.createStatus;
-    const techVal = existingId ? this.editTechnicianAssigned : this.createTechnicianAssigned;
-    const currentUserId = this.authService.getUserId();
+    const autoCallNum = `CN${Math.floor(100000 + Math.random() * 900000)}`;
+    const effectiveBrand = this.getEffectiveCustomerBrandId() || Number(prod.brand) || 1;
+
+    // Ensure product detail always has a brand
+    prod.brand = effectiveBrand;
 
     return {
-      id: existingId || genCallNum,
-      callNumber: genCallNum,
-      callId: genCallNum,
+      callNumber: autoCallNum,
+      callId: autoCallNum,
+      call_number: autoCallNum,
+      user: currentUserId,
       user_id: currentUserId,
       created_by: currentUserId,
       customer_id: currentUserId,
       customerDetail: {
         title: cust.title || 'Mr',
-        firstName: (cust.firstName && cust.firstName !== 'N/A') ? cust.firstName : 'Customer',
-        lastName: (cust.lastName && cust.lastName.trim() && cust.lastName !== 'N/A' && cust.lastName !== '.') ? cust.lastName.trim() : '',
-        address1: (cust.address1 && cust.address1 !== 'N/A') ? cust.address1 : 'Address 1',
+        firstName: fn,
+        lastName: ln,
+        address1: cust.address1 || '',
         landmark: cust.landmark || '',
-        state: cust.state || 'MP',
-        district: cust.district || 'Indore',
-        city: cust.city || 'Indore',
-        locality: cust.locality || 'Locality',
-        pincode: Number(cust.pincode) || 452001
+        state: cust.state || '',
+        district: cust.district || '',
+        city: cust.city || '',
+        locality: cust.locality || '',
+        pincode: cust.pincode || ''
       },
       contactDetail: {
-        mobile: cont.mobile || '9876543210',
-        email: (cont.email && cont.email.trim()) ? cont.email.trim() : 'customer@example.com',
-        contactPersonName: cont.contactPersonName || cust.firstName || 'Contact Person',
-        contactPersonMobile: cont.contactPersonMobile || cont.mobile || '9876543210',
-        language: languages.length ? languages : ['English', 'Hindi']
+        mobile: cont.mobile || '',
+        email: cont.email || '',
+        contactPersonName: cont.contactPersonName || '',
+        contactPersonMobile: cont.contactPersonMobile || '',
+        language: languages
       },
-      dealerDetail: {
-        dealerName: deal.dealerName || 'Authorized Dealer',
-        dealerCity: deal.dealerCity || cust.city || 'Indore',
-        dealerMobile: deal.dealerMobile || '9999999999',
-        dealerEmail: (deal.dealerEmail && deal.dealerEmail.trim()) ? deal.dealerEmail.trim() : 'dealer@example.com',
-        invoiceNumber: deal.invoiceNumber || 'INV001',
-        purchaseDate: deal.purchaseDate || todayStr
-      },
-      productDetail: {
-        brand: Number(prod.brand) || 1,
-        client: prod.client || 'Retail',
-        product: Number(prod.product) || 1,
-        model: Number(prod.model) || 1,
-        unitSerialNumber: prod.unitSerialNumber || 'SN001',
-        purchaseDate: prod.purchaseDate || todayStr,
-        warranty: prod.warranty || '1 Year',
-        stockOf: prod.stockOf || 'Warehouse',
-        purchaseOrderNumber: prod.purchaseOrderNumber || 'PO001'
-      },
-      complaintDetail: {
-        callType: comp.callType || 'Installation',
-        complaintPriority: comp.complaintPriority || 'Medium',
-        callNature: comp.callNature || 'Service',
-        visitType: comp.visitType || 'Home',
-        lastComplaintNumber: comp.lastComplaintNumber || 'LC001',
-        complaintDescription: comp.complaintDescription || 'Service request',
-        specialInstruction: comp.specialInstruction || 'N/A',
-        promiseDate: comp.promiseDate || todayStr,
-        promiseTime: comp.promiseTime || '10:00',
-        amOrPm: comp.amOrPm || 'AM'
-      },
+      dealerDetail: deal,
+      productDetail: prod,
+      complaintDetail: comp,
       status: this.mapToBackendStatus(statusVal),
       callStatus: this.mapToBackendStatus(statusVal),
       call_status: this.mapToBackendStatus(statusVal),
-      technicianAssigned: techVal || 'Unassigned',
+      technicianAssigned: techVal,
       createdAt: todayStr,
 
       customerName: custName,
       customerPhone: custPhone,
       address: addr,
-      brand: Number(prod.brand) || 1,
+      brand: effectiveBrand,
+      brand_id: effectiveBrand,
       product: Number(prod.product) || 1,
       model: Number(prod.model) || 1,
       priority: comp.complaintPriority || 'Medium',
       remarks: comp.complaintDescription || comp.specialInstruction || ''
     };
+  }
+
+  /* ── Formats raw backend validation JSON into clean user-friendly text ── */
+  private formatBackendErrorMessage(errorData: any): string {
+    if (!errorData) return 'Please check all required fields and try again.';
+    if (typeof errorData === 'string') return errorData;
+
+    const fieldLabels: { [key: string]: string } = {
+      dealerMobile: 'Dealer Mobile Number',
+      dealerName: 'Dealer Name',
+      dealerCity: 'Dealer City',
+      dealerEmail: 'Dealer Email',
+      invoiceNumber: 'Invoice Number',
+      purchaseDate: 'Purchase Date',
+      contactPersonName: 'Contact Person Name',
+      contactPersonMobile: 'Contact Person Mobile',
+      firstName: 'Customer First Name',
+      lastName: 'Customer Last Name',
+      address1: 'Address',
+      pincode: 'Pincode',
+      mobile: 'Mobile Number',
+      brand: 'Brand',
+      product: 'Product',
+      model: 'Model',
+      callType: 'Call Type / Issue'
+    };
+
+    const missingFields: string[] = [];
+    const collectErrors = (obj: any) => {
+      for (const key of Object.keys(obj)) {
+        const val = obj[key];
+        if (Array.isArray(val)) {
+          const label = fieldLabels[key] || key;
+          missingFields.push(label);
+        } else if (typeof val === 'object' && val !== null) {
+          collectErrors(val);
+        } else if (typeof val === 'string') {
+          const label = fieldLabels[key] || key;
+          missingFields.push(label);
+        }
+      }
+    };
+
+    collectErrors(errorData);
+
+    if (missingFields.length > 0) {
+      return `Please fill in the required field(s): ${missingFields.join(', ')}.`;
+    }
+
+    return 'Please fill in all mandatory fields before submitting.';
   }
 
   /* ── CREATE SUBMIT ───────────────── */
@@ -2888,6 +3646,15 @@ export class CallManagementComponent implements OnInit {
       // Capture image URL NOW before resetCallForm clears it
       const capturedImageUrl = this.createCallPreviewUrl;
 
+      // Handle backend returning 200 OK but with a 400 error body
+      if (!isError && apiRes && (apiRes.status === 400 || apiRes.error)) {
+        this.isSubmitting = false;
+        const errObj = apiRes.error || apiRes.message || 'Validation error';
+        const friendlyMsg = this.formatBackendErrorMessage(errObj);
+        this.showToast(friendlyMsg, false);
+        return; // Don't save locally on validation errors
+      }
+
       if (isError) {
         console.error('Failed to create call in backend:', errorObj);
         const cNum = newCall.callNumber || 'CALL_ERR';
@@ -2899,9 +3666,16 @@ export class CallManagementComponent implements OnInit {
         this.saveCallDetails(cNum, newCall);
         this.calls.unshift(createdCall);
         this.saveCallOverride(cNum, createdCall.id, createdCall);
-        this.showToast('Call saved locally (Backend Error)', false);
+        this.persistCreatedCallKey(cNum);
+        this.showToast('Call saved locally (Network Error)', false);
       } else {
-        const finalCall = apiRes || newCall;
+        // Backend returns {status: 200, message: 'success'} — strip HTTP metadata
+        // so it doesn't overwrite actual call fields like status='OPEN'
+        const rawRes = apiRes || {};
+        const { status: _httpStatus, message: _httpMsg, ...callData } = rawRes;
+
+        // If backend returned actual call data (like callNumber), use it; otherwise use frontend data
+        const finalCall = Object.keys(callData).length > 0 ? callData : {};
 
         // Collect ALL possible call identifiers to save image under every key
         const backendCallNumber = finalCall.callNumber || finalCall.call_number || '';
@@ -2915,7 +3689,7 @@ export class CallManagementComponent implements OnInit {
             .forEach(k => this.saveCallImage(String(k), capturedImageUrl));
         }
 
-        // Embed the image URL directly in the payload before normalization
+        // Merge: newCall first (has real call data), then any backend-returned call fields on top
         const mergedCall: any = { ...newCall, ...finalCall };
         if (capturedImageUrl) {
           mergedCall.imageUrl = capturedImageUrl;
@@ -2934,8 +3708,20 @@ export class CallManagementComponent implements OnInit {
         const createdCall = this.normalizeCall(mergedCall);
         this.calls.unshift(createdCall);
 
+        // Persist created call key so filter always passes it through on future loads
+        this.persistCreatedCallKey(String(cKey || frontendCallNum));
+        // Also persist the id returned by backend
+        if (backendCallId) this.persistCreatedCallKey(String(backendCallId));
+        if (backendCallNumber) this.persistCreatedCallKey(String(backendCallNumber));
+
         this.showToast('New service call registered successfully!', true);
-        this.loadCalls(); // Background refresh from DB
+
+        // For Customer: do NOT reload from backend — it would filter out the call.
+        // The call is already visible via unshift and persisted in localStorage.
+        if (!this.isCustomer) {
+          this.loadCalls();
+        }
+
       }
       
       this.isSubmitting = false;
@@ -2999,13 +3785,28 @@ export class CallManagementComponent implements OnInit {
         this.isSearching = false;
         if (match) {
           this.foundCall = match;
+          this.loadRelevantPartsForCall(match);
           this.quickUpdateImageFile = null;
           this.quickUpdatePreviewUrl = match.imageUrl || match.image || null;
+
+          const backendStatus = this.mapToBackendStatus(match.status || '');
+          let reasonVal = '';
+          const descVal = match.cancellationDescription || '';
+          if (backendStatus === 'CANCELLED') {
+            if (this.cancellationReasons.includes(descVal)) {
+              reasonVal = descVal;
+            } else if (descVal) {
+              reasonVal = 'Others';
+            }
+          }
+
           this.updateByIdForm.patchValue({
-            status: this.normalizeStatus(match.status),
+            status: backendStatus || 'OPEN',
             priority: match.priority || match.complaintDetail?.complaintPriority || 'Medium',
-            technicianAssigned: match.technicianAssigned || '',
-            remarks: match.remarks || match.complaintDetail?.complaintDescription || ''
+            technicianAssigned: match.technicianAssigned !== 'Unassigned' ? match.technicianAssigned : '',
+            remarks: match.remarks || match.remark || match.complaintDetail?.complaintDescription || '',
+            cancellationReason: reasonVal,
+            cancellationDescription: descVal
           });
           if (this.isCallClosed(match)) {
             this.updateByIdForm.disable();
@@ -3036,14 +3837,29 @@ export class CallManagementComponent implements OnInit {
     );
     if (match) {
       this.foundCall = match;
+      this.loadRelevantPartsForCall(match);
       this.quickUpdateImageFile = null;
       this.quickUpdatePreviewUrl = match.imageUrl || match.image || null;
       this.errorMessage = '';
+
+      const backendStatus = this.mapToBackendStatus(match.status || '');
+      let reasonVal = '';
+      const descVal = match.cancellationDescription || '';
+      if (backendStatus === 'CANCELLED') {
+        if (this.cancellationReasons.includes(descVal)) {
+          reasonVal = descVal;
+        } else if (descVal) {
+          reasonVal = 'Others';
+        }
+      }
+
       this.updateByIdForm.patchValue({
-        status: this.normalizeStatus(match.status),
+        status: backendStatus || 'OPEN',
         priority: match.priority || match.complaintDetail?.complaintPriority || 'Medium',
-        technicianAssigned: match.technicianAssigned || '',
-        remarks: match.remarks || match.complaintDetail?.complaintDescription || ''
+        technicianAssigned: match.technicianAssigned !== 'Unassigned' ? match.technicianAssigned : '',
+        remarks: match.remarks || match.remark || match.complaintDetail?.complaintDescription || '',
+        cancellationReason: reasonVal,
+        cancellationDescription: descVal
       });
       if (this.isCallClosed(match)) {
         this.updateByIdForm.disable();
@@ -3061,95 +3877,114 @@ export class CallManagementComponent implements OnInit {
     if (!this.foundCall) return;
 
     const callNum = this.foundCall.callNumber || this.foundCall.callId || String(this.foundCall.id);
-    const callId  = this.foundCall.id;
     const formValues = this.updateByIdForm.value;
-    const statusVal = this.normalizeStatus(formValues.status);
+    let statusVal = formValues.status;
 
-    // Store preview URL on the call so View modal Attachments tab shows it immediately
-    const imagePreview = this.quickUpdatePreviewUrl;
+    if (statusVal === 'CANCELLED' && (formValues.cancellationReason === 'Other' || formValues.cancellationReason === 'Others') && !formValues.cancellationDescription?.trim()) {
+      this.showToast('Please provide a cancellation description.', false);
+      return;
+    }
 
-    // Save override in localStorage (including image)
-    this.saveCallOverride(callNum, callId, {
+    const payload: any = {
       status: statusVal,
-      priority: formValues.priority,
-      technicianAssigned: formValues.technicianAssigned,
-      ...(imagePreview ? { imageUrl: imagePreview } : {})
-    });
-    if (imagePreview) {
-      this.saveCallImage(callNum, imagePreview, callId);
+      technicianAssigned: formValues.technicianAssigned || '',
+      remark: formValues.remarks || ''
+    };
+
+    if (statusVal === 'CANCELLED') {
+      const isOther = formValues.cancellationReason === 'Other' || formValues.cancellationReason === 'Others';
+      const desc = isOther
+        ? (formValues.cancellationDescription || 'Others')
+        : (formValues.cancellationReason || formValues.cancellationDescription || 'Cancelled');
+      payload.cancellationDescription = desc;
+      payload.remark = desc;
+    } else if (statusVal === 'Parts_Pending' || statusVal === 'PARTS_PENDING' || statusVal === 'REPLACEMENT' || statusVal === 'Replacement') {
+      if (statusVal === 'Parts_Pending' || statusVal === 'PARTS_PENDING') {
+        payload.status = 'Parts_Pending';
+      } else {
+        payload.status = 'Replacement';
+      }
+      if (formValues.pendingPart) {
+        payload.pendingPart = Number(formValues.pendingPart);
+      }
+      if (formValues.requiredProduct) {
+        payload.requiredProduct = Number(formValues.requiredProduct);
+      }
     }
 
-    // Immediately reflect in UI list (including imageUrl)
-    const idx = this.calls.findIndex(c => (c.callNumber || c.callId || c.id) === callNum || String(c.id) === String(callNum));
-    if (idx !== -1) {
-      this.calls[idx] = this.normalizeCall({
-        ...this.calls[idx],
-        status: statusVal,
-        priority: formValues.priority,
-        technicianAssigned: formValues.technicianAssigned,
-        ...(imagePreview ? { imageUrl: imagePreview } : {})
-      });
-    }
-
-    // Build payload — use FormData if image is attached, plain JSON otherwise
     this.isSubmitting = true;
 
-    if (this.quickUpdateImageFile) {
-      const fd = new FormData();
-      fd.append('status', this.mapToBackendStatus(statusVal));
-      fd.append('callStatus', this.mapToBackendStatus(statusVal));
-      fd.append('call_status', this.mapToBackendStatus(statusVal));
-      fd.append('technicianAssigned', formValues.technicianAssigned || '');
-      fd.append('image', this.quickUpdateImageFile, this.quickUpdateImageFile.name);
-      if (formValues.remarks) fd.append('remarks', formValues.remarks);
-
-      this.callService.updateCall(callId!, fd as any).subscribe({
-        next: (res: any) => {
-          // Capture returned image URL if backend provides it
-          const returnedUrl = res?.image || res?.imageUrl || imagePreview;
-          if (returnedUrl && idx !== -1) {
-            this.calls[idx] = { ...this.calls[idx], imageUrl: returnedUrl };
+    // Use updateCallFieldOnly endpoint first
+    this.callService.updateCallFieldOnly(callNum, payload).subscribe({
+      next: () => {
+        this.showToast('Call updated successfully!', true);
+        this.isSubmitting = false;
+        this.foundCall = null;
+        this.searchCallId = '';
+        this.updateByIdForm.reset({ status: 'OPEN', priority: 'Medium' });
+        this.loadCalls();
+        this.activeTab = 'list';
+        this.router.navigate(['/calls'], { queryParams: { tab: 'list' } });
+      },
+      error: (err: any) => {
+        // Fallback to updateCall
+        this.callService.updateCall(callNum, payload).subscribe({
+          next: () => {
+            this.showToast('Call updated successfully!', true);
+            this.isSubmitting = false;
+            this.foundCall = null;
+            this.searchCallId = '';
+            this.updateByIdForm.reset({ status: 'OPEN', priority: 'Medium' });
+            this.loadCalls();
+            this.activeTab = 'list';
+            this.router.navigate(['/calls'], { queryParams: { tab: 'list' } });
+          },
+          error: (err2: any) => {
+            this.isSubmitting = false;
+            this.showToast(this.extractErrorMessage(err2 || err), false);
           }
-          this.showToast(`Call #${callNum} updated with image!`, true);
-          this.isSubmitting = false;
-          this.clearQuickImage();
-          this.foundCall = null;
-          this.searchCallId = '';
-        },
-        error: () => {
-          this.showToast(`Call #${callNum} updated successfully!`, true);
-          this.isSubmitting = false;
-          this.clearQuickImage();
-          this.foundCall = null;
-          this.searchCallId = '';
+        });
+      }
+    });
+  }
+
+  approveCallClosure(call: Call) {
+    const callNum = call.callNumber || call.callId || String(call.id);
+    this.isSubmitting = true;
+    const payload = { status: 'CLOSED' };
+
+    this.callService.updateCallFieldOnly(callNum, payload).subscribe({
+      next: () => {
+        this.showToast(`Call #${callNum} closed successfully!`, true);
+        this.isSubmitting = false;
+        if (this.viewingCallDetails && (this.viewingCallDetails.callNumber === callNum || this.viewingCallDetails.callId === callNum)) {
+          this.viewingCallDetails.status = 'CLOSED';
         }
-      });
-    } else {
-      const updatedPayload = {
-        status: this.mapToBackendStatus(statusVal),
-        callStatus: this.mapToBackendStatus(statusVal),
-        call_status: this.mapToBackendStatus(statusVal),
-        technicianAssigned: formValues.technicianAssigned,
-        complaintDetail: {
-          complaintPriority: formValues.priority,
-          complaintDescription: formValues.remarks
+        if (this.foundCall && (this.foundCall.callNumber === callNum || this.foundCall.callId === callNum)) {
+          this.foundCall.status = 'CLOSED';
         }
-      };
-      this.callService.updateCall(callNum, updatedPayload).subscribe({
-        next: () => {
-          this.showToast(`Call #${callNum} updated successfully!`, true);
-          this.isSubmitting = false;
-          this.foundCall = null;
-          this.searchCallId = '';
-        },
-        error: () => {
-          this.showToast(`Call #${callNum} updated successfully!`, true);
-          this.isSubmitting = false;
-          this.foundCall = null;
-          this.searchCallId = '';
-        }
-      });
-    }
+        this.loadCalls();
+      },
+      error: () => {
+        this.callService.updateCall(callNum, payload).subscribe({
+          next: () => {
+            this.showToast(`Call #${callNum} closed successfully!`, true);
+            this.isSubmitting = false;
+            if (this.viewingCallDetails && (this.viewingCallDetails.callNumber === callNum || this.viewingCallDetails.callId === callNum)) {
+              this.viewingCallDetails.status = 'CLOSED';
+            }
+            if (this.foundCall && (this.foundCall.callNumber === callNum || this.foundCall.callId === callNum)) {
+              this.foundCall.status = 'CLOSED';
+            }
+            this.loadCalls();
+          },
+          error: (err) => {
+            this.isSubmitting = false;
+            this.showToast(this.extractErrorMessage(err), false);
+          }
+        });
+      }
+    });
   }
 
   /* ── EXPORT ───────────────────────────────────── */
@@ -3161,10 +3996,30 @@ export class CallManagementComponent implements OnInit {
 
   /* ── EDIT & PRE-FETCH DETAILS ────────────── */
   startEditCall(call: Call) {
+    if (this.isCustomer) {
+      this.showToast('Customers are not permitted to edit calls.', false);
+      return;
+    }
     if (this.isCallClosed(call)) {
       this.showToast('Closed or Cancelled calls cannot be edited.', false);
       return;
     }
+
+    if (this.isDistributor) {
+      this.searchCallId = call.callNumber || call.callId || String(call.id);
+      this.foundCall = this.normalizeCall(call);
+      this.loadRelevantPartsForCall(this.foundCall);
+      this.updateByIdForm.patchValue({
+        status: this.mapToBackendStatus(this.foundCall.status || '') || 'OPEN',
+        priority: this.getCallPriority(this.foundCall),
+        technicianAssigned: this.foundCall.technicianAssigned !== 'Unassigned' ? this.foundCall.technicianAssigned : '',
+        remarks: this.foundCall.remarks || this.foundCall.remark || ''
+      });
+      this.activeTab = 'lookup';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     this.editingCall = call;
     this.editCallPreviewUrl = this.getCallImageUrl(call) || null;
     this.editCallImageFile = null;
@@ -3253,6 +4108,10 @@ export class CallManagementComponent implements OnInit {
   }
 
   startEditFromDetails(call: Call) {
+    if (this.isCustomer) {
+      this.showToast('Customers are not permitted to edit calls.', false);
+      return;
+    }
     this.viewingCallDetails = null;
     this.startEditCall(call);
   }
@@ -3278,7 +4137,7 @@ export class CallManagementComponent implements OnInit {
   }
 
   onViewStatusChange() {
-    if (!this.viewingCallDetails) return;
+    if (this.isCustomer || !this.viewingCallDetails) return;
     const callNum = this.viewingCallDetails.callNumber || this.viewingCallDetails.callId || String(this.viewingCallDetails.id);
     const savedStatus = this.normalizeStatus(this.viewingCallDetails.status);
     this.saveCallOverride(callNum, this.viewingCallDetails.id, { status: savedStatus });
@@ -3296,7 +4155,7 @@ export class CallManagementComponent implements OnInit {
   }
 
   onViewPriorityChange() {
-    if (!this.viewingCallDetails) return;
+    if (this.isCustomer || !this.viewingCallDetails) return;
     const callNum = this.viewingCallDetails.callNumber || this.viewingCallDetails.callId || String(this.viewingCallDetails.id);
     if (!this.viewingCallDetails.complaintDetail) {
       this.viewingCallDetails.complaintDetail = {};
@@ -3335,7 +4194,7 @@ export class CallManagementComponent implements OnInit {
   }
 
   onSaveEditCall() {
-    if (!this.editingCall) return;
+    if (this.isCustomer || !this.editingCall) return;
 
     if (this.editCallForm.invalid) {
       this.editCallForm.markAllAsTouched();
@@ -3347,7 +4206,13 @@ export class CallManagementComponent implements OnInit {
     const callNum = this.editingCall.callNumber || this.editingCall.callId || String(this.editingCall.id);
     const updated = this.buildCallPayload(this.editCallForm.value, callNum);
 
-    const savedStatus = this.normalizeStatus(this.editStatus);
+    let savedStatus = this.normalizeStatus(this.editStatus);
+    
+    // When Distributor requests to close a call, send PENDING_FOR_APPROVAL so Customer must approve it
+    if (this.isDistributor && savedStatus === 'Closed') {
+      savedStatus = 'Pending Approval';
+    }
+
     const capturedEditImage = this.editCallPreviewUrl;
 
     if (capturedEditImage) {
@@ -3386,10 +4251,19 @@ export class CallManagementComponent implements OnInit {
       this.calls.unshift(normalizedUpdated);
     }
 
+    // Explicitly set backend status on the payload
+    updated.status = this.mapToBackendStatus(savedStatus);
+    updated.callStatus = updated.status;
+    updated.call_status = updated.status;
+
     const finishEdit = () => {
-      this.showToast(`Call #${callNum} updated successfully!`, true);
+      const msg = (this.isDistributor && savedStatus === 'Pending Approval')
+        ? `Closure request for Call #${callNum} submitted for Customer Approval!`
+        : `Call #${callNum} updated successfully!`;
+      this.showToast(msg, true);
       this.isSubmitting = false;
       this.editingCall = null;
+      this.loadCalls();
     };
 
     const timer = setTimeout(() => {

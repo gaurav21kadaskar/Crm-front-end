@@ -481,7 +481,6 @@ export class ProductModelFormComponent implements OnInit {
 
   ngOnInit() {
     this.loadProducts();
-    this.loadModels();
   }
 
   private parseArray(res: any): any[] {
@@ -505,17 +504,38 @@ export class ProductModelFormComponent implements OnInit {
   }
 
   loadProducts() {
+    this.loadingList = true;
     this.productService.getProducts().subscribe({
-      next: (response: any) => { this.products = this.parseArray(response); },
-      error: (err) => console.error(err)
+      next: (response: any) => {
+        let loaded = this.parseArray(response);
+        if (this.authService.getRole() === 'Customer') {
+          const brandId = this.authService.getBrandId();
+          if (brandId) {
+            loaded = loaded.filter((p: any) => Number(p.brand) === Number(brandId));
+          }
+        }
+        this.products = loaded;
+        this.loadModels();
+      },
+      error: (err) => {
+        console.error(err);
+        this.loadModels();
+      }
     });
   }
 
   loadModels() {
-    this.loadingList = true;
     this.modelService.getProductModels().subscribe({
       next: (response: any) => {
-        this.models = this.parseArray(response);
+        let loaded = this.parseArray(response);
+        if (this.authService.getRole() === 'Customer') {
+          const brandId = this.authService.getBrandId();
+          if (brandId) {
+            const productIds = new Set(this.products.map((p: any) => p.id));
+            loaded = loaded.filter((m: any) => productIds.has(m.product));
+          }
+        }
+        this.models = loaded;
         this.loadingList = false;
       },
       error: (err) => {

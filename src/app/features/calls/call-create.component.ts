@@ -6,6 +6,7 @@ import { BrandService } from '../../../core/services/brand.service';
 import { ProductService } from '../../../core/services/product.service';
 import { ProductModelService } from '../../../core/services/product-model.service';
 import { ProductIssueService } from '../../../core/services/product-issue.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Brand } from '../../../core/models/brand.model';
 import { Product } from '../../../core/models/product.model';
 import { ProductModel } from '../../../core/models/product-model.model';
@@ -154,7 +155,7 @@ import { ProductIssue } from '../../../core/models/product-issue.model';
         <div class="form-row-2">
           <div class="fg">
             <label class="lbl">Brand *</label>
-            <select class="inp" formControlName="brand" (change)="onBrandChange($event)">
+            <select class="inp" formControlName="brand" (change)="onBrandChange($event)" [attr.disabled]="isCustomer ? true : null">
               <option value="">-- Select Brand --</option>
               @for (b of brands; track b.id) { <option [value]="b.id">{{ b.name }}</option> }
             </select>
@@ -337,6 +338,10 @@ export class CallCreateComponent implements OnInit {
   private productService = inject(ProductService);
   private modelService = inject(ProductModelService);
   private issueService = inject(ProductIssueService);
+  private authService = inject(AuthService);
+
+  isCustomer = false;
+  customerBrandId: number | null = null;
 
   currentStep = 1;
   isSubmitting = false;
@@ -507,10 +512,41 @@ export class CallCreateComponent implements OnInit {
   });
 
   ngOnInit() {
+    this.isCustomer = this.authService.getRole()?.toLowerCase() === 'customer';
+    this.customerBrandId = this.authService.getBrandId();
     // Initialize states after class is fully constructed
     this.states = Object.keys(this.statesData).sort();
-    this.brandService.getBrands().subscribe({ next: (r: any) => this.brands = Array.isArray(r) ? r : (r.data || []) });
-    this.productService.getProducts().subscribe({ next: (r: any) => this.products = Array.isArray(r) ? r : (r.data || []) });
+    this.brandService.getBrands().subscribe({
+      next: (r: any) => {
+        let all: Brand[] = Array.isArray(r) ? r : (r.data || []);
+        if (this.isCustomer && this.customerBrandId !== null && this.customerBrandId !== undefined) {
+          all = all.filter((b: Brand) => {
+            if (typeof this.customerBrandId === 'number') {
+              return Number(b.id) === this.customerBrandId;
+            } else {
+              const s = String(this.customerBrandId).trim().toLowerCase();
+              return String(b.id) === s || String(b.name).trim().toLowerCase() === s;
+            }
+          });
+        }
+        this.brands = all;
+      }
+    });
+    this.productService.getProducts().subscribe({
+      next: (r: any) => {
+        this.products = Array.isArray(r) ? r : (r.data || []);
+        if (this.isCustomer && this.customerBrandId !== null && this.customerBrandId !== undefined) {
+          this.filteredProducts = this.products.filter((p: Product) => {
+            if (typeof this.customerBrandId === 'number') {
+              return Number(p.brand) === this.customerBrandId;
+            } else {
+              return String(p.brand) === String(this.customerBrandId);
+            }
+          });
+          this.productForm.patchValue({ brand: this.customerBrandId });
+        }
+      }
+    });
     this.modelService.getProductModels().subscribe({ next: (r: any) => this.models = Array.isArray(r) ? r : (r.data || []) });
     this.issueService.getProductIssues().subscribe({ next: (r: any) => this.issues = Array.isArray(r) ? r : (r.data || []) });
   }
@@ -560,14 +596,17 @@ export class CallCreateComponent implements OnInit {
     this.isSubmitting = true;
     this.errorMessage = '';
 
+    const bVal = Number(this.productForm.value.brand) || this.customerBrandId;
     const payload = {
       callId: `CALL-${Math.floor(1000 + Math.random() * 9000)}`,
       createdAt: new Date().toISOString().slice(0, 10),
       status: 'Pending',
+      brand: bVal,
+      brand_id: bVal,
       customerDetail: this.customerForm.value,
       contactDetail: { ...this.contactForm.value, language: this.selectedLanguages },
       dealerDetail: this.dealerForm.value,
-      productDetail: this.productForm.value,
+      productDetail: { ...this.productForm.value, brand: bVal },
       complaintDetail: this.complaintForm.value,
     };
 
