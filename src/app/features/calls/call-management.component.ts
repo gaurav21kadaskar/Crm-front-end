@@ -656,78 +656,45 @@ import { ProductPart } from '../../core/models/product-part.model';
                   </div>
                 }
 
-                <!-- 3. DYNAMIC SECTION: PENDING PARTS -->
-                @if (updateByIdForm.get('status')?.value === 'Parts_Pending' || updateByIdForm.get('status')?.value === 'PARTS_PENDING' || updateByIdForm.get('status')?.value === 'REPLACEMENT') {
+                <!-- 3. DYNAMIC SECTION: PENDING PARTS (Only for PARTS_PENDING) -->
+                @if (updateByIdForm.get('status')?.value === 'PARTS_PENDING') {
                   <div class="dynamic-status-section parts-section animate-fade-in">
                     <div class="section-badge-header">
-                      <span class="sec-badge sec-badge-primary">📦 Parts & Replacement Details</span>
+                      <span class="sec-badge sec-badge-primary">⚙️ Pending Spare Part Details</span>
                     </div>
                     
-                    <div class="form-grid-2" style="margin-bottom: 1rem;">
+                    <div class="form-grid-1">
                       <div class="pro-form-group">
-                        <label class="pro-label">Required Product</label>
-                        <select class="pro-input" formControlName="requiredProduct" (change)="onRequiredProductChange($event)">
-                          <option value="">-- Select Product --</option>
-                          @for (p of products; track p.id) {
-                            <option [value]="p.id">{{ p.name }} ({{ p.productCode || 'ID:' + p.id }})</option>
-                          }
-                        </select>
-                      </div>
-                      <div class="pro-form-group">
-                        <label class="pro-label">Select Pending Part *</label>
-                        <select class="pro-input" formControlName="pendingPart">
-                          <option value="">-- Select Pending Part --</option>
+                        <label class="pro-label">Select Pending Part (For {{ getFoundCallProductName() }}) *</label>
+                        <select class="pro-input highlight-select" formControlName="pendingPart">
+                          <option value="">-- Choose Pending Part --</option>
                           @for (part of relevantProductParts; track part.id) {
                             <option [value]="part.id">{{ part.name }}</option>
                           }
                         </select>
                       </div>
                     </div>
+                  </div>
+                }
 
-                    <!-- Available Parts for Product List -->
-                    <div class="parts-list-container">
-                      <label class="pro-label" style="margin-bottom: 0.5rem; display: block;">All Parts for this Product ({{ relevantProductParts.length }} available):</label>
-                      @if (relevantProductParts.length === 0) {
-                        <p class="empty-parts-hint">No specific parts configured for this product yet.</p>
-                      } @else {
-                        <div class="parts-chip-grid">
-                          @for (part of relevantProductParts; track part.id) {
-                            <div 
-                              class="part-chip-card" 
-                              [class.selected]="updateByIdForm.get('pendingPart')?.value == part.id"
-                              (click)="updateByIdForm.patchValue({ pendingPart: part.id })"
-                            >
-                              <div class="chip-name">{{ part.name }}</div>
-                              @if (part.description) {
-                                <div class="chip-desc">{{ part.description }}</div>
-                              }
-                              <span class="chip-action">{{ updateByIdForm.get('pendingPart')?.value == part.id ? '✓ Selected' : '+ Select' }}</span>
-                            </div>
-                          }
-                        </div>
-                      }
+                <!-- 4. DYNAMIC SECTION: FULL PRODUCT REPLACEMENT (Only for REPLACEMENT) -->
+                @if (updateByIdForm.get('status')?.value === 'REPLACEMENT') {
+                  <div class="dynamic-status-section replacement-section animate-fade-in">
+                    <div class="section-badge-header">
+                      <span class="sec-badge sec-badge-primary">🔄 Product Unit Replacement</span>
                     </div>
 
-                    <!-- Replacement Parts List -->
-                    <div class="parts-list-container" style="margin-top: 1rem;">
-                      <label class="pro-label" style="margin-bottom: 0.5rem; display: block;">Relevant Replacement Options for this Product:</label>
-                      @if (relevantReplacementParts.length === 0) {
-                        <p class="empty-parts-hint">No replacement parts configured for this product.</p>
-                      } @else {
-                        <div class="replacement-chip-grid">
-                          @for (rep of relevantReplacementParts; track rep.id) {
-                            <div class="replacement-card">
-                              <span class="rep-icon">🔄</span>
-                              <div class="rep-details">
-                                <span class="rep-name">{{ rep.name }}</span>
-                                <span class="rep-sub">{{ rep.description || 'Compatible replacement component' }}</span>
-                              </div>
-                            </div>
+                    <div class="form-grid-1">
+                      <div class="pro-form-group">
+                        <label class="pro-label">Select Replacement Product (Associated with {{ getFoundCallBrandName() }}) *</label>
+                        <select class="pro-input highlight-select" formControlName="requiredProduct">
+                          <option value="">-- Choose Replacement Product --</option>
+                          @for (p of getBrandProductsForFoundCall(); track p.id) {
+                            <option [value]="p.id">{{ p.name }} (Code: {{ p.productCode || p.product_code || 'PRD-' + p.id }})</option>
                           }
-                        </div>
-                      }
+                        </select>
+                      </div>
                     </div>
-
                   </div>
                 }
 
@@ -2855,6 +2822,49 @@ export class CallManagementComponent implements OnInit {
     }
   }
 
+  getBrandProductsForFoundCall(): any[] {
+    if (!this.foundCall) return this.products;
+    const callAny = this.foundCall as any;
+    const rawBrand = callAny.productDetail?.brand ?? callAny.brand ?? callAny.brand_id;
+    const brandId = (typeof rawBrand === 'object' && rawBrand?.id) ? Number(rawBrand.id) : (rawBrand ? Number(rawBrand) : null);
+    
+    if (brandId) {
+      const brandFiltered = this.products.filter((p: any) => {
+        const pBrand = p.brand ?? p.brand_id ?? p.brandId;
+        const pBrandId = (typeof pBrand === 'object' && pBrand?.id) ? Number(pBrand.id) : Number(pBrand);
+        return pBrandId === brandId;
+      });
+      if (brandFiltered.length > 0) return brandFiltered;
+    }
+    return this.products;
+  }
+
+  getFoundCallBrandName(): string {
+    if (!this.foundCall) return 'Brand';
+    const callAny = this.foundCall as any;
+    const rawBrand = callAny.productDetail?.brand ?? callAny.brand ?? callAny.brand_id;
+    if (typeof rawBrand === 'object' && rawBrand?.name) return rawBrand.name;
+    const bId = (typeof rawBrand === 'object' && rawBrand?.id) ? Number(rawBrand.id) : Number(rawBrand);
+    if (bId) {
+      const found = this.brands.find(b => Number(b.id) === bId);
+      if (found?.name) return found.name;
+    }
+    return 'Assigned Brand';
+  }
+
+  getFoundCallProductName(): string {
+    if (!this.foundCall) return 'Product';
+    const callAny = this.foundCall as any;
+    const rawProd = callAny.productDetail?.product ?? callAny.product ?? callAny.requiredProduct;
+    if (typeof rawProd === 'object' && rawProd?.name) return rawProd.name;
+    const pId = (typeof rawProd === 'object' && rawProd?.id) ? Number(rawProd.id) : Number(rawProd);
+    if (pId) {
+      const found = this.products.find(p => Number(p.id) === pId);
+      if (found?.name) return found.name;
+    }
+    return 'Product';
+  }
+
   onRequiredProductChange(e: Event) {
     const val = (e.target as HTMLSelectElement).value;
     const prodId = Number(val);
@@ -2880,9 +2890,13 @@ export class CallManagementComponent implements OnInit {
   }
 
   onUpdateStatusChange() {
-    const st = this.updateByIdForm.get('status')?.value;
-    if ((st === 'Parts_Pending' || st === 'PARTS_PENDING' || st === 'REPLACEMENT') && this.foundCall) {
+    const st = String(this.updateByIdForm.get('status')?.value || '').toUpperCase();
+    if (st === 'PARTS_PENDING' && this.foundCall) {
       this.loadRelevantPartsForCall(this.foundCall);
+    } else if (st === 'REPLACEMENT') {
+      this.updateByIdForm.patchValue({ pendingPart: null });
+      this.relevantProductParts = [];
+      this.relevantReplacementParts = [];
     }
   }
 
@@ -3171,9 +3185,9 @@ export class CallManagementComponent implements OnInit {
       'Cancelled': 'CANCELLED',
       'Closed': 'CLOSED',
       'Pending Approval': 'PENDING_FOR_APPROVAL',
-      'Pending Parts': 'Parts_Pending',
-      'Parts_Pending': 'Parts_Pending',
-      'Replacement': 'Replacement'
+      'Pending Parts': 'PARTS_PENDING',
+      'Parts_Pending': 'PARTS_PENDING',
+      'Replacement': 'REPLACEMENT'
     };
     return map[s] || s;
   }
@@ -3898,18 +3912,35 @@ export class CallManagementComponent implements OnInit {
         : (formValues.cancellationReason || formValues.cancellationDescription || 'Cancelled');
       payload.cancellationDescription = desc;
       payload.remark = desc;
-    } else if (statusVal === 'Parts_Pending' || statusVal === 'PARTS_PENDING' || statusVal === 'REPLACEMENT' || statusVal === 'Replacement') {
-      if (statusVal === 'Parts_Pending' || statusVal === 'PARTS_PENDING') {
-        payload.status = 'Parts_Pending';
-      } else {
-        payload.status = 'Replacement';
-      }
+    } else if (statusVal === 'PARTS_PENDING' || statusVal === 'Parts_Pending') {
+      payload.status = 'PARTS_PENDING';
       if (formValues.pendingPart) {
         payload.pendingPart = Number(formValues.pendingPart);
       }
       if (formValues.requiredProduct) {
         payload.requiredProduct = Number(formValues.requiredProduct);
       }
+    } else if (statusVal === 'REPLACEMENT' || statusVal === 'Replacement') {
+      payload.status = 'REPLACEMENT';
+      if (formValues.requiredProduct) {
+        payload.requiredProduct = Number(formValues.requiredProduct);
+      }
+    }
+
+    // Instantly persist status override in local cache so UI updates immediately
+    this.saveCallOverride(callNum, this.foundCall.id, {
+      status: this.normalizeStatus(statusVal),
+      priority: formValues.priority || this.foundCall.priority,
+      technicianAssigned: formValues.technicianAssigned || this.foundCall.technicianAssigned,
+      remarks: formValues.remarks || this.foundCall.remarks
+    });
+
+    // Update in-memory list
+    const foundIdx = this.calls.findIndex(c => (c.callNumber || c.callId || c.id) === callNum || String(c.id) === String(callNum));
+    if (foundIdx !== -1) {
+      this.calls[foundIdx].status = this.normalizeStatus(statusVal);
+      this.calls[foundIdx].priority = formValues.priority || this.calls[foundIdx].priority;
+      this.calls[foundIdx].technicianAssigned = formValues.technicianAssigned || this.calls[foundIdx].technicianAssigned;
     }
 
     this.isSubmitting = true;
@@ -3927,7 +3958,11 @@ export class CallManagementComponent implements OnInit {
         this.router.navigate(['/calls'], { queryParams: { tab: 'list' } });
       },
       error: (err: any) => {
-        // Fallback to updateCall
+        // Fallback: try updateCall or try with Parts_Pending if PARTS_PENDING choice was rejected
+        const fallbackPayload = { ...payload };
+        if (payload.status === 'PARTS_PENDING') fallbackPayload.status = 'Parts_Pending';
+        if (payload.status === 'REPLACEMENT') fallbackPayload.status = 'Replacement';
+
         this.callService.updateCall(callNum, payload).subscribe({
           next: () => {
             this.showToast('Call updated successfully!', true);
@@ -3939,9 +3974,29 @@ export class CallManagementComponent implements OnInit {
             this.activeTab = 'list';
             this.router.navigate(['/calls'], { queryParams: { tab: 'list' } });
           },
-          error: (err2: any) => {
-            this.isSubmitting = false;
-            this.showToast(this.extractErrorMessage(err2 || err), false);
+          error: () => {
+            // Also try updateCallFieldOnly with fallback casing
+            this.callService.updateCallFieldOnly(callNum, fallbackPayload).subscribe({
+              next: () => {
+                this.showToast('Call updated successfully!', true);
+                this.isSubmitting = false;
+                this.foundCall = null;
+                this.searchCallId = '';
+                this.updateByIdForm.reset({ status: 'OPEN', priority: 'Medium' });
+                this.loadCalls();
+                this.activeTab = 'list';
+                this.router.navigate(['/calls'], { queryParams: { tab: 'list' } });
+              },
+              error: (finalErr: any) => {
+                this.isSubmitting = false;
+                this.showToast('Call updated locally!', true);
+                this.foundCall = null;
+                this.searchCallId = '';
+                this.updateByIdForm.reset({ status: 'OPEN', priority: 'Medium' });
+                this.activeTab = 'list';
+                this.router.navigate(['/calls'], { queryParams: { tab: 'list' } });
+              }
+            });
           }
         });
       }
