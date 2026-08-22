@@ -198,7 +198,12 @@ export interface UserBrandRow {
                 <h3 class="modal-title">Confirm Status Change</h3>
                 <p class="modal-subtitle">User: <strong>{{ pendingRowChange.userName }}</strong> | Brand: <strong>{{ pendingRowChange.brandName }}</strong></p>
               </div>
-              <button class="modal-close" (click)="cancelStatusChange()">&times;</button>
+              <button type="button" class="modal-close" (click)="cancelStatusChange()" aria-label="Close modal">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
             <div class="modal-body confirm-body">
               <p class="confirm-message">
@@ -382,9 +387,10 @@ export interface UserBrandRow {
 
     /* Modal Form */
     .modal-backdrop {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 99999;
-      padding: 1rem; box-sizing: border-box;
+      position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+      width: 100vw !important; height: 100vh !important; background: rgba(15, 23, 42, 0.65) !important;
+      backdrop-filter: blur(4px); display: flex !important; align-items: center !important; justify-content: center !important;
+      z-index: 9999999 !important; padding: 1rem; box-sizing: border-box; margin: 0 !important;
     }
     .modal-content {
       background: var(--surface); border-radius: 14px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
@@ -397,7 +403,28 @@ export interface UserBrandRow {
     }
     .modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin: 0; }
     .modal-subtitle { font-size: 0.8rem; color: var(--text-secondary); margin: 0.2rem 0 0 0; }
-    .modal-close { background: none; border: none; font-size: 1.5rem; color: #94a3b8; cursor: pointer; }
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #64748b;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      outline: none;
+      flex-shrink: 0;
+    }
+    .modal-close:hover {
+      background: #fee2e2;
+      color: #ef4444;
+      border-color: #fca5a5;
+      transform: rotate(90deg);
+    }
 
     .modal-form-wrapper { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
     .modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }

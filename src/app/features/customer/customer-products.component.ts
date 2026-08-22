@@ -764,12 +764,13 @@ export class CustomerProductsComponent implements OnInit {
   }
 
   getImageUrl(path: string | null | undefined): string {
-    if (!path) return '';
+    if (!path || path === 'null' || path === 'undefined') return '';
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
       return path;
     }
+    const baseUrl = (this.apiUrl || environment.apiUrl).replace(/\/api\/?$/, '').replace(/\/$/, '');
     const cleanPath = path.startsWith('/') ? path : '/' + path;
-    return `${this.apiUrl}${cleanPath}`;
+    return `${baseUrl}${cleanPath}`;
   }
 
   onImgError(event: Event): void {

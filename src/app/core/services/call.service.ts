@@ -21,16 +21,68 @@ export class CallService {
     return this.http.get<any>(`${this.apiUrl}/api/call/`, { params: { callNumber } });
   }
 
-  createCall(callData: Call): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/api/call/`, callData);
+  createCall(callData: Call | any): Observable<any> {
+    const { callImage, call_image, imageUrl, image, attachment, ...jsonPayload } = callData || {};
+    return this.http.post<any>(`${this.apiUrl}/api/call/`, jsonPayload);
   }
 
   updateCall(id: number | string, callData: Partial<Call> | any): Observable<any> {
-    return this.http.patch<any>(`${this.apiUrl}/api/call/${id}/`, callData);
+    const payload = this.preparePayload(callData);
+    return this.http.patch<any>(`${this.apiUrl}/api/call/${id}/`, payload);
   }
 
   updateCallFieldOnly(callNumber: string, data: any): Observable<any> {
-    return this.http.patch<any>(`${this.apiUrl}/api/UpdateCallFieldOnly/${callNumber}/`, data);
+    const payload = this.preparePayload(data);
+    return this.http.patch<any>(`${this.apiUrl}/api/UpdateCallFieldOnly/${callNumber}/`, payload);
+  }
+
+  private base64ToFile(dataurl: string, filename: string): File {
+    const arr = dataurl.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  }
+
+  private preparePayload(data: any): any {
+    if (!data || typeof data !== 'object') return data;
+
+    let fileObj: File | null = null;
+    const candidateKeys = ['callImage', 'call_image', 'attachment', 'imageUrl', 'image'];
+    for (const key of candidateKeys) {
+      const val = data[key];
+      if (val instanceof File) {
+        fileObj = val;
+        break;
+      } else if (typeof val === 'string' && val.startsWith('data:image/')) {
+        fileObj = this.base64ToFile(val, 'call_image.jpg');
+        break;
+      }
+    }
+
+    if (fileObj) {
+      const formData = new FormData();
+      formData.append('callImage', fileObj, fileObj.name || 'call_image.jpg');
+
+      for (const key of Object.keys(data)) {
+        if (candidateKeys.includes(key)) continue;
+        const val = data[key];
+        if (val === null || val === undefined) continue;
+        if (typeof val === 'object') {
+          formData.append(key, JSON.stringify(val));
+        } else {
+          formData.append(key, String(val));
+        }
+      }
+      return formData;
+    }
+
+    return data;
   }
 
   deleteCall(id: number | string): Observable<any> {

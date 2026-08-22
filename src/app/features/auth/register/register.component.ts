@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -147,11 +147,28 @@ import { Brand } from '../../../core/models/brand.model';
                           </div>
                         } @else {
                           <div class="brand-badges-container">
-                            <span class="brand-chip">{{ bList[0] }}</span>
-                            <span class="brand-chip">{{ bList[1] }}</span>
-                            <span class="brand-chip count-chip" [title]="'Other brands: ' + bList.slice(2).join(', ')">
-                              +{{ bList.length - 2 }} more
-                            </span>
+                            @if (isUserBrandsExpanded(u)) {
+                              @for (bName of bList; track bName) {
+                                <span class="brand-chip">{{ bName }}</span>
+                              }
+                              <span 
+                                class="brand-chip count-chip show-less-chip" 
+                                (click)="toggleUserBrandsExpanded(u)"
+                                title="Click to show less"
+                              >
+                                Show less
+                              </span>
+                            } @else {
+                              <span class="brand-chip">{{ bList[0] }}</span>
+                              <span class="brand-chip">{{ bList[1] }}</span>
+                              <span 
+                                class="brand-chip count-chip" 
+                                (click)="toggleUserBrandsExpanded(u)"
+                                title="Click to view all assigned brands inline"
+                              >
+                                +{{ bList.length - 2 }} more
+                              </span>
+                            }
                           </div>
                         }
                       </td>
@@ -184,41 +201,6 @@ import { Brand } from '../../../core/models/brand.model';
             </table>
           </div>
         </div>
-
-        <!-- Confirmation Popup for User Status Change -->
-        @if (pendingStatusUser) {
-          <div class="modal-backdrop animate-fade-in" (click)="cancelUserStatusChange()">
-            <div class="modal-content confirm-card animate-slide-up" (click)="$event.stopPropagation()">
-              <div class="modal-header confirm-header">
-                <div class="confirm-icon-box" [style.background]="pendingStatusTarget ? '#dcfce7' : '#fee2e2'">
-                  {{ pendingStatusTarget ? '🟢' : '⚠️' }}
-                </div>
-                <div>
-                  <h3 class="modal-title">{{ pendingStatusTarget ? 'Confirm User Activation' : 'Confirm User Deactivation' }}</h3>
-                  <p class="modal-subtitle">User: <strong>{{ pendingStatusUser.username }}</strong> {{ getFullName(pendingStatusUser) !== '—' ? '(' + getFullName(pendingStatusUser) + ')' : '' }}</p>
-                </div>
-                <button class="modal-close" (click)="cancelUserStatusChange()">&times;</button>
-              </div>
-              <div class="modal-body confirm-body">
-                <p class="confirm-message">
-                  @if (pendingStatusTarget) {
-                    Are you sure you want to activate this user?
-                  } @else {
-                    Are you sure you want to deactivate this user?
-                  }
-                </p>
-              </div>
-              <div class="modal-footer confirm-footer">
-                <button type="button" class="btn-cancel" (click)="cancelUserStatusChange()" [disabled]="isUpdatingUserStatus">
-                  Cancel
-                </button>
-                <button type="button" class="btn-confirm" [class.btn-activate]="pendingStatusTarget" (click)="confirmUserStatusChange()" [disabled]="isUpdatingUserStatus">
-                  {{ isUpdatingUserStatus ? 'Updating...' : 'Confirm' }}
-                </button>
-              </div>
-            </div>
-          </div>
-        }
       }
 
       <!-- TAB 2: CREATE USER FORM -->
@@ -427,6 +409,46 @@ import { Brand } from '../../../core/models/brand.model';
                   {{ isLoading ? 'Creating User...' : 'Create Account' }}
                 </button>
               </form>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Confirmation Popup for User Status Change -->
+      @if (pendingStatusUser) {
+        <div class="modal-backdrop animate-fade-in" (click)="cancelUserStatusChange()">
+          <div class="modal-content confirm-card animate-slide-up" (click)="$event.stopPropagation()">
+            <div class="modal-header confirm-header">
+              <div class="confirm-icon-box" [style.background]="pendingStatusTarget ? '#dcfce7' : '#fee2e2'">
+                {{ pendingStatusTarget ? '🟢' : '⚠️' }}
+              </div>
+              <div>
+                <h3 class="modal-title">{{ pendingStatusTarget ? 'Confirm User Activation' : 'Confirm User Deactivation' }}</h3>
+                <p class="modal-subtitle">User: <strong>{{ pendingStatusUser.username }}</strong> {{ getFullName(pendingStatusUser) !== '—' ? '(' + getFullName(pendingStatusUser) + ')' : '' }}</p>
+              </div>
+              <button type="button" class="modal-close" (click)="cancelUserStatusChange()" aria-label="Close modal">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body confirm-body">
+              <p class="confirm-message">
+                @if (pendingStatusTarget) {
+                  Are you sure you want to activate this user?
+                } @else {
+                  Are you sure you want to deactivate this user?
+                }
+              </p>
+            </div>
+            <div class="modal-footer confirm-footer">
+              <button type="button" class="btn-cancel" (click)="cancelUserStatusChange()" [disabled]="isUpdatingUserStatus">
+                Cancel
+              </button>
+              <button type="button" class="btn-confirm" [class.btn-activate]="pendingStatusTarget" (click)="confirmUserStatusChange()" [disabled]="isUpdatingUserStatus">
+                {{ isUpdatingUserStatus ? 'Updating...' : 'Confirm' }}
+              </button>
             </div>
           </div>
         </div>
@@ -859,6 +881,17 @@ import { Brand } from '../../../core/models/brand.model';
       border-color: #94a3b8;
     }
 
+    .brand-chip.count-chip.show-less-chip {
+      background: #f8fafc;
+      color: #64748b;
+      border-color: #cbd5e1;
+    }
+    .brand-chip.count-chip.show-less-chip:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+
     .pin-badge {
       font-family: monospace;
       font-size: 0.8rem;
@@ -1077,15 +1110,38 @@ import { Brand } from '../../../core/models/brand.model';
 
     /* Confirmation Modal Specifics */
     .modal-backdrop {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 99999;
-      padding: 1rem; box-sizing: border-box;
+      position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+      width: 100vw !important; height: 100vh !important; background: rgba(15, 23, 42, 0.65) !important;
+      backdrop-filter: blur(4px); display: flex !important; align-items: center !important; justify-content: center !important;
+      z-index: 9999999 !important; padding: 1rem; box-sizing: border-box; margin: 0 !important;
     }
     .modal-content.confirm-card {
-      background: #ffffff; border-radius: 14px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
-      width: 100%; max-width: 440px; border: 1px solid #e2e8f0; overflow: hidden;
+      background: #ffffff; border-radius: 14px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25), 0 10px 10px -5px rgba(0,0,0,0.1);
+      width: 100%; max-width: 440px; border: 1px solid #e2e8f0; overflow: hidden; margin: auto !important;
     }
     .confirm-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #64748b;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      outline: none;
+      flex-shrink: 0;
+    }
+    .modal-close:hover {
+      background: #fee2e2;
+      color: #ef4444;
+      border-color: #fca5a5;
+      transform: rotate(90deg);
+    }
     .confirm-icon-box {
       font-size: 1.5rem; width: 42px; height: 42px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -1107,12 +1163,12 @@ import { Brand } from '../../../core/models/brand.model';
     .btn-cancel:hover { background: #475569; }
 
     .animate-fade-in {
-      animation: fadeIn 0.25s ease-out both;
+      animation: fadeIn 0.2s ease-out;
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
   `]
 })
@@ -1168,6 +1224,24 @@ export class RegisterComponent implements OnInit {
   pendingStatusUser: any | null = null;
   pendingStatusTarget: boolean | null = null;
   isUpdatingUserStatus = false;
+
+  expandedUserBrandRows = new Set<string>();
+
+  isUserBrandsExpanded(u: any): boolean {
+    if (!u) return false;
+    const key = String(u.id || u.username);
+    return this.expandedUserBrandRows.has(key);
+  }
+
+  toggleUserBrandsExpanded(u: any) {
+    if (!u) return;
+    const key = String(u.id || u.username);
+    if (this.expandedUserBrandRows.has(key)) {
+      this.expandedUserBrandRows.delete(key);
+    } else {
+      this.expandedUserBrandRows.add(key);
+    }
+  }
 
   promptUserStatusChange(user: any) {
     this.pendingStatusUser = user;

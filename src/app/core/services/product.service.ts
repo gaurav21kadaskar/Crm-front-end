@@ -26,62 +26,52 @@ export class ProductService {
     return this.http.patch<any>(`${this.apiUrl}/api/product/${id}/`, payload);
   }
 
+  private base64ToFile(dataurl: string, filename: string): File {
+    const arr = dataurl.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  }
+
   private preparePayload(data: any): any {
-    let hasFile = false;
-    for (const key of Object.keys(data)) {
-      if (data[key] instanceof File) {
-        hasFile = true;
+    if (!data || typeof data !== 'object') return data;
+
+    let fileObj: File | null = null;
+    const candidateKeys = ['productImage', 'product_image', 'image', 'imageUrl'];
+    for (const key of candidateKeys) {
+      const val = data[key];
+      if (val instanceof File) {
+        fileObj = val;
+        break;
+      } else if (typeof val === 'string' && val.startsWith('data:image/')) {
+        fileObj = this.base64ToFile(val, 'product_image.jpg');
         break;
       }
     }
 
-    const keyMap: { [key: string]: string } = {
-      productCode: 'product_code',
-      productImage: 'product_image',
-      isActive: 'is_active'
-    };
-
-    if (hasFile) {
+    if (fileObj) {
       const formData = new FormData();
-      for (const key of Object.keys(data)) {
-        const value = data[key];
-        if (value === null || value === undefined || value === 'null') continue;
-        
-        // Append original camelCase key
-        if (value instanceof File) {
-          formData.append(key, value, value.name);
-        } else {
-          formData.append(key, value);
-        }
+      formData.append('productImage', fileObj, fileObj.name || 'product_image.jpg');
 
-        // Append mapped snake_case key
-        const apiKey = keyMap[key];
-        if (apiKey && apiKey !== key) {
-          if (value instanceof File) {
-            formData.append(apiKey, value, value.name);
-          } else {
-            formData.append(apiKey, value);
-          }
+      for (const key of Object.keys(data)) {
+        if (candidateKeys.includes(key)) continue;
+        const val = data[key];
+        if (val === null || val === undefined) continue;
+        if (typeof val === 'object') {
+          formData.append(key, JSON.stringify(val));
+        } else {
+          formData.append(key, String(val));
         }
       }
       return formData;
-    } else {
-      const mappedData: any = {};
-      for (const key of Object.keys(data)) {
-        const value = data[key];
-        if (value === null || value === undefined || value === 'null') continue;
-        
-        // Set original camelCase key
-        mappedData[key] = value;
-        
-        // Set mapped snake_case key
-        const apiKey = keyMap[key];
-        if (apiKey && apiKey !== key) {
-          mappedData[apiKey] = value;
-        }
-      }
-      return mappedData;
     }
+    return data;
   }
 
   deleteProduct(id: number): Observable<any> {

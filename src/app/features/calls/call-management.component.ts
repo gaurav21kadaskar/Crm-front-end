@@ -15,6 +15,7 @@ import { Product } from '../../core/models/product.model';
 import { ProductModel } from '../../core/models/product-model.model';
 import { ProductIssue } from '../../core/models/product-issue.model';
 import { ProductPart } from '../../core/models/product-part.model';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-call-management',
@@ -561,23 +562,7 @@ import { ProductPart } from '../../core/models/product-part.model';
 
 
 
-              <!-- Attach Image -->
-              <div class="pro-form-group" style="margin-top: 1rem;">
-                <label class="pro-label">Attach Photo / Image (optional)</label>
-                <div class="image-upload-zone" (click)="createImageInput.click()" [class.has-image]="createCallPreviewUrl">
-                  @if (createCallPreviewUrl) {
-                    <img [src]="createCallPreviewUrl" class="upload-preview-img" alt="Preview" />
-                    <button type="button" class="remove-img-btn" (click)="$event.stopPropagation(); clearCreateImage()">&#x2715; Remove</button>
-                  } @else {
-                    <div class="upload-placeholder">
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                      <span style="font-weight: 600; color: #4f46e5;">Click to upload call image / receipt photo</span>
-                      <span class="upload-hint">JPG, PNG, WEBP up to 5MB</span>
-                    </div>
-                  }
-                </div>
-                <input #createImageInput type="file" accept="image/*" style="display:none" (change)="onCreateCallImageChange($event)" />
-              </div>
+
             </div>
 
             <div class="form-card-footer">
@@ -660,8 +645,8 @@ import { ProductPart } from '../../core/models/product-part.model';
                   </div>
 
                   <div class="pro-form-group">
-                    <label class="pro-label">Priority</label>
-                    <select class="pro-input" formControlName="priority">
+                    <label class="pro-label">Priority (Auto-fetched)</label>
+                    <select class="pro-input" formControlName="priority" title="Priority is fixed from Call Creation and cannot be changed">
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
                       <option value="High">High</option>
@@ -3202,7 +3187,7 @@ export class CallManagementComponent implements OnInit {
 
   updateByIdForm: FormGroup = this.fb.group({
     status: ['OPEN'],
-    priority: ['Medium'],
+    priority: [{ value: 'Medium', disabled: true }],
     technicianAssigned: [''],
     remarks: [''],
     cancellationReason: [''],
@@ -3894,21 +3879,24 @@ export class CallManagementComponent implements OnInit {
 
   getCallImageUrl(call: any): string {
     if (!call) return '';
-    const candidateKeys = [call.id, String(call.id), call.callNumber, call.callId, call.call_number].filter(Boolean);
-    for (const k of candidateKeys) {
-      const mem = this.imageMemoryCache[String(k)] || this.imageMemoryCache[String(k).toLowerCase()];
-      if (mem && mem !== 'REMOVED' && mem !== 'indexeddb') return mem;
-
-      const local = this.getLocalCallImage(k!);
-      if (local === 'REMOVED' || local === 'indexeddb') return '';
-      if (local && local !== 'REMOVED' && local !== 'indexeddb') return local;
-    }
-
-    const path = (call.imageUrl || call.image || call.callImage || call.call_image || call.attachment) as string;
+    const path = (
+      call.imageUrl || 
+      call.image || 
+      call.callImage || 
+      call.call_image || 
+      call.attachment || 
+      call.photoUrl || 
+      call.photo ||
+      call.productDetail?.productImage ||
+      call.productDetail?.image ||
+      call.productDetail?.product_image ||
+      call.product_detail?.product_image
+    ) as string;
     if (!path || path === 'indexeddb' || path === 'REMOVED' || path === 'null' || path === 'undefined') return '';
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
+    const baseUrl = environment.apiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
     const cleanPath = path.startsWith('/') ? path : '/' + path;
-    return `http://localhost:8000${cleanPath}`;
+    return `${baseUrl}${cleanPath}`;
   }
 
   normalizeCall(c: any): Call {
@@ -4066,10 +4054,13 @@ export class CallManagementComponent implements OnInit {
     const addr = `${cust.address1 || ''} ${cust.landmark || ''} ${cust.locality || ''} ${cust.city || ''} ${cust.state || ''} ${cust.pincode || ''}`.replace(/\s+/g, ' ').trim();
     const currentUserId = this.authService.getUserId() || 1;
 
-    const autoCallNum = `CN${Math.floor(100000 + Math.random() * 900000)}`;
+    const existingNum = existingId ? String(existingId) : (this.editingCall ? (this.editingCall.callNumber || this.editingCall.callId || (this.editingCall.id ? String(this.editingCall.id) : null)) : null);
+    const autoCallNum = existingNum || `CN${Math.floor(100000 + Math.random() * 900000)}`;
     const effectiveBrand = this.getEffectiveCustomerBrandId() || Number(prod.brand) || 1;
 
-    return {
+    const attachedImg = (val && (val.imageUrl || val.image || val.attachment)) || this.createCallPreviewUrl || (this.editingCall ? this.editCallPreviewUrl : null) || '';
+
+    const payload: any = {
       callNumber: autoCallNum,
       callId: autoCallNum,
       call_number: autoCallNum,
@@ -4145,6 +4136,16 @@ export class CallManagementComponent implements OnInit {
       priority: comp.complaintPriority || 'Medium',
       remarks: comp.complaintDescription || comp.specialInstruction || ''
     };
+
+    if (attachedImg) {
+      payload.imageUrl = attachedImg;
+      payload.image = attachedImg;
+      payload.callImage = attachedImg;
+      payload.call_image = attachedImg;
+      payload.attachment = attachedImg;
+    }
+
+    return payload;
   }
 
   /* ── Formats raw backend validation JSON into clean user-friendly text ── */
@@ -4254,6 +4255,7 @@ export class CallManagementComponent implements OnInit {
     this.errorMessage = '';
 
     const newCall = this.buildCallPayload(this.callForm.value);
+    const createPreview = this.createCallPreviewUrl;
 
     const saveAndRedirect = (apiRes?: any, isError: boolean = false, errorObj?: any) => {
       // Capture image URL NOW before resetCallForm clears it
@@ -4354,7 +4356,34 @@ export class CallManagementComponent implements OnInit {
       next: (res: any) => {
         clearTimeout(timer);
         if (this.isSubmitting) {
-          saveAndRedirect(res, false);
+          if (createPreview) {
+            this.callService.getCalls().subscribe({
+              next: (callsRes: any) => {
+                const arr = this.parseArray(callsRes);
+                const targetPhone = newCall.contactDetail?.mobile || newCall.customerPhone;
+                const createdCall = arr.find((c: any) => {
+                  const p = c.contactDetail?.mobile || c.customerPhone || c.customer_phone;
+                  return p && String(p) === String(targetPhone);
+                }) || arr[0];
+
+                if (createdCall) {
+                  const realCallNum = createdCall.callNumber || createdCall.call_number || createdCall.callId || String(createdCall.id);
+                  this.callService.updateCallFieldOnly(realCallNum, { callImage: createPreview }).subscribe({
+                    next: () => saveAndRedirect(res, false),
+                    error: (e) => {
+                      console.error('Failed to upload image for created call', e);
+                      saveAndRedirect(res, false);
+                    }
+                  });
+                } else {
+                  saveAndRedirect(res, false);
+                }
+              },
+              error: () => saveAndRedirect(res, false)
+            });
+          } else {
+            saveAndRedirect(res, false);
+          }
         }
       },
       error: (err: any) => {
@@ -4426,6 +4455,7 @@ export class CallManagementComponent implements OnInit {
             this.errorMessage = 'This call is Closed or Cancelled and cannot be edited.';
           } else {
             this.updateByIdForm.enable();
+            this.updateByIdForm.get('priority')?.disable();
           }
         } else {
           // Fallback to local memory search
@@ -4479,6 +4509,7 @@ export class CallManagementComponent implements OnInit {
         this.errorMessage = 'This call is Closed or Cancelled and cannot be edited.';
       } else {
         this.updateByIdForm.enable();
+        this.updateByIdForm.get('priority')?.disable();
       }
     } else {
       this.foundCall = null;
@@ -4498,11 +4529,19 @@ export class CallManagementComponent implements OnInit {
       return;
     }
 
+    const backendStatus = this.mapToBackendStatus(statusVal);
     const payload: any = {
-      status: statusVal,
+      status: backendStatus,
+      callStatus: backendStatus,
+      call_status: backendStatus,
       technicianAssigned: formValues.technicianAssigned || '',
-      remark: formValues.remarks || ''
+      remark: formValues.remarks || '',
+      remarks: formValues.remarks || ''
     };
+
+    if (this.quickUpdateImageFile) {
+      payload.callImage = this.quickUpdateImageFile;
+    }
 
     if (statusVal === 'CANCELLED') {
       const isOther = formValues.cancellationReason === 'Other' || formValues.cancellationReason === 'Others';
@@ -4933,7 +4972,7 @@ export class CallManagementComponent implements OnInit {
       }
     }, 3000);
 
-    this.callService.updateCall(callNum, updated).subscribe({
+    this.callService.updateCallFieldOnly(callNum, updated).subscribe({
       next: () => {
         clearTimeout(timer);
         if (this.isSubmitting) {

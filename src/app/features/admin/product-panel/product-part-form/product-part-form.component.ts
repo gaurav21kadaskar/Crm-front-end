@@ -6,6 +6,7 @@ import { ProductService } from '../../../../core/services/product.service';
 import { Product } from '../../../../core/models/product.model';
 import { ProductPart } from '../../../../core/models/product-part.model';
 import { AuthService } from '../../../../core/services/auth.service';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-product-part-form',
@@ -672,21 +673,13 @@ export class ProductPartFormComponent implements OnInit {
 
   getPartImageUrl(part: ProductPart): string {
     if (!part) return '';
-    
-    // Check all possible identifiers in local storage cache
-    const candidateKeys = [part.id, String(part.id), part.name].filter(Boolean);
-    for (const k of candidateKeys) {
-      const local = this.getLocalImage(k!);
-      if (local === 'REMOVED') return '';
-      if (local) return local;
-    }
-
     const path = (part.partImage || (part as any).part_image || (part as any).image) as string;
-    if (!path) return '';
+    if (!path || path === 'REMOVED' || path === 'null' || path === 'undefined') return '';
     if (typeof path === 'string') {
       if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
+      const baseUrl = environment.apiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
       const cleanPath = path.startsWith('/') ? path : '/' + path;
-      return `http://localhost:8000${cleanPath}`;
+      return `${baseUrl}${cleanPath}`;
     }
     return '';
   }
@@ -701,19 +694,27 @@ export class ProductPartFormComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length || !this.targetCardPart) return;
     const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      const primaryKey = this.targetCardPart?.id;
-      const altKey = this.targetCardPart?.name;
-      if (dataUrl) {
-        this.saveLocalImage(primaryKey || altKey || 'unknown', dataUrl, altKey);
-        this.showMessage(`Photo updated for "${this.targetCardPart?.name}"!`);
-      }
-      this.targetCardPart = null;
-      input.value = '';
-    };
-    reader.readAsDataURL(file);
+    const partId = this.targetCardPart.id;
+    if (partId) {
+      const formData = new FormData();
+      formData.append('part_image', file, file.name);
+      formData.append('partImage', file, file.name);
+
+      this.partService.updateProductPart(partId, formData).subscribe({
+        next: () => {
+          this.showMessage(`Photo uploaded and saved for "${this.targetCardPart?.name}"!`);
+          this.targetCardPart = null;
+          input.value = '';
+          this.loadParts();
+        },
+        error: (err) => {
+          console.error('Failed to upload part photo to backend:', err);
+          this.errorMessage = 'Failed to upload photo to server.';
+          this.targetCardPart = null;
+          input.value = '';
+        }
+      });
+    }
   }
 
   onCardImgError(event: Event) {
@@ -723,13 +724,12 @@ export class ProductPartFormComponent implements OnInit {
     }
   }
 
+  selectedFile: File | null = null;
+  editSelectedFile: File | null = null;
+
   removeEditImage() {
     this.editImagePreview = null;
-    if (this.editingPartId) {
-      const editingItem = this.parts.find(p => p.id === this.editingPartId);
-      const nameKey = editingItem?.name;
-      this.saveLocalImage(this.editingPartId, 'REMOVED', nameKey);
-    }
+    this.editSelectedFile = null;
   }
 
   onFileChange(event: Event, isEdit: boolean): void {
@@ -741,8 +741,10 @@ export class ProductPartFormComponent implements OnInit {
       const dataUrl = e.target?.result as string;
       if (isEdit) {
         this.editImagePreview = dataUrl;
+        this.editSelectedFile = file;
       } else {
         this.createImagePreview = dataUrl;
+        this.selectedFile = file;
       }
     };
     reader.readAsDataURL(file);
@@ -855,6 +857,12 @@ export class ProductPartFormComponent implements OnInit {
       is_active: raw.isActive ?? true
     };
 
+    if (this.selectedFile) {
+      payload.partImage = this.selectedFile;
+    } else if (this.createImagePreview) {
+      payload.partImage = this.createImagePreview;
+    }
+
     this.partService.createProductPart(payload).subscribe({
       next: (res: any) => {
         const newId = res?.id;
@@ -915,6 +923,12 @@ export class ProductPartFormComponent implements OnInit {
       isActive: activeVal,
       is_active: activeVal
     };
+
+    if (this.editSelectedFile) {
+      payload.partImage = this.editSelectedFile;
+    } else if (this.editImagePreview && this.editImagePreview !== 'REMOVED') {
+      payload.partImage = this.editImagePreview;
+    }
 
     const editingItem = this.parts.find(p => p.id === id);
     const nameKey = editingItem?.name || raw.name;

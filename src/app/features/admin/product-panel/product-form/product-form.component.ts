@@ -784,27 +784,20 @@ export class ProductFormComponent implements OnInit {
 
   getProductImageUrl(product: Product): string {
     if (!product) return '';
-    const candidateKeys = [product.id, String(product.id), product.name, product.productCode, product.product_code].filter(Boolean);
-    for (const k of candidateKeys) {
-      const local = this.getLocalImage(k!);
-      if (local === 'REMOVED') return '';
-      if (local) return local;
+    const path = (product.productImage || (product as any).product_image || (product as any).imageUrl || (product as any).image) as string;
+    if (!path || path === 'REMOVED' || path === 'null' || path === 'undefined') return '';
+    if (typeof path === 'string') {
+      if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
+      const baseUrl = environment.apiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+      const cleanPath = path.startsWith('/') ? path : '/' + path;
+      return `${baseUrl}${cleanPath}`;
     }
-
-    const path = (product.productImage || product.product_image) as string;
-    if (!path) return '';
-    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
-    const cleanPath = path.startsWith('/') ? path : '/' + path;
-    return `${environment.apiUrl}${cleanPath}`;
+    return '';
   }
 
   removeEditImage() {
     this.editImagePreview = null;
     this.editSelectedFile = null;
-    if (this.editingProductId) {
-      const item = this.products.find(p => p.id === this.editingProductId);
-      this.saveLocalImage(this.editingProductId, 'REMOVED', item?.name);
-    }
   }
 
   triggerCardImageUpload(product: Product, fileInput: HTMLInputElement) {
@@ -817,19 +810,27 @@ export class ProductFormComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length || !this.targetCardProduct) return;
     const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      const primaryKey = this.targetCardProduct?.id;
-      const altKey = this.targetCardProduct?.name;
-      if (dataUrl) {
-        this.saveLocalImage(primaryKey || altKey || 'unknown', dataUrl, altKey);
-        this.showMessage(`Photo updated for "${this.targetCardProduct?.name}"!`);
-      }
-      this.targetCardProduct = null;
-      input.value = '';
-    };
-    reader.readAsDataURL(file);
+    const productId = this.targetCardProduct.id;
+    if (productId) {
+      const payload = {
+        productImage: file,
+        product_image: file
+      };
+      this.productService.updateProduct(productId, payload).subscribe({
+        next: () => {
+          this.showMessage(`Photo uploaded and saved for "${this.targetCardProduct?.name}"!`);
+          this.targetCardProduct = null;
+          input.value = '';
+          this.loadProducts();
+        },
+        error: (err) => {
+          console.error('Failed to upload image to backend:', err);
+          this.errorMessage = 'Failed to upload photo to server.';
+          this.targetCardProduct = null;
+          input.value = '';
+        }
+      });
+    }
   }
 
   onCardImgError(event: Event) {
@@ -890,12 +891,18 @@ export class ProductFormComponent implements OnInit {
     this.isLoading = true;
     const raw = this.productForm.value;
     const activeVal = raw.isActive ?? true;
-    const payload = {
+    const payload: any = {
       ...raw,
       brand: Number(raw.brand),
       isActive: activeVal,
       is_active: activeVal
     };
+
+    if (this.selectedFile) {
+      payload.productImage = this.selectedFile;
+    } else if (this.createImagePreview) {
+      payload.productImage = this.createImagePreview;
+    }
 
     this.productService.createProduct(payload).subscribe({
       next: (res: any) => {
@@ -951,12 +958,18 @@ export class ProductFormComponent implements OnInit {
 
     const raw = this.editForm.value;
     const activeVal = raw.isActive ?? true;
-    const payload = {
+    const payload: any = {
       ...raw,
       brand: Number(raw.brand),
       isActive: activeVal,
       is_active: activeVal
     };
+
+    if (this.editSelectedFile) {
+      payload.productImage = this.editSelectedFile;
+    } else if (this.editImagePreview && this.editImagePreview !== 'REMOVED') {
+      payload.productImage = this.editImagePreview;
+    }
 
     const editingItem = this.products.find(p => p.id === id);
     const nameKey = editingItem?.name || raw.name;
