@@ -2,10 +2,10 @@ import { Component, inject, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
-import { CallService } from '../../../core/services/call.service';
-import { BrandService } from '../../../core/services/brand.service';
-import { Call, CallExportFilter } from '../../../core/models/call.model';
-import { Brand } from '../../../core/models/brand.model';
+import { CallService } from '../../core/services/call.service';
+import { BrandService } from '../../core/services/brand.service';
+import { Call, CallExportFilter } from '../../core/models/call.model';
+import { Brand } from '../../core/models/brand.model';
 
 @Component({
   selector: 'app-call-list',

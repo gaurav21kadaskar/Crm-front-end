@@ -56,6 +56,9 @@ export class ProductPartService {
       } else if (typeof val === 'string' && val.startsWith('data:image/')) {
         fileObj = this.base64ToFile(val, 'part_image.jpg');
         break;
+      } else if (typeof val === 'string') {
+        // It's an existing image URL/path/marker — strip it so backend ignores it (partial=True)
+        delete data[key];
       }
     }
 

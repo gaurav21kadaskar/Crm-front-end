@@ -2948,9 +2948,12 @@ export class CallManagementComponent implements OnInit {
     reader.readAsDataURL(file);
   }
 
+  editCallImageRemoved = false;
+
   clearEditImage(): void {
     this.editCallImageFile = null;
     this.editCallPreviewUrl = null;
+    this.editCallImageRemoved = true;
   }
 
   exportFilters: CallExportFilter = {
@@ -3879,6 +3882,12 @@ export class CallManagementComponent implements OnInit {
 
   getCallImageUrl(call: any): string {
     if (!call) return '';
+    const rawNum = call.callNumber || call.callId || call.call_number || (call.id ? String(call.id) : '');
+    if (rawNum) {
+      const local = this.getLocalCallImage(rawNum);
+      if (local === 'REMOVED') return '';
+      if (local && local !== 'indexeddb') return local;
+    }
     const path = (
       call.imageUrl || 
       call.image || 
@@ -3886,11 +3895,7 @@ export class CallManagementComponent implements OnInit {
       call.call_image || 
       call.attachment || 
       call.photoUrl || 
-      call.photo ||
-      call.productDetail?.productImage ||
-      call.productDetail?.image ||
-      call.productDetail?.product_image ||
-      call.product_detail?.product_image
+      call.photo
     ) as string;
     if (!path || path === 'indexeddb' || path === 'REMOVED' || path === 'null' || path === 'undefined') return '';
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
@@ -4058,7 +4063,14 @@ export class CallManagementComponent implements OnInit {
     const autoCallNum = existingNum || `CN${Math.floor(100000 + Math.random() * 900000)}`;
     const effectiveBrand = this.getEffectiveCustomerBrandId() || Number(prod.brand) || 1;
 
-    const attachedImg = (val && (val.imageUrl || val.image || val.attachment)) || this.createCallPreviewUrl || (this.editingCall ? this.editCallPreviewUrl : null) || '';
+    let attachedImg = '';
+    if (this.editingCall) {
+      if (this.editCallImageFile || (this.editCallPreviewUrl && this.editCallPreviewUrl.startsWith('data:image/'))) {
+        attachedImg = this.editCallPreviewUrl || '';
+      }
+    } else {
+      attachedImg = (val && (val.imageUrl || val.image || val.attachment)) || this.createCallPreviewUrl || '';
+    }
 
     const payload: any = {
       callNumber: autoCallNum,
@@ -4070,15 +4082,15 @@ export class CallManagementComponent implements OnInit {
       customer_id: currentUserId,
       customerDetail: {
         title: cust.title || 'Mr',
-        firstName: fn,
-        lastName: ln,
+        firstName: fn || 'Customer',
+        lastName: ln || '',
         address1: cust.address1 || '',
         landmark: cust.landmark || '',
         state: cust.state || '',
         district: cust.district || '',
         city: cust.city || '',
         locality: cust.locality || '',
-        pincode: cust.pincode ? Number(cust.pincode) : ''
+        pincode: cust.pincode ? Number(cust.pincode) : 0
       },
       contactDetail: {
         mobile: cont.mobile || '',
@@ -4093,32 +4105,30 @@ export class CallManagementComponent implements OnInit {
         dealerMobile: deal.dealerMobile || '',
         dealerEmail: deal.dealerEmail || '',
         invoiceNumber: deal.invoiceNumber || '',
-        purchaseDate: deal.purchaseDate || ''
+        purchaseDate: deal.purchaseDate || todayStr
       },
       productDetail: {
-        ...prod,
         brand: effectiveBrand,
-        client: prod.client || '',
-        product: prod.product ? Number(prod.product) : '',
-        model: prod.model ? Number(prod.model) : '',
+        client: prod.client || 'Retail',
+        product: Number(prod.product) || 1,
+        model: Number(prod.model) || 1,
         unitSerialNumber: prod.unitSerialNumber || '',
-        purchaseDate: prod.purchaseDate || '',
-        warranty: prod.warranty || '',
-        stockOf: prod.stockOf || '',
-        purchaseOrderNumber: prod.purchaseOrderNumber || ''
+        purchaseDate: prod.purchaseDate || todayStr,
+        warranty: prod.warranty || '1 Year',
+        stockOf: prod.stockOf || 'Stock',
+        purchaseOrderNumber: prod.purchaseOrderNumber || 'PO-001'
       },
       complaintDetail: {
-        ...comp,
-        callType: comp.callType || '',
-        complaintPriority: comp.complaintPriority || '',
-        callNature: comp.callNature || '',
-        visitType: comp.visitType || '',
+        callType: comp.callType || 'Installation',
+        complaintPriority: comp.complaintPriority || 'Medium',
+        callNature: comp.callNature || 'Service',
+        visitType: comp.visitType || 'Home',
         lastComplaintNumber: comp.lastComplaintNumber || '',
-        complaintDescription: comp.complaintDescription || '',
+        complaintDescription: comp.complaintDescription || 'Complaint',
         specialInstruction: comp.specialInstruction || '',
-        promiseDate: comp.promiseDate || null,
+        promiseDate: comp.promiseDate ? comp.promiseDate : null,
         promiseTime: comp.promiseTime || '',
-        amOrPm: comp.amOrPm || ''
+        amOrPm: comp.amOrPm || 'AM'
       },
       status: this.mapToBackendStatus(statusVal),
       callStatus: this.mapToBackendStatus(statusVal),
@@ -4143,6 +4153,12 @@ export class CallManagementComponent implements OnInit {
       payload.callImage = attachedImg;
       payload.call_image = attachedImg;
       payload.attachment = attachedImg;
+    } else if (this.editingCall && this.editCallImageRemoved) {
+      payload.imageUrl = null;
+      payload.image = null;
+      payload.callImage = null;
+      payload.call_image = null;
+      payload.attachment = null;
     }
 
     return payload;
@@ -4714,6 +4730,7 @@ export class CallManagementComponent implements OnInit {
     }
 
     this.editingCall = call;
+    this.editCallImageRemoved = false;
     this.editCallPreviewUrl = this.getCallImageUrl(call) || null;
     this.editCallImageFile = null;
 
@@ -4972,7 +4989,7 @@ export class CallManagementComponent implements OnInit {
       }
     }, 3000);
 
-    this.callService.updateCallFieldOnly(callNum, updated).subscribe({
+    this.callService.updateCall(callNum, updated).subscribe({
       next: () => {
         clearTimeout(timer);
         if (this.isSubmitting) {
@@ -4980,10 +4997,21 @@ export class CallManagementComponent implements OnInit {
         }
       },
       error: (err: any) => {
-        clearTimeout(timer);
-        if (this.isSubmitting) {
-          finishEdit();
-        }
+        // If full update failed, attempt updateCallFieldOnly as fallback
+        this.callService.updateCallFieldOnly(callNum, updated).subscribe({
+          next: () => {
+            clearTimeout(timer);
+            if (this.isSubmitting) {
+              finishEdit();
+            }
+          },
+          error: (fallbackErr: any) => {
+            clearTimeout(timer);
+            if (this.isSubmitting) {
+              finishEdit();
+            }
+          }
+        });
       }
     });
   }

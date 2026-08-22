@@ -673,6 +673,9 @@ export class ProductPartFormComponent implements OnInit {
 
   getPartImageUrl(part: ProductPart): string {
     if (!part) return '';
+    const cached = (part.id !== undefined && part.id !== null ? this.getLocalImage(part.id) : null) || (part.name ? this.getLocalImage(part.name) : null);
+    if (cached === 'REMOVED') return '';
+    if (cached) return cached;
     const path = (part.partImage || (part as any).part_image || (part as any).image) as string;
     if (!path || path === 'REMOVED' || path === 'null' || path === 'undefined') return '';
     if (typeof path === 'string') {
@@ -683,6 +686,8 @@ export class ProductPartFormComponent implements OnInit {
     }
     return '';
   }
+
+  editImageRemoved = false;
 
   triggerCardImageUpload(part: ProductPart, fileInput: HTMLInputElement) {
     if (this.authService.getRole() !== 'Admin') return;
@@ -730,6 +735,7 @@ export class ProductPartFormComponent implements OnInit {
   removeEditImage() {
     this.editImagePreview = null;
     this.editSelectedFile = null;
+    this.editImageRemoved = true;
   }
 
   onFileChange(event: Event, isEdit: boolean): void {
@@ -892,6 +898,7 @@ export class ProductPartFormComponent implements OnInit {
     this.editingPartId = part.id || null;
     this.deletingPartId = null;
     this.errorMessage = '';
+    this.editImageRemoved = false;
     this.editImagePreview = this.getPartImageUrl(part) || null;
     this.editForm.patchValue({
       product: part.product,
@@ -904,6 +911,8 @@ export class ProductPartFormComponent implements OnInit {
   cancelEdit() {
     this.editingPartId = null;
     this.editImagePreview = null;
+    this.editSelectedFile = null;
+    this.editImageRemoved = false;
     this.editForm.reset();
   }
 
@@ -926,8 +935,8 @@ export class ProductPartFormComponent implements OnInit {
 
     if (this.editSelectedFile) {
       payload.partImage = this.editSelectedFile;
-    } else if (this.editImagePreview && this.editImagePreview !== 'REMOVED') {
-      payload.partImage = this.editImagePreview;
+    } else if (this.editImageRemoved) {
+      payload.partImage = null;
     }
 
     const editingItem = this.parts.find(p => p.id === id);

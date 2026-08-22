@@ -1,16 +1,16 @@
 import { Component, inject, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CallService } from '../../../core/services/call.service';
-import { BrandService } from '../../../core/services/brand.service';
-import { ProductService } from '../../../core/services/product.service';
-import { ProductModelService } from '../../../core/services/product-model.service';
-import { ProductIssueService } from '../../../core/services/product-issue.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { Brand } from '../../../core/models/brand.model';
-import { Product } from '../../../core/models/product.model';
-import { ProductModel } from '../../../core/models/product-model.model';
-import { ProductIssue } from '../../../core/models/product-issue.model';
+import { CallService } from '../../core/services/call.service';
+import { BrandService } from '../../core/services/brand.service';
+import { ProductService } from '../../core/services/product.service';
+import { ProductModelService } from '../../core/services/product-model.service';
+import { ProductIssueService } from '../../core/services/product-issue.service';
+import { AuthService } from '../../core/services/auth.service';
+import { Brand } from '../../core/models/brand.model';
+import { Product } from '../../core/models/product.model';
+import { ProductModel } from '../../core/models/product-model.model';
+import { ProductIssue } from '../../core/models/product-issue.model';
 
 @Component({
   selector: 'app-call-create',

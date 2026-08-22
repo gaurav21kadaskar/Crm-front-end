@@ -14,7 +14,7 @@ export class CallService {
   }
 
   getCallById(id: number | string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/api/call/${id}/`);
+    return this.http.get<any>(`${this.apiUrl}/api/call/`, { params: { callNumber: id } });
   }
 
   getCallByNumber(callNumber: string): Observable<any> {
@@ -62,6 +62,9 @@ export class CallService {
       } else if (typeof val === 'string' && val.startsWith('data:image/')) {
         fileObj = this.base64ToFile(val, 'call_image.jpg');
         break;
+      } else if (typeof val === 'string') {
+        // It's an existing image URL/path/marker — strip it so backend ignores it (partial=True)
+        delete data[key];
       }
     }
 

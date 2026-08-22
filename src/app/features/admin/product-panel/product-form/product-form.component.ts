@@ -784,6 +784,9 @@ export class ProductFormComponent implements OnInit {
 
   getProductImageUrl(product: Product): string {
     if (!product) return '';
+    const cached = (product.id !== undefined && product.id !== null ? this.getLocalImage(product.id) : null) || (product.name ? this.getLocalImage(product.name) : null);
+    if (cached === 'REMOVED') return '';
+    if (cached) return cached;
     const path = (product.productImage || (product as any).product_image || (product as any).imageUrl || (product as any).image) as string;
     if (!path || path === 'REMOVED' || path === 'null' || path === 'undefined') return '';
     if (typeof path === 'string') {
@@ -795,9 +798,12 @@ export class ProductFormComponent implements OnInit {
     return '';
   }
 
+  editImageRemoved = false;
+
   removeEditImage() {
     this.editImagePreview = null;
     this.editSelectedFile = null;
+    this.editImageRemoved = true;
   }
 
   triggerCardImageUpload(product: Product, fileInput: HTMLInputElement) {
@@ -932,6 +938,7 @@ export class ProductFormComponent implements OnInit {
     this.editingProductId = product.id || null;
     this.deletingProductId = null;
     this.errorMessage = '';
+    this.editImageRemoved = false;
     this.editImagePreview = this.getProductImageUrl(product) || null;
     this.editForm.patchValue({
       brand: product.brand,
@@ -946,6 +953,7 @@ export class ProductFormComponent implements OnInit {
     this.editingProductId = null;
     this.editImagePreview = null;
     this.editSelectedFile = null;
+    this.editImageRemoved = false;
     this.editForm.reset();
   }
 
@@ -967,8 +975,8 @@ export class ProductFormComponent implements OnInit {
 
     if (this.editSelectedFile) {
       payload.productImage = this.editSelectedFile;
-    } else if (this.editImagePreview && this.editImagePreview !== 'REMOVED') {
-      payload.productImage = this.editImagePreview;
+    } else if (this.editImageRemoved) {
+      payload.productImage = null;
     }
 
     const editingItem = this.products.find(p => p.id === id);
