@@ -31,6 +31,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/auth/register/register.component').then(m => m.RegisterComponent)
       },
       {
+        path: 'admin/user-brands',
+        canActivate: [productViewGuard],
+        loadComponent: () => import('./features/admin/user-brand/user-brand.component').then(m => m.UserBrandComponent)
+      },
+      {
         // Admin & Customer can access product panel pages
         // Admin: full CRUD; Customer: view-only (enforced in component)
         path: 'admin/brands',

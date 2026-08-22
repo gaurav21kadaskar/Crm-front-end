@@ -125,7 +125,14 @@ import { Brand } from '../../../core/models/brand.model';
             <div class="fg">
               <label class="lbl">Status</label>
               <select class="inp" formControlName="status">
-                <option>Pending</option><option>In Progress</option><option>Resolved</option><option>Closed</option><option>Cancelled</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Closed">Closed</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="Pending For Approval">Pending For Approval</option>
+                <option value="Replacement">Replacement</option>
+                <option value="Parts Pending">Parts Pending</option>
               </select>
             </div>
             <div class="fg">
@@ -193,7 +200,15 @@ import { Brand } from '../../../core/models/brand.model';
         <p class="export-desc">Apply filters and download as CSV</p>
         <div class="fg"><label class="lbl">Status</label>
           <select class="inp" [(ngModel)]="exportFilters.status">
-            <option value="All">All</option><option>Pending</option><option>In Progress</option><option>Resolved</option><option>Closed</option>
+            <option value="All">All</option>
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Closed">Closed</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Pending For Approval">Pending For Approval</option>
+            <option value="Replacement">Replacement</option>
+            <option value="Parts Pending">Parts Pending</option>
           </select>
         </div>
         <div class="fg"><label class="lbl">Priority</label>

@@ -711,9 +711,9 @@ export class CustomerProductsComponent implements OnInit {
       next: (res: any) => {
         let loaded = this.parseArray(res);
         if (this.authService.getRole() === 'Customer') {
-          const brandId = this.authService.getBrandId();
-          if (brandId) {
-            loaded = loaded.filter(b => Number(b.id) === Number(brandId));
+          const allowedBrands = this.authService.getBrandList();
+          if (allowedBrands && allowedBrands.length > 0) {
+            loaded = loaded.filter(b => b.id !== undefined && allowedBrands.includes(Number(b.id)));
           }
         }
         this.brands = loaded;
@@ -730,9 +730,9 @@ export class CustomerProductsComponent implements OnInit {
       next: (res: any) => {
         let raw: any[] = this.parseArray(res);
         if (this.authService.getRole() === 'Customer') {
-          const brandId = this.authService.getBrandId();
-          if (brandId) {
-            raw = raw.filter(p => Number(p.brand) === Number(brandId));
+          const allowedBrands = this.authService.getBrandList();
+          if (allowedBrands && allowedBrands.length > 0) {
+            raw = raw.filter(p => p.brand !== undefined && allowedBrands.includes(Number(p.brand)));
           }
         }
         this.products = raw.map(p => this.normalize(p));

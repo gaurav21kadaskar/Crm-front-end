@@ -436,12 +436,14 @@ export class BrandFormComponent implements OnInit {
   public authService = inject(AuthService);
 
   brands: Brand[] = [];
+  customerUsers: any[] = [];
   loadingList = false;
   searchQuery = '';
 
   brandForm: FormGroup = this.fb.group({
     name: ['', Validators.required],
     description: [''],
+    associateUserId: [''],
     isActive: [true]
   });
 
@@ -468,9 +470,9 @@ export class BrandFormComponent implements OnInit {
     let list = this.brands;
     const role = this.authService.getRole();
     if (role && role.toLowerCase() === 'customer') {
-      const brandVal = this.authService.getBrandId();
-      if (brandVal !== null && brandVal !== undefined) {
-        list = list.filter(b => Number(b.id) === brandVal);
+      const allowedBrands = this.authService.getBrandList();
+      if (allowedBrands && allowedBrands.length > 0) {
+        list = list.filter(b => b.id !== undefined && allowedBrands.includes(Number(b.id)));
       }
     }
     if (!this.searchQuery.trim()) return list;
@@ -504,6 +506,12 @@ export class BrandFormComponent implements OnInit {
     } catch(e) {}
   }
 
+  private parseBool(val: any): boolean {
+    if (val === true || val === 'true' || val === 1 || val === '1') return true;
+    if (val === false || val === 'false' || val === 0 || val === '0') return false;
+    return true;
+  }
+
   toggleStatusDirectly(brand: Brand) {
     if (this.authService.getRole() !== 'Admin') return;
     const current = this.isItemActive(brand);
@@ -512,7 +520,11 @@ export class BrandFormComponent implements OnInit {
     (brand as any).is_active = newStatus;
     if (brand.id) {
       this.setLocalStatus(brand.id, newStatus);
-      this.brandService.updateBrand(brand.id, { isActive: newStatus, is_active: newStatus } as any).subscribe({
+      const payload = {
+        isActive: newStatus,
+        is_active: newStatus
+      };
+      this.brandService.updateBrand(brand.id, payload as any).subscribe({
         next: () => this.showMessage(`Status changed to ${newStatus ? 'Active' : 'Inactive'}!`),
         error: () => this.showMessage(`Status updated locally to ${newStatus ? 'Active' : 'Inactive'}!`)
       });
@@ -520,15 +532,31 @@ export class BrandFormComponent implements OnInit {
   }
 
   isItemActive(item: any): boolean {
+    if (!item) return true;
+    if (item.id) {
+      const localSt = this.getLocalStatus(item.id);
+      if (localSt !== null) return localSt;
+    }
     if (item.isActive === true || item.is_active === true) return true;
     if (item.isActive === false || item.is_active === false) return false;
     if (item.status === 'Active' || item.status === 'ACTIVE' || item.status === 1 || item.status === '1') return true;
     if (item.status === 'Inactive' || item.status === 'INACTIVE' || item.status === 0 || item.status === '0') return false;
-    return true; // Default active
+    return true;
   }
 
   ngOnInit() {
     this.loadBrands();
+    this.loadCustomerUsers();
+  }
+
+  loadCustomerUsers() {
+    this.authService.getUsers().subscribe({
+      next: (res: any) => {
+        const users = this.parseArray(res);
+        this.customerUsers = users.filter((u: any) => u.isCustomer === true);
+      },
+      error: (err: any) => console.error('Failed to fetch customer users:', err)
+    });
   }
 
   private parseArray(res: any): any[] {
@@ -558,9 +586,9 @@ export class BrandFormComponent implements OnInit {
         let loaded = this.parseArray(response);
         const role = this.authService.getRole();
         if (role && role.toLowerCase() === 'customer') {
-          const brandVal = this.authService.getBrandId();
-          if (brandVal !== null && brandVal !== undefined) {
-            loaded = loaded.filter(b => Number(b.id) === brandVal);
+          const allowedBrands = this.authService.getBrandList();
+          if (allowedBrands && allowedBrands.length > 0) {
+            loaded = loaded.filter(b => b.id !== undefined && allowedBrands.includes(Number(b.id)));
           }
         }
         this.brands = loaded.map(b => {
@@ -601,7 +629,7 @@ export class BrandFormComponent implements OnInit {
 
     this.isLoading = true;
     const raw = this.brandForm.value;
-    const activeVal = raw.isActive ?? true;
+    const activeVal = this.parseBool(raw.isActive);
     const payload = {
       name: raw.name,
       description: raw.description || '',
@@ -611,7 +639,19 @@ export class BrandFormComponent implements OnInit {
 
     this.brandService.createBrand(payload).subscribe({
       next: (res: any) => {
-        if (res?.id) this.setLocalStatus(res.id, activeVal);
+        if (res?.id) {
+          this.setLocalStatus(res.id, activeVal);
+          if (raw.associateUserId) {
+            this.brandService.addUserBrand({
+              user: Number(raw.associateUserId),
+              brand: Number(res.id),
+              isActive: activeVal
+            }).subscribe({
+              next: () => console.log('User brand association created via Add Brand form'),
+              error: (err) => console.error('Failed user brand association:', err)
+            });
+          }
+        }
         this.showMessage('Brand created successfully!');
         this.brandForm.reset();
         this.brandForm.patchValue({ isActive: true });
@@ -652,7 +692,7 @@ export class BrandFormComponent implements OnInit {
     this.successMessage = '';
 
     const raw = this.editForm.value;
-    const activeVal = raw.isActive ?? true;
+    const activeVal = this.parseBool(raw.isActive);
     const payload = {
       name: raw.name,
       description: raw.description || '',

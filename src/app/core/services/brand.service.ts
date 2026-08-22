@@ -27,4 +27,12 @@ export class BrandService {
   deleteBrand(id: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/api/brand/${id}/`);
   }
+
+  addUserBrand(payload: { user: number; brand: number; isActive?: boolean }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/api/adduserbrand/`, payload);
+  }
+
+  updateUserBrandStatus(payload: { user: number; brand: number; isActive: boolean }): Observable<any> {
+    return this.http.patch<any>(`${this.apiUrl}/api/adduserbrand/`, payload);
+  }
 }

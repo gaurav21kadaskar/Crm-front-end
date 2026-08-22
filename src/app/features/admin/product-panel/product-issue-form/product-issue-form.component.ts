@@ -509,9 +509,9 @@ export class ProductIssueFormComponent implements OnInit {
       next: (response: any) => {
         let loaded = this.parseArray(response);
         if (this.authService.getRole() === 'Customer') {
-          const brandId = this.authService.getBrandId();
-          if (brandId) {
-            loaded = loaded.filter((p: any) => Number(p.brand) === Number(brandId));
+          const allowedBrands = this.authService.getBrandList();
+          if (allowedBrands && allowedBrands.length > 0) {
+            loaded = loaded.filter((p: any) => p.brand !== undefined && allowedBrands.includes(Number(p.brand)));
           }
         }
         this.products = loaded;

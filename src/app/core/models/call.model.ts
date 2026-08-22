@@ -88,7 +88,9 @@ export interface Call {
   remark?: string;
   cancellationDescription?: string;
   pendingPart?: any;
-  requiredProduct?: any;
+  distributor?: any;
+  distributorName?: string;
+  createdByUserName?: string;
   imageUrl?: string;
   image?: string;
 }

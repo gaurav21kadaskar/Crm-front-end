@@ -136,7 +136,24 @@ import { Brand } from '../../../core/models/brand.model';
                         </span>
                       </td>
                       <td>
-                        <span class="brand-cell">{{ u.brand || '—' }}</span>
+                        @let bList = getUserBrandList(u);
+                        @if (bList.length === 0) {
+                          <span style="color: #94a3b8; font-size: 0.8rem;">—</span>
+                        } @else if (bList.length <= 2) {
+                          <div class="brand-badges-container">
+                            @for (bName of bList; track bName) {
+                              <span class="brand-chip">{{ bName }}</span>
+                            }
+                          </div>
+                        } @else {
+                          <div class="brand-badges-container">
+                            <span class="brand-chip">{{ bList[0] }}</span>
+                            <span class="brand-chip">{{ bList[1] }}</span>
+                            <span class="brand-chip count-chip" [title]="'Other brands: ' + bList.slice(2).join(', ')">
+                              +{{ bList.length - 2 }} more
+                            </span>
+                          </div>
+                        }
                       </td>
                       <td>
                         @if (u.fromPin && u.toPin) {
@@ -146,10 +163,19 @@ import { Brand } from '../../../core/models/brand.model';
                         }
                       </td>
                       <td>
-                        <span class="status-pill" [class.active]="u.isActive !== false" [class.inactive]="u.isActive === false">
-                          <span class="status-dot"></span>
-                          {{ u.isActive !== false ? 'Active' : 'Inactive' }}
-                        </span>
+                        <button 
+                          type="button" 
+                          class="toggle-switch-btn" 
+                          [class.active]="u.isActive !== false" 
+                          (click)="promptUserStatusChange(u)"
+                          [disabled]="togglingUsername === u.username"
+                          [title]="'Click to toggle status to ' + (u.isActive !== false ? 'Inactive' : 'Active')"
+                        >
+                          <span class="toggle-track">
+                            <span class="toggle-thumb"></span>
+                          </span>
+                          <span class="toggle-text">{{ u.isActive !== false ? 'Active' : 'Inactive' }}</span>
+                        </button>
                       </td>
                     </tr>
                   }
@@ -158,6 +184,41 @@ import { Brand } from '../../../core/models/brand.model';
             </table>
           </div>
         </div>
+
+        <!-- Confirmation Popup for User Status Change -->
+        @if (pendingStatusUser) {
+          <div class="modal-backdrop animate-fade-in" (click)="cancelUserStatusChange()">
+            <div class="modal-content confirm-card animate-slide-up" (click)="$event.stopPropagation()">
+              <div class="modal-header confirm-header">
+                <div class="confirm-icon-box" [style.background]="pendingStatusTarget ? '#dcfce7' : '#fee2e2'">
+                  {{ pendingStatusTarget ? '🟢' : '⚠️' }}
+                </div>
+                <div>
+                  <h3 class="modal-title">{{ pendingStatusTarget ? 'Confirm User Activation' : 'Confirm User Deactivation' }}</h3>
+                  <p class="modal-subtitle">User: <strong>{{ pendingStatusUser.username }}</strong> {{ getFullName(pendingStatusUser) !== '—' ? '(' + getFullName(pendingStatusUser) + ')' : '' }}</p>
+                </div>
+                <button class="modal-close" (click)="cancelUserStatusChange()">&times;</button>
+              </div>
+              <div class="modal-body confirm-body">
+                <p class="confirm-message">
+                  @if (pendingStatusTarget) {
+                    Are you sure you want to activate this user?
+                  } @else {
+                    Are you sure you want to deactivate this user?
+                  }
+                </p>
+              </div>
+              <div class="modal-footer confirm-footer">
+                <button type="button" class="btn-cancel" (click)="cancelUserStatusChange()" [disabled]="isUpdatingUserStatus">
+                  Cancel
+                </button>
+                <button type="button" class="btn-confirm" [class.btn-activate]="pendingStatusTarget" (click)="confirmUserStatusChange()" [disabled]="isUpdatingUserStatus">
+                  {{ isUpdatingUserStatus ? 'Updating...' : 'Confirm' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        }
       }
 
       <!-- TAB 2: CREATE USER FORM -->
@@ -632,6 +693,8 @@ import { Brand } from '../../../core/models/brand.model';
       font-weight: 700;
       font-size: 0.85rem;
       color: white;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
     }
 
     .user-username {
@@ -761,6 +824,41 @@ import { Brand } from '../../../core/models/brand.model';
       color: #475569;
     }
 
+    .brand-badges-container {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      max-width: 260px;
+    }
+
+    .brand-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.55rem;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .brand-chip.count-chip {
+      background: #f1f5f9;
+      color: #475569;
+      border-color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .brand-chip.count-chip:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+
     .pin-badge {
       font-family: monospace;
       font-size: 0.8rem;
@@ -770,31 +868,73 @@ import { Brand } from '../../../core/models/brand.model';
       color: #334155;
     }
 
-    .status-pill {
+    /* Toggle Switch Option Button */
+    .toggle-switch-btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
-      padding: 0.25rem 0.65rem;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
+      justify-content: flex-start;
+      width: 112px;
+      gap: 0.5rem;
+      padding: 0.35rem 0.6rem;
+      background: #f1f5f9;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+      outline: none;
+      user-select: none;
+      box-sizing: border-box;
     }
-
-    .status-pill.active {
-      background: #dcfce7;
-      color: #15803d;
+    .toggle-switch-btn:hover:not(:disabled) {
+      transform: scale(1.03);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
-
-    .status-pill.inactive {
-      background: #fee2e2;
-      color: #dc2626;
+    .toggle-switch-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
-
-    .status-dot {
-      width: 6px;
-      height: 6px;
+    .toggle-switch-btn.active {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+    }
+    .toggle-track {
+      width: 34px;
+      height: 18px;
+      background: #cbd5e1;
+      border-radius: 999px;
+      position: relative;
+      transition: background-color 0.25s ease;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .toggle-switch-btn.active .toggle-track {
+      background: #10b981;
+    }
+    .toggle-thumb {
+      width: 14px;
+      height: 14px;
+      background: #ffffff;
       border-radius: 50%;
-      background: currentColor;
+      position: absolute;
+      left: 2px;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle-switch-btn.active .toggle-thumb {
+      transform: translateX(16px);
+    }
+    .toggle-text {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.02em;
+      width: 52px;
+      text-align: center;
+    }
+    .toggle-switch-btn.active .toggle-text {
+      color: #047857;
     }
 
     .loading-td, .empty-td {
@@ -935,10 +1075,36 @@ import { Brand } from '../../../core/models/brand.model';
       background: #4338ca;
     }
 
-    .pro-btn-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
+    /* Confirmation Modal Specifics */
+    .modal-backdrop {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 99999;
+      padding: 1rem; box-sizing: border-box;
     }
+    .modal-content.confirm-card {
+      background: #ffffff; border-radius: 14px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+      width: 100%; max-width: 440px; border: 1px solid #e2e8f0; overflow: hidden;
+    }
+    .confirm-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+    .confirm-icon-box {
+      font-size: 1.5rem; width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .confirm-body { padding: 1.25rem 1.5rem; }
+    .confirm-message { font-size: 0.95rem; color: #334155; line-height: 1.5; margin: 0; font-weight: 500; }
+    .confirm-footer {
+      padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0;
+      display: flex; justify-content: flex-end; gap: 0.75rem;
+    }
+    .btn-confirm {
+      padding: 0.55rem 1.25rem; font-size: 0.875rem; font-weight: 700; background: #dc2626;
+      color: white; border: none; border-radius: 8px; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-confirm:hover { background: #b91c1c; }
+    .btn-confirm.btn-activate { background: #16a34a; }
+    .btn-confirm.btn-activate:hover { background: #15803d; }
+    .btn-cancel { padding: 0.55rem 1.2rem; font-size: 0.875rem; font-weight: 600; background: #64748b; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .btn-cancel:hover { background: #475569; }
 
     .animate-fade-in {
       animation: fadeIn 0.25s ease-out both;
@@ -998,6 +1164,55 @@ export class RegisterComponent implements OnInit {
     });
   }
 
+  togglingUsername: string | null = null;
+  pendingStatusUser: any | null = null;
+  pendingStatusTarget: boolean | null = null;
+  isUpdatingUserStatus = false;
+
+  promptUserStatusChange(user: any) {
+    this.pendingStatusUser = user;
+    this.pendingStatusTarget = !(user.isActive !== false);
+  }
+
+  cancelUserStatusChange() {
+    this.pendingStatusUser = null;
+    this.pendingStatusTarget = null;
+  }
+
+  confirmUserStatusChange() {
+    if (!this.pendingStatusUser || this.pendingStatusTarget === null) return;
+
+    const u = this.pendingStatusUser;
+    const targetStatus = Boolean(this.pendingStatusTarget);
+    const currentActive = u.isActive !== false;
+    this.isUpdatingUserStatus = true;
+    this.togglingUsername = u.username;
+
+    this.authService.updateUserStatus(u.username, targetStatus).subscribe({
+      next: (res: any) => {
+        this.isUpdatingUserStatus = false;
+        this.togglingUsername = null;
+        if (res.status === 200 || res.message === 'success') {
+          u.isActive = targetStatus;
+          this.toast.success('Status Updated', `User '${u.username}' status set to ${targetStatus ? 'Active' : 'Inactive'}.`);
+        } else {
+          u.isActive = currentActive;
+          this.toast.error('Update Failed', res.message || 'Failed to update user status.');
+        }
+        this.pendingStatusUser = null;
+        this.pendingStatusTarget = null;
+      },
+      error: (err: any) => {
+        this.isUpdatingUserStatus = false;
+        this.togglingUsername = null;
+        u.isActive = currentActive;
+        this.toast.error('Update Failed', err.message || 'Error updating user status.');
+        this.pendingStatusUser = null;
+        this.pendingStatusTarget = null;
+      }
+    });
+  }
+
   loadUsers() {
     this.isLoadingList = true;
     this.authService.getUsers(this.selectedStatus).subscribe({
@@ -1023,7 +1238,7 @@ export class RegisterComponent implements OnInit {
         (u.firstName && u.firstName.toLowerCase().includes(q)) ||
         (u.lastName && u.lastName.toLowerCase().includes(q)) ||
         (u.email && u.email.toLowerCase().includes(q)) ||
-        (u.brand && u.brand.toLowerCase().includes(q)) ||
+        (this.getUserBrandsDisplay(u).toLowerCase().includes(q)) ||
         (this.getUserRole(u).toLowerCase().includes(q))
       );
     }
@@ -1039,6 +1254,45 @@ export class RegisterComponent implements OnInit {
         console.error('Error fetching brands', err);
       }
     });
+  }
+
+  getUserBrandList(u: any): string[] {
+    if (!u) return [];
+    const brandMap = new Map<number, string>();
+    (this.brands || []).forEach(b => {
+      if (b && b.id) brandMap.set(Number(b.id), b.name);
+    });
+
+    const foundNames: string[] = [];
+
+    // Check brandList array of IDs returned by ListUser API
+    if (Array.isArray(u.brandList) && u.brandList.length > 0) {
+      u.brandList.forEach((bId: any) => {
+        const name = brandMap.get(Number(bId));
+        if (name && !foundNames.includes(name)) {
+          foundNames.push(name);
+        }
+      });
+    }
+
+    // Check single brand property if string, number, or object
+    if (u.brand) {
+      if (typeof u.brand === 'string' && u.brand.trim() && !u.brand.includes('[object')) {
+        if (!foundNames.includes(u.brand)) foundNames.push(u.brand);
+      } else if (typeof u.brand === 'number') {
+        const name = brandMap.get(u.brand);
+        if (name && !foundNames.includes(name)) foundNames.push(name);
+      } else if (typeof u.brand === 'object' && u.brand.name) {
+        if (!foundNames.includes(u.brand.name)) foundNames.push(u.brand.name);
+      }
+    }
+
+    return foundNames;
+  }
+
+  getUserBrandsDisplay(u: any): string {
+    const list = this.getUserBrandList(u);
+    return list.length > 0 ? list.join(', ') : '—';
   }
 
   get f() { return this.registerForm.controls; }

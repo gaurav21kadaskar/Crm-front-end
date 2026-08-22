@@ -60,7 +60,25 @@ import { ProductPart } from '../../core/models/product-part.model';
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
               </div>
               <h3 class="data-card-title">Customer Service Calls</h3>
+              <span class="count-badge" style="font-size:0.75rem; background:#dbeafe; color:#1e40af; padding:0.15rem 0.5rem; border-radius:999px; font-weight:700;">{{ filteredCalls.length }} Calls</span>
             </div>
+
+            <!-- SEARCH BOX AT THE TOP OF VIEW ALL CALLS -->
+            <div class="header-search-container">
+              <div class="search-box">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input 
+                  type="text" 
+                  class="search-input" 
+                  placeholder="Search calls by ID, customer, product, status..." 
+                  [(ngModel)]="listSearchQuery"
+                />
+                @if (listSearchQuery) {
+                  <button type="button" class="clear-search-btn" (click)="listSearchQuery = ''">&times;</button>
+                }
+              </div>
+            </div>
+
             <div class="card-header-actions">
               <button class="export-btn" (click)="showExportModal = true">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -83,9 +101,12 @@ import { ProductPart } from '../../core/models/product-part.model';
               <p>⚠️ {{ errorMessage }}</p>
               <button class="refresh-btn" (click)="loadCalls()" style="margin-top:1rem;">Retry</button>
             </div>
-          } @else if (calls.length === 0) {
+          } @else if (filteredCalls.length === 0) {
             <div class="empty-state">
-              <p>No service calls found. Select "Create New Call" from the sidebar to add a call.</p>
+              <p>{{ listSearchQuery ? 'No calls match your search query.' : 'No service calls found. Select "Create New Call" from the sidebar to add a call.' }}</p>
+              @if (listSearchQuery) {
+                <button type="button" class="refresh-btn" (click)="listSearchQuery = ''" style="margin-top:0.75rem;">Clear Search</button>
+              }
             </div>
           } @else {
             <div class="table-responsive">
@@ -94,6 +115,8 @@ import { ProductPart } from '../../core/models/product-part.model';
                   <tr>
                     <th>Call Number</th>
                     <th>Customer Info</th>
+                    <th>Created By</th>
+                    <th>Assigned Distributor</th>
                     <th>Product</th>
                     <th>Status</th>
                     <th>Priority</th>
@@ -102,7 +125,7 @@ import { ProductPart } from '../../core/models/product-part.model';
                   </tr>
                 </thead>
                 <tbody>
-                  @for (call of calls; track call.id || call.callNumber) {
+                  @for (call of filteredCalls; track call.id || call.callNumber) {
                     @if (call.callNumber || call.callId || call.id || call.customerName) {
                     <tr>
                       <td class="td-id">{{ call.callNumber || call.callId || '#' + call.id }}</td>
@@ -111,6 +134,12 @@ import { ProductPart } from '../../core/models/product-part.model';
                           <span class="customer-name">{{ getCustomerName(call) }}</span>
                           <span class="customer-addr">{{ getCustomerPhone(call) }}</span>
                         </div>
+                      </td>
+                      <td>
+                        <span class="creator-badge">{{ getCallCreatorName(call) }}</span>
+                      </td>
+                      <td>
+                        <span class="distributor-badge">{{ getDistributorName(call) }}</span>
                       </td>
                       <td>
                         <span class="product-title">{{ getProductName(getCallProduct(call)) }}</span>
@@ -127,10 +156,14 @@ import { ProductPart } from '../../core/models/product-part.model';
                       </td>
                       <td>
                         @if (getCallImageUrl(call)) {
-                          <div class="table-attachment-chip" (click)="openViewDetails(call); activeViewTab = 'attachments'" title="Click to view photo">
-                            <img [src]="getCallImageUrl(call)" class="chip-thumb" alt="Photo" />
-                            <span class="chip-text">View Photo</span>
-                          </div>
+                          <button type="button" class="btn-attachment-chip" (click)="openViewDetails(call); activeViewTab = 'attachments'" title="Click to view attached photo">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                              <circle cx="8.5" cy="8.5" r="1.5"/>
+                              <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                            <span>View Photo</span>
+                          </button>
                         } @else {
                           <span style="color: #94a3b8; font-size: 0.8rem;">—</span>
                         }
@@ -141,6 +174,12 @@ import { ProductPart } from '../../core/models/product-part.model';
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             View
                           </button>
+                          @if (isAdmin) {
+                            <button class="btn-row-transfer" (click)="openTransferCall(call)" title="Transfer Call">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                              Transfer
+                            </button>
+                          }
                           @if (isCustomer && isPendingApproval(call)) {
                             <button class="btn-row-approve" (click)="approveCallClosure(call)" title="Approve Call Closure">
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -196,8 +235,9 @@ import { ProductPart } from '../../core/models/product-part.model';
                     }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Last Name</label>
-                    <input type="text" class="pro-input" formControlName="lastName" placeholder="Enter last name" />
+                    <label class="pro-label">Last Name *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('customerDetail', 'lastName')" formControlName="lastName" placeholder="Enter last name" />
+                    @if (isFieldInvalid('customerDetail', 'lastName')) { <span class="error-message">Last name is required.</span> }
                   </div>
                 </div>
 
@@ -273,21 +313,23 @@ import { ProductPart } from '../../core/models/product-part.model';
                     }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Email Address</label>
+                    <label class="pro-label">Email Address *</label>
                     <input type="email" class="pro-input" [class.is-invalid]="isFieldInvalid('contactDetail', 'email')" formControlName="email" placeholder="john@example.com" />
                     @if (isFieldInvalid('contactDetail', 'email')) {
-                      <span class="error-message">Please enter a valid email address (e.g. name&#64;domain.com).</span>
+                      <span class="error-message">Valid email address is required (e.g. name&#64;domain.com).</span>
                     }
                   </div>
                 </div>
                 <div class="form-grid-2">
                   <div class="pro-form-group">
-                    <label class="pro-label">Contact Person Name</label>
-                    <input type="text" class="pro-input" formControlName="contactPersonName" placeholder="Alternate contact name" />
+                    <label class="pro-label">Contact Person Name *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('contactDetail', 'contactPersonName')" formControlName="contactPersonName" placeholder="Contact person name" />
+                    @if (isFieldInvalid('contactDetail', 'contactPersonName')) { <span class="error-message">Contact person name is required.</span> }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Contact Person Mobile</label>
-                    <input type="text" class="pro-input" formControlName="contactPersonMobile" placeholder="Alternate mobile" />
+                    <label class="pro-label">Contact Person Mobile *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('contactDetail', 'contactPersonMobile')" formControlName="contactPersonMobile" placeholder="Contact person mobile" maxlength="10" (keypress)="onlyDigits($event)" />
+                    @if (isFieldInvalid('contactDetail', 'contactPersonMobile')) { <span class="error-message">Contact person mobile (10 digits) is required.</span> }
                   </div>
                 </div>
                 <div class="pro-form-group">
@@ -301,32 +343,38 @@ import { ProductPart } from '../../core/models/product-part.model';
               <div formGroupName="dealerDetail">
                 <div class="form-grid-2">
                   <div class="pro-form-group">
-                    <label class="pro-label">Dealer Name</label>
-                    <input type="text" class="pro-input" formControlName="dealerName" placeholder="Dealer / Store Name" />
+                    <label class="pro-label">Dealer Name *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('dealerDetail', 'dealerName')" formControlName="dealerName" placeholder="Dealer / Store Name" />
+                    @if (isFieldInvalid('dealerDetail', 'dealerName')) { <span class="error-message">Dealer name is required.</span> }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Dealer City</label>
-                    <input type="text" class="pro-input" formControlName="dealerCity" placeholder="Dealer City" />
-                  </div>
-                </div>
-                <div class="form-grid-2">
-                  <div class="pro-form-group">
-                    <label class="pro-label">Dealer Mobile</label>
-                    <input type="text" class="pro-input" formControlName="dealerMobile" placeholder="Dealer Mobile" />
-                  </div>
-                  <div class="pro-form-group">
-                    <label class="pro-label">Dealer Email</label>
-                    <input type="email" class="pro-input" formControlName="dealerEmail" placeholder="dealer@example.com" />
+                    <label class="pro-label">Dealer City *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('dealerDetail', 'dealerCity')" formControlName="dealerCity" placeholder="Dealer City" />
+                    @if (isFieldInvalid('dealerDetail', 'dealerCity')) { <span class="error-message">Dealer city is required.</span> }
                   </div>
                 </div>
                 <div class="form-grid-2">
                   <div class="pro-form-group">
-                    <label class="pro-label">Invoice Number</label>
-                    <input type="text" class="pro-input" formControlName="invoiceNumber" placeholder="INV001" />
+                    <label class="pro-label">Dealer Mobile *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('dealerDetail', 'dealerMobile')" formControlName="dealerMobile" placeholder="Dealer Mobile" maxlength="10" (keypress)="onlyDigits($event)" />
+                    @if (isFieldInvalid('dealerDetail', 'dealerMobile')) { <span class="error-message">Dealer mobile (10 digits) is required.</span> }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Purchase Date</label>
-                    <input type="date" class="pro-input" formControlName="purchaseDate" />
+                    <label class="pro-label">Dealer Email *</label>
+                    <input type="email" class="pro-input" [class.is-invalid]="isFieldInvalid('dealerDetail', 'dealerEmail')" formControlName="dealerEmail" placeholder="dealer@example.com" />
+                    @if (isFieldInvalid('dealerDetail', 'dealerEmail')) { <span class="error-message">Dealer email is required.</span> }
+                  </div>
+                </div>
+                <div class="form-grid-2">
+                  <div class="pro-form-group">
+                    <label class="pro-label">Invoice Number *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('dealerDetail', 'invoiceNumber')" formControlName="invoiceNumber" placeholder="INV001" />
+                    @if (isFieldInvalid('dealerDetail', 'invoiceNumber')) { <span class="error-message">Invoice number is required.</span> }
+                  </div>
+                  <div class="pro-form-group">
+                    <label class="pro-label">Purchase Date *</label>
+                    <input type="date" class="pro-input" [class.is-invalid]="isFieldInvalid('dealerDetail', 'purchaseDate')" formControlName="purchaseDate" />
+                    @if (isFieldInvalid('dealerDetail', 'purchaseDate')) { <span class="error-message">Purchase date is required.</span> }
                   </div>
                 </div>
               </div>
@@ -384,27 +432,32 @@ import { ProductPart } from '../../core/models/product-part.model';
 
                 <div class="form-grid-2">
                   <div class="pro-form-group">
-                    <label class="pro-label">Client</label>
-                    <input type="text" class="pro-input" formControlName="client" placeholder="Retail / Corporate" />
+                    <label class="pro-label">Client *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('productDetail', 'client')" formControlName="client" placeholder="Retail / Corporate" />
+                    @if (isFieldInvalid('productDetail', 'client')) { <span class="error-message">Client type is required.</span> }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Purchase Date</label>
-                    <input type="date" class="pro-input" formControlName="purchaseDate" />
+                    <label class="pro-label">Purchase Date *</label>
+                    <input type="date" class="pro-input" [class.is-invalid]="isFieldInvalid('productDetail', 'purchaseDate')" formControlName="purchaseDate" />
+                    @if (isFieldInvalid('productDetail', 'purchaseDate')) { <span class="error-message">Purchase date is required.</span> }
                   </div>
                 </div>
 
                 <div class="form-grid-3">
                   <div class="pro-form-group">
-                    <label class="pro-label">Warranty</label>
-                    <input type="text" class="pro-input" formControlName="warranty" placeholder="1 Year" />
+                    <label class="pro-label">Warranty *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('productDetail', 'warranty')" formControlName="warranty" placeholder="1 Year" />
+                    @if (isFieldInvalid('productDetail', 'warranty')) { <span class="error-message">Warranty is required.</span> }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Stock Of</label>
-                    <input type="text" class="pro-input" formControlName="stockOf" placeholder="Warehouse" />
+                    <label class="pro-label">Stock Of *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('productDetail', 'stockOf')" formControlName="stockOf" placeholder="Warehouse" />
+                    @if (isFieldInvalid('productDetail', 'stockOf')) { <span class="error-message">Stock location is required.</span> }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Purchase Order Number</label>
-                    <input type="text" class="pro-input" formControlName="purchaseOrderNumber" placeholder="PO001" />
+                    <label class="pro-label">Purchase Order Number *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('productDetail', 'purchaseOrderNumber')" formControlName="purchaseOrderNumber" placeholder="PO001" />
+                    @if (isFieldInvalid('productDetail', 'purchaseOrderNumber')) { <span class="error-message">PO number is required.</span> }
                   </div>
                 </div>
               </div>
@@ -432,24 +485,27 @@ import { ProductPart } from '../../core/models/product-part.model';
                   </div>
 
                   <div class="pro-form-group">
-                    <label class="pro-label">Complaint Priority</label>
-                    <select class="pro-input" formControlName="complaintPriority">
+                    <label class="pro-label">Complaint Priority *</label>
+                    <select class="pro-input" [class.is-invalid]="isFieldInvalid('complaintDetail', 'complaintPriority')" formControlName="complaintPriority">
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
                       <option value="High">High</option>
                       <option value="Urgent">Urgent</option>
                     </select>
+                    @if (isFieldInvalid('complaintDetail', 'complaintPriority')) { <span class="error-message">Priority is required.</span> }
                   </div>
                 </div>
 
                 <div class="form-grid-2">
                   <div class="pro-form-group">
-                    <label class="pro-label">Call Nature</label>
-                    <input type="text" class="pro-input" formControlName="callNature" placeholder="Service" />
+                    <label class="pro-label">Call Nature *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('complaintDetail', 'callNature')" formControlName="callNature" placeholder="Service" />
+                    @if (isFieldInvalid('complaintDetail', 'callNature')) { <span class="error-message">Call nature is required.</span> }
                   </div>
                   <div class="pro-form-group">
-                    <label class="pro-label">Visit Type</label>
-                    <input type="text" class="pro-input" formControlName="visitType" placeholder="Home" />
+                    <label class="pro-label">Visit Type *</label>
+                    <input type="text" class="pro-input" [class.is-invalid]="isFieldInvalid('complaintDetail', 'visitType')" formControlName="visitType" placeholder="Home" />
+                    @if (isFieldInvalid('complaintDetail', 'visitType')) { <span class="error-message">Visit type is required.</span> }
                   </div>
                 </div>
 
@@ -466,6 +522,9 @@ import { ProductPart } from '../../core/models/product-part.model';
                       <option value="Completed">Completed</option>
                       <option value="Closed">Closed</option>
                       <option value="Cancelled">Cancelled</option>
+                      <option value="Pending For Approval">Pending For Approval</option>
+                      <option value="Replacement">Replacement</option>
+                      <option value="Parts Pending">Parts Pending</option>
                     </select>
                   </div>
                 </div>
@@ -962,6 +1021,10 @@ import { ProductPart } from '../../core/models/product-part.model';
                         <span class="df-value text-semibold">{{ viewingCallDetails.technicianAssigned || 'Unassigned' }}</span>
                       </div>
                       <div class="details-field">
+                        <span class="df-label">Assigned Distributor</span>
+                        <span class="df-value text-semibold">{{ getDistributorName(viewingCallDetails) }}</span>
+                      </div>
+                      <div class="details-field">
                         <span class="df-label">Promise Date / Time</span>
                         <span class="df-value">{{ viewingCallDetails.complaintDetail?.promiseDate || 'N/A' }} - {{ viewingCallDetails.complaintDetail?.promiseTime || 'N/A' }} {{ viewingCallDetails.complaintDetail?.amOrPm || '' }}</span>
                       </div>
@@ -1070,6 +1133,108 @@ import { ProductPart } from '../../core/models/product-part.model';
         </div>
       }
 
+      <!-- TRANSFER CALL TO DISTRIBUTOR MODAL POPUP -->
+      @if (showTransferModal && transferCallObj) {
+        <div class="modal-backdrop animate-fade-in" (click)="closeTransferModal()">
+          <div class="modal-content modal-content-md animate-slide-up" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <div>
+                <h3 class="modal-title">Transfer Call &bull; {{ getTransferCallNumber() }}</h3>
+                <p class="form-card-subtitle" style="margin: 0.15rem 0 0 0; font-size: 0.8rem; color: #64748b;">Reassign service call to another authorized distributor</p>
+              </div>
+              <button type="button" class="modal-close" (click)="closeTransferModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body modal-body-padded">
+              <!-- Auto-fetched Call Info Summary Card -->
+              <div class="transfer-info-card">
+                <div class="info-card-row">
+                  <span class="info-label">Call Number:</span>
+                  <span class="info-value text-mono text-bold" style="font-family: monospace; font-weight: 700; color: #4f46e5;">{{ getTransferCallNumber() }}</span>
+                </div>
+                <div class="info-card-row">
+                  <span class="info-label">Customer:</span>
+                  <span class="info-value">{{ getCustomerName(transferCallObj) }} ({{ getCustomerPhone(transferCallObj) }})</span>
+                </div>
+                <div class="info-card-row">
+                  <span class="info-label">Current Distributor:</span>
+                  <span class="info-value">{{ getDistributorName(transferCallObj) }}</span>
+                </div>
+              </div>
+
+              <!-- Select Distributor Dropdown -->
+              <div class="pro-form-group" style="margin-top: 1.25rem;">
+                <label class="pro-label">Select Target Distributor *</label>
+                @if (loadingDistributors) {
+                  <div class="inline-loading">
+                    <span class="spinner" style="width: 14px; height: 14px; margin: 0;"></span>
+                    <span>Fetching available distributors...</span>
+                  </div>
+                } @else {
+                  <select class="pro-input highlight-select" [(ngModel)]="selectedDistributorId">
+                    <option value="" disabled selected>-- Select Target Distributor --</option>
+                    @for (d of distributors; track d.id) {
+                      <option [value]="d.id">
+                        {{ getDistributorDisplayName(d) }}
+                      </option>
+                    }
+                  </select>
+                  @if (distributors.length === 0) {
+                    <div class="error-message" style="margin-top: 0.35rem; color: #dc2626;">No active distributors found in system.</div>
+                  }
+                }
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn-cancel" (click)="closeTransferModal()">Cancel</button>
+              <button 
+                type="button" 
+                class="btn-transfer-confirm" 
+                (click)="confirmTransferCall()" 
+                [disabled]="isTransferring || !selectedDistributorId || distributors.length === 0"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>{{ isTransferring ? 'Transferring Call...' : 'Confirm Transfer' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- VALIDATION ERROR POPUP MODAL -->
+      @if (showValidationModal) {
+        <div class="modal-backdrop animate-fade-in" (click)="showValidationModal = false">
+          <div class="modal-content animate-slide-up" (click)="$event.stopPropagation()" style="max-width: 480px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border-radius: 12px 12px 0 0; padding: 1.1rem 1.5rem;">
+              <div style="display:flex; align-items:center; gap:0.6rem;">
+                <span style="font-size:1.4rem;">⚠️</span>
+                <div>
+                  <h3 class="modal-title" style="color:white; margin:0; font-size:1.1rem; font-weight:700;">Required Fields Missing</h3>
+                  <p style="color:rgba(255,255,255,0.85); font-size:0.8rem; margin:0.1rem 0 0 0;">Please complete mandatory information</p>
+                </div>
+              </div>
+              <button class="modal-close" style="color:white;" (click)="showValidationModal = false">&times;</button>
+            </div>
+            <div class="modal-body modal-body-padded">
+              <p style="font-size:0.9rem; color:#334155; margin-bottom:1rem; font-weight:500;">
+                Please fill in the following required field(s) marked with an asterisk (<strong>*</strong>):
+              </p>
+              <ul style="margin:0; padding-left:1.2rem; display:flex; flex-direction:column; gap:0.4rem;">
+                @for (field of missingFieldsList; track field) {
+                  <li style="color:#dc2626; font-weight:600; font-size:0.875rem;">{{ field }}</li>
+                }
+              </ul>
+            </div>
+            <div class="modal-footer" style="background:#f8fafc; border-top:1px solid #e2e8f0; padding: 1rem 1.5rem;">
+              <button type="button" class="btn-transfer-confirm" style="background:linear-gradient(135deg, #ef4444, #dc2626); border-color:#dc2626; width:100%; justify-content:center; padding:0.75rem;" (click)="showValidationModal = false">
+                <span>Got It, I'll Fill Them</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
       <!-- EXPORT MODAL -->
       @if (showExportModal) {
         <div class="modal-backdrop animate-fade-in" (click)="showExportModal = false">
@@ -1101,6 +1266,9 @@ import { ProductPart } from '../../core/models/product-part.model';
                   <option value="Completed">Completed</option>
                   <option value="Closed">Closed</option>
                   <option value="Cancelled">Cancelled</option>
+                  <option value="Pending For Approval">Pending For Approval</option>
+                  <option value="Replacement">Replacement</option>
+                  <option value="Parts Pending">Parts Pending</option>
                 </select>
               </div>
             </div>
@@ -1192,7 +1360,7 @@ import { ProductPart } from '../../core/models/product-part.model';
                     </div>
                     <div class="pro-form-group">
                       <label class="pro-label">Pincode *</label>
-                      <input type="number" class="pro-input" [class.is-invalid]="isEditFieldInvalid('customerDetail', 'pincode')" formControlName="pincode" placeholder="452001" />
+                      <input type="number" class="pro-input read-only-locked" [class.is-invalid]="isEditFieldInvalid('customerDetail', 'pincode')" formControlName="pincode" placeholder="452001" readonly tabindex="-1" />
                       @if (isEditFieldInvalid('customerDetail', 'pincode')) { <span class="error-message">Pincode is required.</span> }
                     </div>
                   </div>
@@ -1281,7 +1449,7 @@ import { ProductPart } from '../../core/models/product-part.model';
                   <div class="form-grid-2">
                     <div class="pro-form-group">
                       <label class="pro-label">1. Select Brand *</label>
-                      <select class="pro-input highlight-select" [class.is-invalid]="isEditFieldInvalid('productDetail', 'brand')" formControlName="brand" (change)="onEditBrandSelect($event)">
+                      <select class="pro-input highlight-select read-only-locked" [class.is-invalid]="isEditFieldInvalid('productDetail', 'brand')" formControlName="brand" (change)="onEditBrandSelect($event)" tabindex="-1">
                         <option value="">-- Choose Brand --</option>
                         @for (b of brands; track b.id) {
                           <option [value]="b.id">{{ b.name }}</option>
@@ -1293,7 +1461,7 @@ import { ProductPart } from '../../core/models/product-part.model';
                     </div>
                     <div class="pro-form-group">
                       <label class="pro-label">2. Select Product *</label>
-                      <select class="pro-input highlight-select" [class.is-invalid]="isEditFieldInvalid('productDetail', 'product')" formControlName="product" (change)="onEditProductSelect($event)">
+                      <select class="pro-input highlight-select read-only-locked" [class.is-invalid]="isEditFieldInvalid('productDetail', 'product')" formControlName="product" (change)="onEditProductSelect($event)" tabindex="-1">
                         <option value="">-- Choose Product --</option>
                         @for (p of editFilteredProducts; track p.id) {
                           <option [value]="p.id">{{ p.name }}</option>
@@ -1308,7 +1476,7 @@ import { ProductPart } from '../../core/models/product-part.model';
                   <div class="form-grid-2">
                     <div class="pro-form-group">
                       <label class="pro-label">3. Select Model *</label>
-                      <select class="pro-input highlight-select" [class.is-invalid]="isEditFieldInvalid('productDetail', 'model')" formControlName="model">
+                      <select class="pro-input highlight-select read-only-locked" [class.is-invalid]="isEditFieldInvalid('productDetail', 'model')" formControlName="model" tabindex="-1">
                         <option value="">-- Choose Model --</option>
                         @for (m of editFilteredModels; track m.id) {
                           <option [value]="m.id">{{ m.modelName }}</option>
@@ -1357,7 +1525,7 @@ import { ProductPart } from '../../core/models/product-part.model';
                   <div class="form-grid-2">
                     <div class="pro-form-group">
                       <label class="pro-label">Call Type / Reported Issue *</label>
-                      <select class="pro-input highlight-select" [class.is-invalid]="isEditFieldInvalid('complaintDetail', 'callType')" formControlName="callType">
+                      <select class="pro-input highlight-select read-only-locked" [class.is-invalid]="isEditFieldInvalid('complaintDetail', 'callType')" formControlName="callType" tabindex="-1">
                         <option value="Installation">Installation</option>
                         <option value="Service">Service</option>
                         <option value="Repair">Repair</option>
@@ -1400,12 +1568,15 @@ import { ProductPart } from '../../core/models/product-part.model';
                     </div>
                     <div class="pro-form-group">
                       <label class="pro-label">Call Status</label>
-                      <select class="pro-input" [ngModelOptions]="{standalone: true}" [(ngModel)]="editStatus">
+                      <select class="pro-input read-only-locked" [ngModelOptions]="{standalone: true}" [(ngModel)]="editStatus" [disabled]="true" tabindex="-1">
                         <option value="Open">Open</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Completed">Completed</option>
                         <option value="Closed">Closed</option>
                         <option value="Cancelled">Cancelled</option>
+                        <option value="Pending For Approval">Pending For Approval</option>
+                        <option value="Replacement">Replacement</option>
+                        <option value="Parts Pending">Parts Pending</option>
                       </select>
                     </div>
                   </div>
@@ -1621,7 +1792,14 @@ import { ProductPart } from '../../core/models/product-part.model';
 
     /* Tables (Clean & Streamlined) */
     .data-card { background: var(--surface); border-radius: 14px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden; width: 100%; }
-    .data-card-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9; }
+    .data-card-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; border-bottom: 1px solid #f1f5f9; gap: 1rem; flex-wrap: wrap; }
+    .data-card-header-left { display: flex; align-items: center; gap: 0.65rem; }
+    .header-search-container { flex: 1; max-width: 360px; min-width: 200px; }
+    .header-search-container .search-box { position: relative; display: flex; align-items: center; width: 100%; }
+    .header-search-container .search-icon { position: absolute; left: 0.75rem; color: #94a3b8; pointer-events: none; }
+    .header-search-container .search-input { width: 100%; padding: 0.5rem 2rem 0.5rem 2.25rem; font-size: 0.85rem; border: 1.5px solid #cbd5e1; border-radius: 8px; background: var(--surface-2, #f8fafc); color: var(--text-primary); outline: none; transition: all 0.2s ease; font-family: inherit; }
+    .header-search-container .search-input:focus { border-color: #4f46e5; background: #ffffff; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12); }
+    .header-search-container .clear-search-btn { position: absolute; right: 0.5rem; background: none; border: none; font-size: 1.1rem; color: #94a3b8; cursor: pointer; }
     .data-card-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0; }
     .data-card-subtitle { font-size: 0.78rem; color: #94a3b8; margin: 0.15rem 0 0; font-weight: 500; }
     .card-header-actions { display: flex; gap: 0.625rem; }
@@ -2074,6 +2252,148 @@ import { ProductPart } from '../../core/models/product-part.model';
     .btn-approve:hover { background: #15803d; }
     .btn-approve:disabled { opacity: 0.6; cursor: not-allowed; }
 
+    /* Creator & Distributor Badges in Table */
+    .creator-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.775rem;
+      font-weight: 600;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+    }
+    .distributor-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.775rem;
+      font-weight: 600;
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+      border-radius: 6px;
+    }
+
+    .btn-attachment-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.775rem;
+      font-weight: 600;
+      background: #f0f5ff;
+      color: #4f46e5;
+      border: 1px solid #c7d2fe;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .btn-attachment-chip:hover {
+      background: #e0e7ff;
+      color: #3730a3;
+      border-color: #a5b4fc;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(79, 70, 229, 0.15);
+    }
+
+    /* Transfer Call Button & Card Styles */
+    .btn-row-transfer {
+      padding: 0.35rem 0.65rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #f0f9ff;
+      color: #0284c7;
+      border: 1px solid #bae6fd;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+    }
+    .btn-row-transfer:hover {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+      transform: translateY(-1px);
+    }
+
+    .btn-transfer {
+      padding: 0.6rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+    }
+    .btn-transfer:hover {
+      background: #0284c7;
+      transform: translateY(-1px);
+    }
+    .btn-transfer-confirm {
+      padding: 0.65rem 1.25rem;
+      font-size: 0.875rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s;
+    }
+    .btn-transfer-confirm:hover:not(:disabled) {
+      background: #0369a1;
+      transform: translateY(-1px);
+    }
+    .btn-transfer-confirm:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .transfer-info-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .info-card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.86rem;
+    }
+    .info-label {
+      color: #64748b;
+      font-weight: 600;
+    }
+    .info-value {
+      color: #0f172a;
+      font-weight: 500;
+    }
+    .inline-loading {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem;
+      font-size: 0.825rem;
+      color: #64748b;
+    }
+
     .status-approval { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
     .status-cancelled { background: #ffe4e6; color: #e11d48; border: 1px solid #fecdd3; }
     .status-parts { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
@@ -2246,6 +2566,15 @@ import { ProductPart } from '../../core/models/product-part.model';
     .spinner { width: 22px; height: 22px; border: 2.5px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 0.5rem; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .read-only-locked {
+      background-color: var(--surface-2, #f8fafc) !important;
+      border-color: #cbd5e1 !important;
+      color: #475569 !important;
+      cursor: not-allowed !important;
+      opacity: 0.85 !important;
+      pointer-events: none !important;
+    }
+
     .animate-fade-in { animation: fadeIn 0.25s ease-out both; }
     .animate-slide-up { animation: slideUp 0.25s cubic-bezier(0.16,1,0.3,1) both; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -2274,8 +2603,209 @@ export class CallManagementComponent implements OnInit {
   activeTab: 'list' | 'create' | 'lookup' = 'list';
   loading = false;
   isSubmitting = false;
-  successMessage = '';
-  errorMessage = '';
+  private _successMessage = '';
+  private successTimeout: any = null;
+
+  get successMessage(): string {
+    return this._successMessage;
+  }
+
+  set successMessage(val: string) {
+    this._successMessage = val;
+    if (this.successTimeout) {
+      clearTimeout(this.successTimeout);
+      this.successTimeout = null;
+    }
+    if (val) {
+      this.successTimeout = setTimeout(() => {
+        this._successMessage = '';
+      }, 4000);
+    }
+  }
+
+  private _errorMessage = '';
+  private errorTimeout: any = null;
+
+  get errorMessage(): string {
+    return this._errorMessage;
+  }
+
+  set errorMessage(val: string) {
+    this._errorMessage = val;
+    if (this.errorTimeout) {
+      clearTimeout(this.errorTimeout);
+      this.errorTimeout = null;
+    }
+    if (val) {
+      this.errorTimeout = setTimeout(() => {
+        this._errorMessage = '';
+      }, 5000);
+    }
+  }
+
+  // Transfer Call to Distributor state
+  showTransferModal = false;
+  transferCallObj: any = null;
+  distributors: any[] = [];
+  selectedDistributorId: number | string = '';
+  isTransferring = false;
+  loadingDistributors = false;
+
+  openTransferCall(call: any) {
+    this.transferCallObj = call;
+    this.selectedDistributorId = '';
+    this.showTransferModal = true;
+    this.loadDistributors();
+  }
+
+  closeTransferModal() {
+    this.showTransferModal = false;
+    this.transferCallObj = null;
+    this.selectedDistributorId = '';
+  }
+
+  getTransferCallNumber(): string {
+    if (!this.transferCallObj) return 'N/A';
+    return this.transferCallObj.callNumber || this.transferCallObj.callId || (this.transferCallObj.id ? '#' + this.transferCallObj.id : 'N/A');
+  }
+
+  loadDistributors() {
+    this.loadingDistributors = true;
+    this.authService.getUsers().subscribe({
+      next: (res: any) => {
+        this.loadingDistributors = false;
+        const usersList = res?.data || (Array.isArray(res) ? res : []);
+        this.distributors = usersList.filter((u: any) => 
+          (u.isDistributor === true || u.isDistributor === 1 || u.isDistributor === 'true' || (u.role && String(u.role).toLowerCase() === 'distributor')) &&
+          u.isActive !== false
+        );
+      },
+      error: (err: any) => {
+        this.loadingDistributors = false;
+        console.error('Failed to load distributors:', err);
+      }
+    });
+  }
+
+  getDistributorDisplayName(d: any): string {
+    if (!d) return '';
+    const fn = (d.firstName || '').trim();
+    const ln = (d.lastName || '').trim();
+    const name = `${fn} ${ln}`.trim();
+    return name ? `${d.username} (${name})` : d.username;
+  }
+
+  getCallCreatorName(call: any): string {
+    if (!call) return 'N/A';
+    if (call.createdByUserName && String(call.createdByUserName).trim()) {
+      return call.createdByUserName;
+    }
+    if (Array.isArray(call.userCallNumer) && call.userCallNumer.length > 0) {
+      const creator = call.userCallNumer[0].createdByUser;
+      if (creator) {
+        const fn = (creator.firstName || '').trim();
+        const ln = (creator.lastName || '').trim();
+        const name = `${fn} ${ln}`.trim();
+        return name ? `${creator.username} (${name})` : creator.username;
+      }
+    }
+    if (call.createdByUser && typeof call.createdByUser === 'object') {
+      return call.createdByUser.username || 'System';
+    }
+    return 'N/A';
+  }
+
+  getDistributorName(call: any): string {
+    if (!call) return 'Unassigned';
+
+    // Check prefetched userCallNumer relation array from CallResponseSerializer
+    if (Array.isArray(call.userCallNumer) && call.userCallNumer.length > 0) {
+      const dist = call.userCallNumer[0].distributor;
+      if (dist && typeof dist === 'object') {
+        const fn = (dist.firstName || '').trim();
+        const ln = (dist.lastName || '').trim();
+        const name = `${fn} ${ln}`.trim();
+        return name ? `${dist.username} (${name})` : (dist.username || 'Assigned');
+      }
+    }
+
+    if (call.distributor && typeof call.distributor === 'object') {
+      const fn = (call.distributor.firstName || '').trim();
+      const ln = (call.distributor.lastName || '').trim();
+      const name = `${fn} ${ln}`.trim();
+      return name ? `${call.distributor.username} (${name})` : (call.distributor.username || 'Assigned');
+    }
+    if (call.distributorName) return call.distributorName;
+    if (call.distributor) return String(call.distributor);
+    return 'Unassigned';
+  }
+
+  confirmTransferCall() {
+    if (!this.transferCallObj || !this.selectedDistributorId) return;
+
+    const callNumber = this.transferCallObj.callNumber || this.transferCallObj.callId;
+    if (!callNumber) {
+      this.errorMessage = 'Invalid call number. Cannot transfer.';
+      return;
+    }
+
+    const distId = Number(this.selectedDistributorId);
+    this.isTransferring = true;
+
+    this.callService.transferCall(callNumber, distId).subscribe({
+      next: (res: any) => {
+        this.isTransferring = false;
+        if (res.status === 200 || res.message === 'Call transferred successfully') {
+          this.successMessage = 'Call transferred to Distributor successfully!';
+          this.closeTransferModal();
+          this.loadCalls();
+
+          // Refresh viewingCallDetails if open
+          if (this.viewingCallDetails) {
+            const selectedDistObj = this.distributors.find((d: any) => Number(d.id) === distId);
+            if (selectedDistObj) {
+              this.viewingCallDetails.distributor = selectedDistObj;
+            }
+          }
+        } else {
+          this.errorMessage = res.message || 'Failed to transfer call.';
+        }
+      },
+      error: (err: any) => {
+        this.isTransferring = false;
+        const msg = err.error?.message || err.message || 'Failed to transfer call to distributor.';
+        this.errorMessage = msg;
+      }
+    });
+  }
+
+  listSearchQuery: string = '';
+
+  get filteredCalls(): Call[] {
+    if (!this.listSearchQuery || !this.listSearchQuery.trim()) {
+      return this.calls;
+    }
+    const q = this.listSearchQuery.toLowerCase().trim();
+    return this.calls.filter(c => {
+      const callNum = (c.callNumber || c.callId || (c.id ? '#' + c.id : '')).toLowerCase();
+      const custName = this.getCustomerName(c).toLowerCase();
+      const custPhone = this.getCustomerPhone(c).toLowerCase();
+      const creator = this.getCallCreatorName(c).toLowerCase();
+      const dist = this.getDistributorName(c).toLowerCase();
+      const prod = this.getProductName(this.getCallProduct(c)).toLowerCase();
+      const status = (c.status || '').toLowerCase();
+      const priority = this.getCallPriority(c).toLowerCase();
+
+      return callNum.includes(q) ||
+             custName.includes(q) ||
+             custPhone.includes(q) ||
+             creator.includes(q) ||
+             dist.includes(q) ||
+             prod.includes(q) ||
+             status.includes(q) ||
+             priority.includes(q);
+    });
+  }
 
   calls: Call[] = [];
   brands: Brand[] = [];
@@ -2325,6 +2855,8 @@ export class CallManagementComponent implements OnInit {
   isCustomer = false;
   isDistributor = false;
   customerBrandId: number | null = null;
+  showValidationModal = false;
+  missingFieldsList: string[] = [];
 
   // ─── Quick Update Image ───────────────────────────────────────────────
   quickUpdateImageFile: File | null = null;
@@ -2564,48 +3096,48 @@ export class CallManagementComponent implements OnInit {
 
   callForm: FormGroup = this.fb.group({
     customerDetail: this.fb.group({
-      title: ['Mr'],
+      title: ['Mr', Validators.required],
       firstName: ['', Validators.required],
-      lastName: [''],
+      lastName: ['', Validators.required],
       address1: ['', Validators.required],
       landmark: [''],
       state: ['', Validators.required],
       district: ['', Validators.required],
       city: ['', Validators.required],
       locality: ['', Validators.required],
-      pincode: ['', Validators.required]
+      pincode: ['', [Validators.required, Validators.pattern('^[0-9]{6}$')]]
     }),
     contactDetail: this.fb.group({
       mobile: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
-      email: ['', [Validators.pattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')]],
-      contactPersonName: [''],
-      contactPersonMobile: [''],
+      email: ['', [Validators.required, Validators.pattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')]],
+      contactPersonName: ['', Validators.required],
+      contactPersonMobile: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
       language: ['English, Hindi']
     }),
     dealerDetail: this.fb.group({
-      dealerName: [''],
-      dealerCity: [''],
-      dealerMobile: [''],
-      dealerEmail: [''],
-      invoiceNumber: [''],
-      purchaseDate: ['']
+      dealerName: ['', Validators.required],
+      dealerCity: ['', Validators.required],
+      dealerMobile: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
+      dealerEmail: ['', [Validators.required, Validators.pattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')]],
+      invoiceNumber: ['', Validators.required],
+      purchaseDate: ['', Validators.required]
     }),
     productDetail: this.fb.group({
       brand: ['', Validators.required],
-      client: [''],
+      client: ['', Validators.required],
       product: ['', Validators.required],
       model: ['', Validators.required],
       unitSerialNumber: [''],
-      purchaseDate: [''],
-      warranty: [''],
-      stockOf: [''],
-      purchaseOrderNumber: ['']
+      purchaseDate: ['', Validators.required],
+      warranty: ['', Validators.required],
+      stockOf: ['', Validators.required],
+      purchaseOrderNumber: ['', Validators.required]
     }),
     complaintDetail: this.fb.group({
       callType: ['Installation', Validators.required],
-      complaintPriority: ['Medium'],
-      callNature: ['Service'],
-      visitType: ['Home'],
+      complaintPriority: ['Medium', Validators.required],
+      callNature: ['Service', Validators.required],
+      visitType: ['Home', Validators.required],
       lastComplaintNumber: [''],
       complaintDescription: [''],
       specialInstruction: [''],
@@ -2930,20 +3462,23 @@ export class CallManagementComponent implements OnInit {
     this.brandService.getBrands().subscribe({
       next: (res: any) => {
         let all = this.parseArray(res);
-        if (this.isCustomer && this.customerBrandId) {
-          // Customer sees only their own brand
-          const brandId = Number(this.customerBrandId);
-          all = all.filter((b: any) => Number(b.id) === brandId);
+        if (this.isCustomer) {
+          const allowedBrands = this.authService.getBrandList();
+          if (allowedBrands && allowedBrands.length > 0) {
+            all = all.filter((b: any) => b.id !== undefined && allowedBrands.includes(Number(b.id)));
+          }
         }
         this.brands = all;
-        // For customer: auto-set the brand in create form and filter products
-        if (this.isCustomer && this.customerBrandId && all.length > 0) {
-          const brandId = Number(this.customerBrandId);
-          this.callForm.get('productDetail')?.patchValue({ brand: brandId });
+        // For customer: auto-set brand if only 1 brand is assigned, or filter products
+        if (this.isCustomer && all.length > 0) {
+          const allowedBrands = this.authService.getBrandList();
+          if (all.length === 1) {
+            this.callForm.get('productDetail')?.patchValue({ brand: Number(all[0].id) });
+          }
           this.filteredProducts = this.products.filter((p: any) => {
             const rawB = p.brand ?? p.brand_id ?? p.brandId;
             const bNum = (typeof rawB === 'object' && rawB?.id) ? Number(rawB.id) : Number(rawB);
-            return bNum === brandId;
+            return allowedBrands.includes(bNum);
           });
         }
       },
@@ -3025,21 +3560,23 @@ export class CallManagementComponent implements OnInit {
     this.productService.getProducts().subscribe({
       next: (res: any) => {
         let all = this.parseArray(res);
-        if (this.isCustomer && this.customerBrandId) {
-          // Customer sees only products belonging to their brand
-          const brandId = Number(this.customerBrandId);
-          all = all.filter((p: any) => {
-            const rawB = p.brand ?? p.brand_id ?? p.brandId;
-            const bNum = (typeof rawB === 'object' && rawB?.id) ? Number(rawB.id) : Number(rawB);
-            return bNum === brandId;
-          });
+        if (this.isCustomer) {
+          const allowedBrands = this.authService.getBrandList();
+          if (allowedBrands && allowedBrands.length > 0) {
+            all = all.filter((p: any) => {
+              const rawB = p.brand ?? p.brand_id ?? p.brandId;
+              const bNum = (typeof rawB === 'object' && rawB?.id) ? Number(rawB.id) : Number(rawB);
+              return allowedBrands.includes(bNum);
+            });
+          }
         }
         this.products = all;
-        // Refresh filteredProducts if brand is already selected in form
-        if (this.isCustomer && this.customerBrandId) {
-          const brandId = Number(this.customerBrandId);
-          this.filteredProducts = all; // already filtered to customer's brand
-          this.callForm.get('productDetail')?.patchValue({ brand: brandId });
+        if (this.isCustomer) {
+          this.filteredProducts = all;
+          const allowedBrands = this.authService.getBrandList();
+          if (allowedBrands.length === 1) {
+            this.callForm.get('productDetail')?.patchValue({ brand: allowedBrands[0] });
+          }
         }
       },
       error: () => this.products = []
@@ -3360,15 +3897,15 @@ export class CallManagementComponent implements OnInit {
     const candidateKeys = [call.id, String(call.id), call.callNumber, call.callId, call.call_number].filter(Boolean);
     for (const k of candidateKeys) {
       const mem = this.imageMemoryCache[String(k)] || this.imageMemoryCache[String(k).toLowerCase()];
-      if (mem) return mem;
+      if (mem && mem !== 'REMOVED' && mem !== 'indexeddb') return mem;
 
       const local = this.getLocalCallImage(k!);
-      if (local === 'REMOVED') return '';
-      if (local) return local;
+      if (local === 'REMOVED' || local === 'indexeddb') return '';
+      if (local && local !== 'REMOVED' && local !== 'indexeddb') return local;
     }
 
     const path = (call.imageUrl || call.image || call.callImage || call.call_image || call.attachment) as string;
-    if (!path) return '';
+    if (!path || path === 'indexeddb' || path === 'REMOVED' || path === 'null' || path === 'undefined') return '';
     if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) return path;
     const cleanPath = path.startsWith('/') ? path : '/' + path;
     return `http://localhost:8000${cleanPath}`;
@@ -3521,19 +4058,16 @@ export class CallManagementComponent implements OnInit {
     const statusVal = this.createStatus || 'Open';
     const techVal = this.createTechnicianAssigned || 'Unassigned';
 
-    const fn = (cust.firstName && cust.firstName !== 'N/A') ? cust.firstName.trim() : '';
-    const ln = (cust.lastName && cust.lastName.trim() && cust.lastName !== 'N/A' && cust.lastName !== '.') ? cust.lastName.trim() : '';
-    const custName = `${fn} ${ln}`.trim() || 'Customer';
+    const fn = (cust.firstName || '').trim();
+    const ln = (cust.lastName || '').trim();
+    const custName = `${fn} ${ln}`.trim();
 
-    const custPhone = cont.mobile || cont.phone || '';
+    const custPhone = cont.mobile || '';
     const addr = `${cust.address1 || ''} ${cust.landmark || ''} ${cust.locality || ''} ${cust.city || ''} ${cust.state || ''} ${cust.pincode || ''}`.replace(/\s+/g, ' ').trim();
     const currentUserId = this.authService.getUserId() || 1;
 
     const autoCallNum = `CN${Math.floor(100000 + Math.random() * 900000)}`;
     const effectiveBrand = this.getEffectiveCustomerBrandId() || Number(prod.brand) || 1;
-
-    // Ensure product detail always has a brand
-    prod.brand = effectiveBrand;
 
     return {
       callNumber: autoCallNum,
@@ -3553,7 +4087,7 @@ export class CallManagementComponent implements OnInit {
         district: cust.district || '',
         city: cust.city || '',
         locality: cust.locality || '',
-        pincode: cust.pincode || ''
+        pincode: cust.pincode ? Number(cust.pincode) : ''
       },
       contactDetail: {
         mobile: cont.mobile || '',
@@ -3562,9 +4096,39 @@ export class CallManagementComponent implements OnInit {
         contactPersonMobile: cont.contactPersonMobile || '',
         language: languages
       },
-      dealerDetail: deal,
-      productDetail: prod,
-      complaintDetail: comp,
+      dealerDetail: {
+        dealerName: deal.dealerName || '',
+        dealerCity: deal.dealerCity || '',
+        dealerMobile: deal.dealerMobile || '',
+        dealerEmail: deal.dealerEmail || '',
+        invoiceNumber: deal.invoiceNumber || '',
+        purchaseDate: deal.purchaseDate || ''
+      },
+      productDetail: {
+        ...prod,
+        brand: effectiveBrand,
+        client: prod.client || '',
+        product: prod.product ? Number(prod.product) : '',
+        model: prod.model ? Number(prod.model) : '',
+        unitSerialNumber: prod.unitSerialNumber || '',
+        purchaseDate: prod.purchaseDate || '',
+        warranty: prod.warranty || '',
+        stockOf: prod.stockOf || '',
+        purchaseOrderNumber: prod.purchaseOrderNumber || ''
+      },
+      complaintDetail: {
+        ...comp,
+        callType: comp.callType || '',
+        complaintPriority: comp.complaintPriority || '',
+        callNature: comp.callNature || '',
+        visitType: comp.visitType || '',
+        lastComplaintNumber: comp.lastComplaintNumber || '',
+        complaintDescription: comp.complaintDescription || '',
+        specialInstruction: comp.specialInstruction || '',
+        promiseDate: comp.promiseDate || null,
+        promiseTime: comp.promiseTime || '',
+        amOrPm: comp.amOrPm || ''
+      },
       status: this.mapToBackendStatus(statusVal),
       callStatus: this.mapToBackendStatus(statusVal),
       call_status: this.mapToBackendStatus(statusVal),
@@ -3640,18 +4204,48 @@ export class CallManagementComponent implements OnInit {
       const invalidFields: string[] = [];
       const cust = this.callForm.get('customerDetail') as FormGroup;
       const cont = this.callForm.get('contactDetail') as FormGroup;
+      const deal = this.callForm.get('dealerDetail') as FormGroup;
       const prod = this.callForm.get('productDetail') as FormGroup;
       const comp = this.callForm.get('complaintDetail') as FormGroup;
 
-      if (cust.get('firstName')?.invalid) invalidFields.push('First Name');
-      if (cont.get('mobile')?.invalid) invalidFields.push('Mobile Number (10 digits)');
-      if (prod.get('brand')?.invalid) invalidFields.push('Brand');
-      if (prod.get('product')?.invalid) invalidFields.push('Product');
-      if (prod.get('model')?.invalid) invalidFields.push('Model');
-      if (comp.get('callType')?.invalid) invalidFields.push('Reported Issue / Call Type');
+      if (cust.get('title')?.invalid) invalidFields.push('Customer Title');
+      if (cust.get('firstName')?.invalid) invalidFields.push('Customer First Name');
+      if (cust.get('lastName')?.invalid) invalidFields.push('Customer Last Name');
+      if (cust.get('address1')?.invalid) invalidFields.push('Address Line 1');
+      if (cust.get('locality')?.invalid) invalidFields.push('Locality');
+      if (cust.get('state')?.invalid) invalidFields.push('State');
+      if (cust.get('district')?.invalid) invalidFields.push('District');
+      if (cust.get('city')?.invalid) invalidFields.push('City');
+      if (cust.get('pincode')?.invalid) invalidFields.push('Pincode (6 digits)');
 
-      const fieldList = invalidFields.length ? invalidFields.join(', ') : 'required fields';
-      this.showToast(`Please fill required fields: ${fieldList}`, false);
+      if (cont.get('mobile')?.invalid) invalidFields.push('Contact Mobile Number (10 digits)');
+      if (cont.get('email')?.invalid) invalidFields.push('Contact Email Address');
+      if (cont.get('contactPersonName')?.invalid) invalidFields.push('Contact Person Name');
+      if (cont.get('contactPersonMobile')?.invalid) invalidFields.push('Contact Person Mobile (10 digits)');
+
+      if (deal.get('dealerName')?.invalid) invalidFields.push('Dealer Name');
+      if (deal.get('dealerCity')?.invalid) invalidFields.push('Dealer City');
+      if (deal.get('dealerMobile')?.invalid) invalidFields.push('Dealer Mobile (10 digits)');
+      if (deal.get('dealerEmail')?.invalid) invalidFields.push('Dealer Email');
+      if (deal.get('invoiceNumber')?.invalid) invalidFields.push('Invoice Number');
+      if (deal.get('purchaseDate')?.invalid) invalidFields.push('Dealer Purchase Date');
+
+      if (prod.get('brand')?.invalid) invalidFields.push('Select Brand');
+      if (prod.get('client')?.invalid) invalidFields.push('Client');
+      if (prod.get('product')?.invalid) invalidFields.push('Select Product');
+      if (prod.get('model')?.invalid) invalidFields.push('Select Model');
+      if (prod.get('purchaseDate')?.invalid) invalidFields.push('Product Purchase Date');
+      if (prod.get('warranty')?.invalid) invalidFields.push('Warranty');
+      if (prod.get('stockOf')?.invalid) invalidFields.push('Stock Of');
+      if (prod.get('purchaseOrderNumber')?.invalid) invalidFields.push('Purchase Order Number');
+
+      if (comp.get('callType')?.invalid) invalidFields.push('Call Type / Reported Issue');
+      if (comp.get('complaintPriority')?.invalid) invalidFields.push('Complaint Priority');
+      if (comp.get('callNature')?.invalid) invalidFields.push('Call Nature');
+      if (comp.get('visitType')?.invalid) invalidFields.push('Visit Type');
+
+      this.missingFieldsList = invalidFields.length ? invalidFields : ['Please check all mandatory fields'];
+      this.showValidationModal = true;
       return;
     }
 
@@ -4165,6 +4759,13 @@ export class CallManagementComponent implements OnInit {
         amOrPm: call.complaintDetail?.amOrPm || 'AM'
       }
     });
+
+    // Lock specified fields for View All Calls Edit Modal flow
+    this.editCallForm.get('customerDetail.pincode')?.disable();
+    this.editCallForm.get('productDetail.brand')?.disable();
+    this.editCallForm.get('productDetail.product')?.disable();
+    this.editCallForm.get('productDetail.model')?.disable();
+    this.editCallForm.get('complaintDetail.callType')?.disable();
   }
 
   startEditFromDetails(call: Call) {
@@ -4264,7 +4865,7 @@ export class CallManagementComponent implements OnInit {
 
     this.isSubmitting = true;
     const callNum = this.editingCall.callNumber || this.editingCall.callId || String(this.editingCall.id);
-    const updated = this.buildCallPayload(this.editCallForm.value, callNum);
+    const updated = this.buildCallPayload(this.editCallForm.getRawValue(), callNum);
 
     let savedStatus = this.normalizeStatus(this.editStatus);
     
@@ -4492,6 +5093,9 @@ export class CallManagementComponent implements OnInit {
     if (s === 'INPROGRESS') return 'status-progress';
     if (s === 'COMPLETED' || s === 'RESOLVED') return 'status-resolved';
     if (s === 'CLOSED' || s === 'CANCELLED' || s === 'CANCELED') return 'status-closed';
+    if (s === 'PENDINGFORAPPROVAL' || s === 'PENDINGAPPROVAL') return 'status-approval';
+    if (s === 'REPLACEMENT') return 'status-replacement';
+    if (s === 'PARTSPENDING') return 'status-parts';
     return 'status-pending';
   }
 

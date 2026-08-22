@@ -37,6 +37,10 @@ export class CallService {
     return this.http.delete<any>(`${this.apiUrl}/api/call/${id}/`);
   }
 
+  transferCall(callNumber: string, distributorId: number): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/api/transfercall/`, { callNumber, distributorId });
+  }
+
   /** Converts UI Title Case status to backend UPPER_SNAKE_CASE */
   private toBackendStatus(status: string): string {
     const map: { [key: string]: string } = {

@@ -35,19 +35,35 @@ export class AuthService {
           localStorage.setItem('crm_role', role.toString());
         }
 
-        // Save brandId — backend returns it directly as response.brandId in the login JSON
-        // Clear old brand first to avoid stale data from previous sessions
+        // Clear old brand & brandList to avoid stale data from previous sessions
         localStorage.removeItem('crm_brand_id');
+        localStorage.removeItem('crm_brand_list');
 
-        const brandId = response.brandId ?? response.brand_id ?? response.brand ??
-                        response.user?.brand_id ?? response.user?.brandId ??
-                        response.data?.brand_id ?? response.data?.brandId;
+        // Extract brandList from login JSON response or response.data
+        const rawBrandList = response.brandList ?? response.brand_list ?? response.data?.brandList ?? response.data?.brand_list;
+        let brandIds: number[] = [];
 
-        if (brandId !== null && brandId !== undefined && brandId !== '') {
-          localStorage.setItem('crm_brand_id', brandId.toString());
-          console.log('✅ Brand ID saved from login response:', brandId);
+        if (Array.isArray(rawBrandList)) {
+          brandIds = rawBrandList.map((id: any) => Number(id)).filter((id: number) => !isNaN(id));
+        }
+
+        const singleBrandId = response.brandId ?? response.brand_id ?? response.brand ??
+                             response.user?.brand_id ?? response.user?.brandId ??
+                             response.data?.brand_id ?? response.data?.brandId;
+
+        if (singleBrandId !== null && singleBrandId !== undefined && singleBrandId !== '') {
+          const numSingle = Number(singleBrandId);
+          if (!isNaN(numSingle) && !brandIds.includes(numSingle)) {
+            brandIds.push(numSingle);
+          }
+        }
+
+        if (brandIds.length > 0) {
+          localStorage.setItem('crm_brand_list', JSON.stringify(brandIds));
+          localStorage.setItem('crm_brand_id', brandIds[0].toString());
+          console.log('✅ Brand List saved from login response:', brandIds);
         } else {
-          console.warn('⚠️ Brand ID not found in login response. Customer brand filtering will not work until a brand is assigned in Admin.');
+          console.warn('⚠️ Brand List not found in login response. Customer brand filtering will rely on assigned brands.');
         }
       })
     );
@@ -69,9 +85,14 @@ export class AuthService {
     return this.http.post<any>(`${this.apiUrl}/api/resetpassword/`, { newPassword });
   }
 
+  updateUserStatus(username: string, status: boolean): Observable<any> {
+    return this.http.patch<any>(`${this.apiUrl}/api/updateuser/`, { username, status });
+  }
+
   logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem('crm_brand_id');
+    localStorage.removeItem('crm_brand_list');
     localStorage.removeItem('crm_role');
     this.tokenSignal.set(null);
     this.router.navigate(['/auth/login']);
@@ -142,11 +163,79 @@ export class AuthService {
   }
 
   getBrandId(): number | null {
+    const list = this.getBrandList();
+    if (list.length > 0) return list[0];
     const stored = localStorage.getItem('crm_brand_id');
     if (stored !== null && stored !== '' && stored !== 'null' && stored !== 'undefined') {
       const num = Number(stored);
       return isNaN(num) ? null : num;
     }
     return null;
+  }
+
+  getBrandList(): number[] {
+    const brandSet = new Set<number>();
+
+    // 1. From login response crm_brand_list
+    try {
+      const stored = localStorage.getItem('crm_brand_list');
+      if (stored) {
+        const arr = JSON.parse(stored);
+        if (Array.isArray(arr)) {
+          arr.forEach((id: any) => {
+            const num = Number(id);
+            if (!isNaN(num)) brandSet.add(num);
+          });
+        }
+      }
+    } catch (e) {}
+
+    // 2. From single brand ID if present
+    const single = localStorage.getItem('crm_brand_id');
+    if (single !== null && single !== '' && single !== 'null' && single !== 'undefined') {
+      const num = Number(single);
+      if (!isNaN(num)) brandSet.add(num);
+    }
+
+    // 3. From known user-brand associations stored in localStorage for current user
+    const userId = this.getUserId();
+    const username = this.getUsername();
+    const userKeys = [userId, userId ? String(userId) : null, username, username ? String(username) : null].filter(Boolean);
+
+    try {
+      const knownMap = JSON.parse(localStorage.getItem('crm_user_brand_known') || '{}');
+      userKeys.forEach(uKey => {
+        const userAssocs = knownMap[uKey!];
+        if (Array.isArray(userAssocs)) {
+          userAssocs.forEach((id: any) => {
+            const num = Number(id);
+            if (!isNaN(num)) brandSet.add(num);
+          });
+        }
+      });
+    } catch (e) {}
+
+    // 4. Remove any brand explicitly marked as inactive in local status map for this user
+    try {
+      const statusMap = JSON.parse(localStorage.getItem('crm_user_brand_status_map') || '{}');
+      brandSet.forEach(bId => {
+        userKeys.forEach(uKey => {
+          const key = `${uKey}_${bId}`;
+          if (statusMap[key] === false || statusMap[key] === 'false') {
+            brandSet.delete(bId);
+          }
+        });
+      });
+    } catch (e) {}
+
+    return Array.from(brandSet);
+  }
+
+  isBrandAllowed(brandId: number | string): boolean {
+    const role = this.getRole();
+    if (role && role.toLowerCase() === 'admin') return true;
+    const allowed = this.getBrandList();
+    if (!allowed || allowed.length === 0) return true;
+    return allowed.includes(Number(brandId));
   }
 }

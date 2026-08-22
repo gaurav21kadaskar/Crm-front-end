@@ -634,9 +634,9 @@ export class ProductFormComponent implements OnInit {
     let list = this.products;
     const role = this.authService.getRole();
     if (role && role.toLowerCase() === 'customer') {
-      const brandVal = this.authService.getBrandId();
-      if (brandVal !== null && brandVal !== undefined) {
-        list = list.filter(p => Number(p.brand) === brandVal);
+      const allowedBrands = this.authService.getBrandList();
+      if (allowedBrands && allowedBrands.length > 0) {
+        list = list.filter(p => p.brand !== undefined && allowedBrands.includes(Number(p.brand)));
       }
     }
     if (!this.searchQuery.trim()) return list;
@@ -681,9 +681,9 @@ export class ProductFormComponent implements OnInit {
         let loaded = this.parseArray(response);
         const role = this.authService.getRole();
         if (role && role.toLowerCase() === 'customer') {
-          const brandVal = this.authService.getBrandId();
-          if (brandVal !== null && brandVal !== undefined) {
-            loaded = loaded.filter(b => Number(b.id) === brandVal);
+          const allowedBrands = this.authService.getBrandList();
+          if (allowedBrands && allowedBrands.length > 0) {
+            loaded = loaded.filter(b => b.id !== undefined && allowedBrands.includes(Number(b.id)));
           }
         }
         this.brands = loaded;
@@ -699,9 +699,9 @@ export class ProductFormComponent implements OnInit {
         let loaded = this.parseArray(response);
         const role = this.authService.getRole();
         if (role && role.toLowerCase() === 'customer') {
-          const brandVal = this.authService.getBrandId();
-          if (brandVal !== null && brandVal !== undefined) {
-            loaded = loaded.filter(p => Number(p.brand) === brandVal);
+          const allowedBrands = this.authService.getBrandList();
+          if (allowedBrands && allowedBrands.length > 0) {
+            loaded = loaded.filter(p => p.brand !== undefined && allowedBrands.includes(Number(p.brand)));
           }
         }
         this.products = loaded.map(p => {
